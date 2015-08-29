@@ -12,16 +12,17 @@
 
 # Change the following to point to where you have the MIPS cross-compiler
 # installed.
-GCCDIR = /cse306/mips-gcc/
+#Specify absolute path or it will complain
+GCCDIR = /home/zerusski/Downloads/CSE306/mips-gcc/
 
 # Change the following to point to where you have Java executables installed.
-JAVADIR = /usr/local/jdk/bin/
+JAVADIR = /usr/lib/jvm/java-7-oracle/bin/
 
 # Uncomment the following when running on Windows.
-JAVA= $(JAVADIR)java -classpath '..\machine.jar'
+#JAVA= $(JAVADIR)java -classpath '..\machine.jar'
 
 # Uncomment the following when running on Unix.
-#JAVA= $(JAVADIR)java -classpath '../machine.jar'
+JAVA= $(JAVADIR)java -classpath '../machine.jar'
 
 CC = $(GCCDIR)gcc
 AS = $(GCCDIR)as
@@ -34,7 +35,7 @@ LDFLAGS = -T script -N
 ASFLAGS = -mips1
 CPPFLAGS = -I$(INCDIR) -B$(GCCDIR)
 
-CFLAGS = -G 0 -I$(INCDIR) -B$(GCCDIR) -c -fno-builtin
+CFLAGS = -v -G 0 -I$(INCDIR) -B$(GCCDIR) -c -fno-builtin
 SFLAGS = -G 0 -I$(INCDIR) -B$(GCCDIR) -c -S -fno-builtin
 
 NACHOSDIR=..

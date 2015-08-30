@@ -11,10 +11,10 @@
 #
 
 # Uncomment the following when running on Windows.
-JC= javac -classpath 'machine.jar;.'
+#JC= javac -classpath 'machine.jar;.'
 
 # Uncomment the following when running on Unix.
-#JC= javac -classpath 'machine.jar:.'
+JC= javac -classpath 'machine.jar:.'
 
 KERNEL_SOURCES=\
 	nachos/Debug.java\

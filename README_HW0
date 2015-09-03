@@ -1,0 +1,6 @@
+ReadMe for HW0
+
+To run nachos, first make sure you uncomment the line which corresponds to the OS you are compiling it on in the run file.
+Next, set the GCCDIR and JAVADIR variables in test/Makefile to point to the binaries and java directories respectively.
+Open up a terminal and run `make halt` in the test/ directory. Then run the command `./run  -d m -x test/halt`,
+once in the nachos/ dir.

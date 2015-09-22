@@ -40,6 +40,9 @@ import nachos.machine.Simulation;
  *    t  Threads and scheduling
  *    @  Simulation internals
  *    
+ *    C CyclicBarrier
+ *    T TaskManager
+ *    
  * The easiest way to see which messages are which is to run Nachos
  * with the arguments  "-d +", which will show all debugging printout
  * other than for simulation internals. 

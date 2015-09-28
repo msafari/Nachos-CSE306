@@ -1,11 +1,13 @@
 ReadMe for HW1
 
+TODO
+
 Notes:
 -Options.java stores the options to specify when the program is run. This is where you can add new tests.
 Once the tests are added in Options.java, you can start them in Nachos.java.
-
--Debug.java allows you to add new debug flags to Nachos.
--Removed args for demo, not used anywhere. Then where is the random seed used?
+-Debug.java allows you to add new debug flags to Nachos. To add new flags just specify them in Debug.println() method.
 - -d followed by custom arguments will display debug info
-- -CT/TM will run those demos
+- -CT/TM will run the CyclicBarrier and/or TaskManager demos
+- Use -RY to turn random yield on, together with -rs <seed>
+- Use -ps for preemptive scheduling. Preemptive scheduling allows for the scheduler to prioritize threads.
 

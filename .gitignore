@@ -1,3 +1,4 @@
 *.class
+.metadata/
 test/*.o
 test/halt

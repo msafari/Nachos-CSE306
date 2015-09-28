@@ -32,7 +32,9 @@ import nachos.kernel.devices.SerialDriver;
 import nachos.kernel.devices.test.ConsoleTest;
 import nachos.kernel.devices.test.NetworkTest;
 import nachos.kernel.devices.test.SerialTest;
+import nachos.kernel.threads.CyclicBarrier;
 import nachos.kernel.threads.Scheduler;
+import nachos.kernel.threads.TaskManager;
 import nachos.kernel.userprog.ExceptionHandler;
 import nachos.kernel.filesys.FileSystem;
 import nachos.kernel.threads.test.SMPTest;
@@ -92,7 +94,6 @@ public class Nachos implements Runnable {
 	    networkDriver = new NetworkDriver();
 	
 	// Initialize the filesystem.
-
 	if(options.FILESYS_STUB || options.FILESYS_REAL)
 	    fileSystem = FileSystem.init(diskDriver);
 
@@ -121,6 +122,12 @@ public class Nachos implements Runnable {
 	    NetworkTest.start();
 	if(options.CONSOLE_TEST)
 	    ConsoleTest.start();
+	
+	//Custom tests
+	if(options.CYCLICBARRIER_TEST)
+	    CyclicBarrier.demo();
+	if(options.TASKMANAGER_TEST)
+	    TaskManager.demo();
 	
 	// Terminate the first thread, its job is done.
 	// Alternatively, you could give this thread the responsibility

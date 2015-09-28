@@ -1,0 +1,11 @@
+ReadMe for HW1
+
+Notes:
+-Options.java stores the options to specify when the program is run. This is where you can add new tests.
+Once the tests are added in Options.java, you can start them in Nachos.java.
+
+-Debug.java allows you to add new debug flags to Nachos.
+-Removed args for demo, not used anywhere. Then where is the random seed used?
+- -d followed by custom arguments will display debug info
+- -CT/TM will run those demos
+

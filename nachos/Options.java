@@ -184,8 +184,16 @@ public class Options {
     public boolean CYCLICBARRIER_TEST = false;
 
     /** Should we run the task manager test? */
-    public boolean TASKMANAGER_TEST = false;
-
+    public boolean TASKMANAGER_TEST_0 = false;
+    
+    public boolean TASKMANAGER_TEST_1 = false;
+    
+    public boolean TASKMANAGER_TEST_2 = false;
+    
+    public boolean TASKMANAGER_TEST_3 = false;
+    
+    public boolean TASKMANAGER_TEST_4 = false;
+    
     public Options(String[] args) {
 	argList = Arrays.asList(args);
 	parseArgList();
@@ -326,7 +334,29 @@ public class Options {
 			new Class[] {}, null, new Options.Action() {
 			    public void processOption(String flag,
 				    Object[] params) {
-				TASKMANAGER_TEST = true;
+				TASKMANAGER_TEST_0 = true;
+			    }
+			}),
+			
+		new Spec("-TM1", // enable CyclicBarrier test
+			new Class[] {}, null, new Options.Action() {
+			    public void processOption(String flag,
+				    Object[] params) {
+				TASKMANAGER_TEST_1 = true;
+			    }
+			}),
+			new Spec("-TM2", // enable CyclicBarrier test
+				new Class[] {}, null, new Options.Action() {
+			    public void processOption(String flag,
+				    Object[] params) {
+				TASKMANAGER_TEST_2 = true;
+			    }
+			}),
+			new Spec("-TM3", // enable CyclicBarrier test
+				new Class[] {}, null, new Options.Action() {
+			    public void processOption(String flag,
+				    Object[] params) {
+				TASKMANAGER_TEST_3 = true;
 			    }
 			}),
 

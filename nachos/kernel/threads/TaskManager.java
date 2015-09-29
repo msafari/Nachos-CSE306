@@ -37,6 +37,7 @@ public class TaskManager {
 
     private static NachosThread parentThread;
     private Lock lock = new Lock("TaskManegerLock");
+    private Semaphore wait = new Semaphore("waitParent", 0);
     private Queue<Runnable> taskQueue = new FIFOQueue<Runnable>();
     private Queue<element> childThreads = new FIFOQueue<element>();
     
@@ -65,15 +66,16 @@ public class TaskManager {
      * @param runnable  Runnable to be executed by the parent thread.
      */
 
-    public void postRequest(final Runnable runnable) {
+    public void postRequest(Runnable runnable) {
 
 	lock.acquire();
 	
 	taskQueue.offer(runnable);
 	
-	Debug.println('T', "request was posted to queue");
+	Debug.println('T', "request was posted to queue peek");
+	wait.V();
+	lock.release();	
 	
-	lock.release();		
     }
     
 
@@ -95,17 +97,21 @@ public class TaskManager {
 	if(NachosThread.currentThread() != this.parentThread)
 	    throw new IllegalStateException("Calling thread is not registered as the parent thread for this Task Manager");
 	
-	Debug.println('+', "========in process request");
-	lock.acquire();
+	wait.P();
 	
+	Debug.println('E', "========in process request");
+		
 	do{
+	    
 	    while (!taskQueue.isEmpty()){
-		Debug.println('+', "running stuff from queue");
+		Debug.println('E', "========running requests");
+		lock.acquire();
 		taskQueue.poll().run();
+		lock.release();	
 	    }	    
 	}
 	while(isAnyChildThrdActive());	
-	lock.release();	
+	
     }
     
     
@@ -113,12 +119,13 @@ public class TaskManager {
 	Queue<element> childCopy = childThreads;
 	boolean isAnythingActive= false;
 	while(!childCopy.isEmpty()){
-	    if(childCopy.poll().getStatus() != NachosThread.FINISHED){	
+	    if(childCopy.poll().getStatus() != NachosThread.FINISHED){
 		isAnythingActive = true;
+		break;
 	    }
 	    
 	}
-	Debug.println('T', "========== IS anythign Active?" + isAnythingActive);
+	Debug.println('E', "========== IS anythign Active?" + isAnythingActive);
 	return isAnythingActive;
     }
     
@@ -169,13 +176,14 @@ public class TaskManager {
 	 * run either onCancellation() or onCompletion(), respectively,
 	 * depending on	whether or not the task was cancelled.
 	 */
-	public void execute() {
+	public void execute(int i) {
 	    element childObj= new element();
-	    NachosThread childThrd = new NachosThread("newChildThread", new Runnable (){
+
+	    NachosThread childThrd = new NachosThread("ChildThread_"+ ++i, new Runnable (){
 		
 		public void run() {
 		    try{
-			Debug.println('T', "=======starting to do work in background");
+			Debug.println('E', "=======starting to do work in background");
 			doInBackground();
 		    }
 		    
@@ -205,9 +213,8 @@ public class TaskManager {
 
 			// now make the post request using runnable r
 			postRequest(r);
-			Debug.println('T', "=======finished posting request from "+ NachosThread.currentThread().name);
-			//childThreads.peek().setStatus(NachosThread.FINISHED);
-			Debug.println('T', "==========flagged as FINISHED" + NachosThread.currentThread().name);
+			childThreads.peek().setStatus(NachosThread.FINISHED);
+			Debug.println('E', "==========flagged as FINISHED" + NachosThread.currentThread().name);
 			Nachos.scheduler.finishThread();
 		    }
 		    
@@ -215,8 +222,10 @@ public class TaskManager {
 		
 	    });
 	    
+	    
 	    childObj.childThread= childThrd;
 	    childThreads.offer(childObj);
+	    
 	    
 	    //run the child thread?
 	  
@@ -241,6 +250,7 @@ public class TaskManager {
 	    lock.acquire();
 	    taskStatus = Status.CANCELED;
 	    lock.release();
+	    Debug.println('E', "======Canceling task");
 	    return true;
 	}
 
@@ -252,11 +262,13 @@ public class TaskManager {
 	 */
 	public boolean isCancelled() {
 	    lock.acquire();
+	    boolean returnVal = false;
 	    if (taskStatus == Status.CANCELED){
-		return true;
+		Debug.println('E', "======Task is CANCELED");
+		returnVal = true;
 	    }
 	    lock.release();
-	    return false;
+	    return returnVal;
 	}
 
 	/**
@@ -289,7 +301,6 @@ public class TaskManager {
 	 * was cancelled.
 	 */
 	protected void onCancellation() {
-	    //Nachos.scheduler.finishThread();
 	}
 	
 	/**
@@ -363,10 +374,100 @@ public class TaskManager {
 				      + " for task " + tn);
 		    }
 		};
-	    task.execute();
+	    task.execute(i);
 	}
 	mgr.processRequests();
 	Debug.println('T', "Demo terminating");
 
     }
+    
+   /**
+    * This test includes 1 task that cancels itself
+    */
+    public static void demo2() {
+	TaskManager mgr = new TaskManager();
+	Debug.println('+', "TaskManager demo2 starting");
+	Debug.println('T', "Thread " + NachosThread.currentThread().name + " is now running");
+	Task task1 = mgr.new Task() {
+	    
+	    protected void doInBackground() {
+		for(int i=0; i<5; i++ ){
+		    allowTimeToPass();   // Do "work"
+		    Debug.println('T', "Thread " + NachosThread.currentThread().name + " is working on task 1");
+		}
+		Debug.println('T', "Thread " + NachosThread.currentThread().name + " finishing task 1");
+			
+	    }
+	    
+	    protected void onCompletion() {
+		Debug.println('T', "Thread " + NachosThread.currentThread().name + " is running onCompletion on task 1");
+	    }
+	    
+	};
+	
+	task1.execute(0);
+	
+	Task task2 = mgr.new Task(){
+	    protected void doInBackground() {
+		Debug.println('T', "Thread " + NachosThread.currentThread().name + " is working on task 2");
+		this.cancel();
+		
+	    }
+	    protected void onCompletion() {
+		Debug.println('T', "Thread " + NachosThread.currentThread().name + " is running onCompletion on task 2");
+	    }
+	    protected void onCancellation(){
+		Debug.println('T', "Thread " + NachosThread.currentThread().name + " is running onCancellation() task 2");
+	    }
+	};
+	
+	task2.execute(1);
+	
+	mgr.processRequests();
+	Debug.println('T', "Demo 2 Terminating");
+    }
+    
+    
+    
+    /**
+     * This test includes 1 task that cancels itself
+     */
+     public static void demo3() {
+ 	final TaskManager mgr = new TaskManager();
+ 	Debug.println('+', "TaskManager demo3 starting");
+ 	Debug.println('T', "Thread " + NachosThread.currentThread().name + " is now running");
+ 	Task task1 = mgr.new Task() {
+ 	    
+ 	    protected void doInBackground() {
+ 		for(int i=0; i<5; i++ ){
+ 		    allowTimeToPass();   // Do "work"
+ 		    Debug.println('T', "Thread " + NachosThread.currentThread().name + " is working on task 1");
+ 		}
+ 		Debug.println('T', "Thread " + NachosThread.currentThread().name + " finishing task 1");
+ 			
+ 	    }
+ 	    
+ 	    protected void onCompletion() {
+ 		Debug.println('T', "Thread " + NachosThread.currentThread().name + " is running onCompletion on task 1");
+ 		Task innerTask1 = mgr.new Task() {
+ 		    protected void doInBackground() {
+ 			Debug.println('T', "Thread " + NachosThread.currentThread().name + " is working on INNER  task 1");
+ 		    }
+ 		    
+ 		    protected void onCompletion() {
+ 			Debug.println('T', "Thread " + NachosThread.currentThread().name + " is running onCompletion() on INNER task 1");
+		    }
+ 		};
+ 		//Debug.println('T', "Thread " + NachosThread.currentThread().name + " is executing INNER task 1");
+ 		innerTask1.execute(1);
+ 	    }
+ 	    
+ 	};
+ 	
+ 	task1.execute(0);
+ 	
+ 	
+ 	mgr.processRequests();
+ 	Debug.println('T', "Demo 2 Terminating");
+     }
 }

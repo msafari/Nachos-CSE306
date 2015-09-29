@@ -1,11 +1,24 @@
 ReadMe for HW1
 
-Notes:
+Exercise 1:
+	For the CyclicBarrier class, only Semaphores were used as a synchronization primitive. 
+	This class has three semaphores: One for blocking access to changing variables, 
+	another as a method for forcing threads to wait at the barrier, and one which blocks when the last thread has reached the barrier.
+	
+	The reset method was implemented in a way which triggers a BrokenBarrier exception
+	in any threads following the thread which called barrier.reset(). 
+	Note: any threads already waiting will be released and also throw a BrokenBarrier exception.
+	The demo2() method tests the CyclicBarrier's reset method by creating four threads, 
+	having the third thread reset the barrier and displaying the exceptions thrown by the 
+Exercise 2:
+
+General Notes:
 -Options.java stores the options to specify when the program is run. This is where you can add new tests.
 Once the tests are added in Options.java, you can start them in Nachos.java.
-
--Debug.java allows you to add new debug flags to Nachos.
--Removed args for demo, not used anywhere. Then where is the random seed used?
+-Debug.java allows you to add new debug flags to Nachos. To add new flags just specify them in Debug.println() method.
 - -d followed by custom arguments will display debug info
-- -CT/TM will run those demos
+- -CT/TM will run the CyclicBarrier and/or TaskManager demos
+- Use -RY to turn random yield on, together with -rs <seed>
+- Use -ps for preemptive scheduling. Preemptive scheduling allows for the scheduler to prioritize threads.
+Removing -ps allows the program to terminate.
 

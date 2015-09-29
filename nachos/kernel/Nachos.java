@@ -126,8 +126,13 @@ public class Nachos implements Runnable {
 	//Custom tests
 	if(options.CYCLICBARRIER_TEST)
 	    CyclicBarrier.demo();
-	if(options.TASKMANAGER_TEST)
+	if(options.TASKMANAGER_TEST_0)
+	    TaskManager.demo();
+	if(options.TASKMANAGER_TEST_1)
+	    TaskManager.demo2();
+	if(options.TASKMANAGER_TEST_2)
 	    TaskManager.demo3();
+	
 	
 	// Terminate the first thread, its job is done.
 	// Alternatively, you could give this thread the responsibility

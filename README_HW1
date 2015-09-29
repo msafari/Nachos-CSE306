@@ -10,9 +10,21 @@ Exercise 1:
 	Note: any threads already waiting will be released and also throw a BrokenBarrier exception.
 	The demo2() method tests the CyclicBarrier's reset method by creating four threads, 
 	having the third thread reset the barrier and displaying the exceptions thrown by the 
+	
 Exercise 2:
+	For the TaskManager class, Semaphores and locks were used as synchronization primitives.
+	Demo methods were added as new options to ensure correction of program.
+	
+	-TM : 	Will run the original demo function provided in the skeleton
+	
+	-TM1: 	Will run method demo2() which creates tasks but one of them cancels the task inside doInBackground() method.
+			This ensures that program handles canceled tasks as expected.
+			
+	-TM2:	Will run demo3() which creates two new tasks to be executed However the second task will create 20 more tasks onCompletion()
+	
+	-T: 	Turn on -T flag to display the debug statements for TaskManager 
 
-General Notes:
+General Notes For Developers:
 -Options.java stores the options to specify when the program is run. This is where you can add new tests.
 Once the tests are added in Options.java, you can start them in Nachos.java.
 -Debug.java allows you to add new debug flags to Nachos. To add new flags just specify them in Debug.println() method.
@@ -21,4 +33,3 @@ Once the tests are added in Options.java, you can start them in Nachos.java.
 - Use -RY to turn random yield on, together with -rs <seed>
 - Use -ps for preemptive scheduling. Preemptive scheduling allows for the scheduler to prioritize threads.
 Removing -ps allows the program to terminate.
-

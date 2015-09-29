@@ -97,7 +97,7 @@ public class CyclicBarrier {
 	   //Thread is now waiting at barrier
 	    block.P();
 	    int index = ++waitingParties;
-	    Debug.println('C', "Index: " + index +", Waiting Parties: "+ waitingParties);
+	    Debug.println('C', "Waiting Parties: "+ waitingParties);
 	    block.V();
 	    
 	    //If this is the last thread, decrement waiting parties and pass it through
@@ -113,12 +113,18 @@ public class CyclicBarrier {
 	    //Otherwise wait for all threads to reach barrier
 	    wait.P();
 	    
-	    // Now let the threads pass
+	    //Check if barrier was broken while thread was still waiting, throw exception
+	    if (isBroken) {
+		throw new BrokenBarrierException();
+	    }
+	    
+	    //Now let the threads pass
 	    block.P();
-	    waitingParties -= 1;
 	    Debug.println('C', "Threads waiting now: " + waitingParties);
+	    waitingParties -= 1;
 	    block.V();
 	    
+	    //Release wait, letting other threads do work
 	    wait.V();
 	    
 	    //Release barrierBlock once last thread finishes
@@ -163,6 +169,14 @@ public class CyclicBarrier {
 	//Block off access to variables when resetting them
 	block.P();
 	isBroken = true;
+	
+	//Set semaphore to number of waitingParties
+	int count = waitingParties;
+	Debug.println('C', "Count is: " + count);
+	while(count > 0){
+	    wait.V();
+	    count--;
+	}
 	waitingParties = 0;
 	Debug.println('C', "Barrier has been reset.");
 	block.V();
@@ -203,11 +217,11 @@ public class CyclicBarrier {
 	// Very simple example of the intended use of the CyclicBarrier
 	// facility: you should replace this code with something much
 	// more interesting.
-	final CyclicBarrier barrier = new CyclicBarrier(2);
+	final CyclicBarrier barrier = new CyclicBarrier(5);
 	
 	Debug.println('C', "CyclicBarrier Demo starting");
 	
-	for(int i = 0; i < 2; i++) {
+	for(int i = 0; i < 5; i++) {
 	    NachosThread thread = new NachosThread("Worker thread " + i, new Runnable() {
 		    public void run() {
 			Debug.println('C', "Thread " + NachosThread.currentThread().name + " is starting");
@@ -229,12 +243,49 @@ public class CyclicBarrier {
 	Debug.println('C', "Demo terminating");
     }
     
+    /**
+     * This demo shows the execution of the reset method on the CyclicBarrier. 
+     * Once a thread calls the reset method, it will terminate.
+     * Any threads following this thread will have a BrokenBarrier 
+     * 
+     */
     public static void demo2(){
-	final CyclicBarrier barrier = new CyclicBarrier(2);
+	final CyclicBarrier barrier = new CyclicBarrier(4);
 	Debug.println('C', "CyclicBarrier Demo starting");
 	
+	//Zero thread
+	NachosThread thread = new NachosThread("Worker thread " + 0,
+		new Runnable() {
+		    public void run() {
+			Debug.println('C',
+				"Thread " + NachosThread.currentThread().name
+					+ " is starting");
+			Debug.println('C',
+				"Thread " + NachosThread.currentThread().name
+					+ " is working");
+			CyclicBarrier.allowTimeToPass(); // Do "work".
+
+			Debug.println('C',
+				"Thread " + NachosThread.currentThread().name
+					+ " is waiting at the barrier");
+			try {
+			    barrier.await();
+			} catch (BrokenBarrierException e) {
+			    // Barrier has been broken
+			    e.printStackTrace();
+			}
+
+			Debug.println('C',
+				"Thread " + NachosThread.currentThread().name
+					+ " is terminating");
+
+			Nachos.scheduler.finishThread();
+		    }
+		});
+	Nachos.scheduler.readyToRun(thread);
+	
 	//First thread
-	NachosThread thread = new NachosThread("Worker thread " + 1,
+	thread = new NachosThread("Worker thread " + 1,
 		new Runnable() {
 		    public void run() {
 			Debug.println('C',
@@ -279,8 +330,40 @@ public class CyclicBarrier {
 			Debug.println('C',
 				"Thread " + NachosThread.currentThread().name
 					+ " is waiting at the barrier");
+//			try {
+			    barrier.reset();
+//			    barrier.await();
+//			} catch (BrokenBarrierException e) {
+//			    // Barrier has been broken
+//			    e.printStackTrace();
+//			}
+
+			Debug.println('C',
+				"Thread " + NachosThread.currentThread().name
+					+ " is terminating");
+
+			Nachos.scheduler.finishThread();
+		    }
+		});
+	Nachos.scheduler.readyToRun(thread);
+	
+	//third thread
+	thread = new NachosThread("Worker thread " + 3,
+		new Runnable() {
+		    public void run() {
+			Debug.println('C',
+				"Thread " + NachosThread.currentThread().name
+					+ " is starting");
+			Debug.println('C',
+				"Thread " + NachosThread.currentThread().name
+					+ " is working");
+			CyclicBarrier.allowTimeToPass(); // Do "work".
+
+			Debug.println('C',
+				"Thread " + NachosThread.currentThread().name
+					+ " is waiting at the barrier");
 			try {
-			    //barrier.reset();
+//			    barrier.reset();
 			    barrier.await();
 			} catch (BrokenBarrierException e) {
 			    // Barrier has been broken

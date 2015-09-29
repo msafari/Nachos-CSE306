@@ -181,7 +181,9 @@ public class Options {
     public boolean NETWORK_TEST = false;
 
     /** Should we run the cyclic barrier test? */
-    public boolean CYCLICBARRIER_TEST = false;
+    public boolean CYCLICBARRIER_TEST_0 = false;
+    public boolean CYCLICBARRIER_TEST_1 = false;
+    public boolean CYCLICBARRIER_TEST_2 = false;
 
     /** Should we run the task manager test? */
     public boolean TASKMANAGER_TEST_0 = false;
@@ -189,10 +191,6 @@ public class Options {
     public boolean TASKMANAGER_TEST_1 = false;
     
     public boolean TASKMANAGER_TEST_2 = false;
-    
-    public boolean TASKMANAGER_TEST_3 = false;
-    
-    public boolean TASKMANAGER_TEST_4 = false;
     
     public Options(String[] args) {
 	argList = Arrays.asList(args);
@@ -327,10 +325,26 @@ public class Options {
 			new Class[] {}, null, new Options.Action() {
 			    public void processOption(String flag,
 				    Object[] params) {
-				CYCLICBARRIER_TEST = true;
+				CYCLICBARRIER_TEST_0 = true;
+			    }
+			}),
+		
+		new Spec("-CB1", // enable CyclicBarrier test
+			new Class[] {}, null, new Options.Action() {
+			    public void processOption(String flag,
+				    Object[] params) {
+				CYCLICBARRIER_TEST_1 = true;
 			    }
 			}), 
-		new Spec("-TM", // enable CyclicBarrier test
+		new Spec("-CB2", // enable CyclicBarrier test
+			new Class[] {}, null, new Options.Action() {
+			    public void processOption(String flag,
+				    Object[] params) {
+				CYCLICBARRIER_TEST_2 = true;
+			    }
+			}),
+			
+		new Spec("-TM", // enable TaskManager test
 			new Class[] {}, null, new Options.Action() {
 			    public void processOption(String flag,
 				    Object[] params) {
@@ -338,28 +352,20 @@ public class Options {
 			    }
 			}),
 			
-		new Spec("-TM1", // enable CyclicBarrier test
+		new Spec("-TM1", // enable TaskManager test
 			new Class[] {}, null, new Options.Action() {
 			    public void processOption(String flag,
 				    Object[] params) {
 				TASKMANAGER_TEST_1 = true;
 			    }
 			}),
-			new Spec("-TM2", // enable CyclicBarrier test
-				new Class[] {}, null, new Options.Action() {
+		new Spec("-TM2", // enable TaskManager test
+			new Class[] {}, null, new Options.Action() {
 			    public void processOption(String flag,
 				    Object[] params) {
 				TASKMANAGER_TEST_2 = true;
 			    }
 			}),
-			new Spec("-TM3", // enable CyclicBarrier test
-				new Class[] {}, null, new Options.Action() {
-			    public void processOption(String flag,
-				    Object[] params) {
-				TASKMANAGER_TEST_3 = true;
-			    }
-			}),
-
 	});
     }
 

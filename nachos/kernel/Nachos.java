@@ -123,9 +123,15 @@ public class Nachos implements Runnable {
 	if(options.CONSOLE_TEST)
 	    ConsoleTest.start();
 	
-	//Custom tests
-	if(options.CYCLICBARRIER_TEST)
+	//CyclicBarrier
+	if(options.CYCLICBARRIER_TEST_0)
 	    CyclicBarrier.demo();
+	if(options.CYCLICBARRIER_TEST_1)
+	    CyclicBarrier.demo2();
+	if(options.CYCLICBARRIER_TEST_2)
+	    CyclicBarrier.demo3();
+	
+	//TaskManger
 	if(options.TASKMANAGER_TEST_0)
 	    TaskManager.demo();
 	if(options.TASKMANAGER_TEST_1)

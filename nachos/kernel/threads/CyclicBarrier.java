@@ -130,6 +130,12 @@ public class CyclicBarrier {
 	    //Release barrierBlock once last thread finishes
 	    if(index == parties){
 		Debug.println('C', "Releasing barrierBlock and wait");
+		//Run barrierAction if it exists
+		if(barrierAction != null){
+		    Debug.println('C', "Running barrierAction");
+		    barrierAction.run();
+		}
+
 		barrierBlock.V();
 	    }
 	 
@@ -251,7 +257,7 @@ public class CyclicBarrier {
      */
     public static void demo2(){
 	final CyclicBarrier barrier = new CyclicBarrier(4);
-	Debug.println('C', "CyclicBarrier Demo starting");
+	Debug.println('C', "CyclicBarrier Demo 2 starting");
 	
 	//Zero thread
 	NachosThread thread = new NachosThread("Worker thread " + 0,
@@ -330,13 +336,8 @@ public class CyclicBarrier {
 			Debug.println('C',
 				"Thread " + NachosThread.currentThread().name
 					+ " is waiting at the barrier");
-//			try {
-			    barrier.reset();
-//			    barrier.await();
-//			} catch (BrokenBarrierException e) {
-//			    // Barrier has been broken
-//			    e.printStackTrace();
-//			}
+			//Reset the barrier
+			barrier.reset();
 
 			Debug.println('C',
 				"Thread " + NachosThread.currentThread().name
@@ -347,7 +348,7 @@ public class CyclicBarrier {
 		});
 	Nachos.scheduler.readyToRun(thread);
 	
-	//third thread
+	//Third thread
 	thread = new NachosThread("Worker thread " + 3,
 		new Runnable() {
 		    public void run() {
@@ -363,7 +364,6 @@ public class CyclicBarrier {
 				"Thread " + NachosThread.currentThread().name
 					+ " is waiting at the barrier");
 			try {
-//			    barrier.reset();
 			    barrier.await();
 			} catch (BrokenBarrierException e) {
 			    // Barrier has been broken
@@ -383,5 +383,44 @@ public class CyclicBarrier {
 	
 	
     }
+
+    /**
+     * This demo demonstrates a barrier with a runnable action which is executed when the last thread trips the barrier
+     */
+    public static void demo3() {
+   	final CyclicBarrier barrier = new CyclicBarrier(5, new Runnable(){
+   	    public void run(){
+   		Debug.println('C', "Barrier action is now executing.");
+   		for(int i = 0; i < 10; i++){
+   		    Debug.println('C', "Just counting: " + i);
+   		    CyclicBarrier.allowTimeToPass();
+   		}
+   		Debug.println('C', "Barrier action is finished.");
+   	    }
+   	});
+   	
+   	Debug.println('C', "CyclicBarrier Demo starting");
+   	
+   	for(int i = 0; i < 5; i++) {
+   	    NachosThread thread = new NachosThread("Worker thread " + i, new Runnable() {
+   		    public void run() {
+   			Debug.println('C', "Thread " + NachosThread.currentThread().name + " is starting");
+   			CyclicBarrier.allowTimeToPass();  // Do "work".
+   			Debug.println('C', "Thread " + NachosThread.currentThread().name + " is waiting at the barrier");
+   			    try {
+   				barrier.await();
+   			    } catch (BrokenBarrierException e) {
+   				// Barrier has been broken
+   				e.printStackTrace();
+   			    }
+   			Debug.println('C', "Thread " + NachosThread.currentThread().name + " has finished");
+   			Debug.println('C', "Thread " + NachosThread.currentThread().name + " is terminating");
+   			Nachos.scheduler.finishThread();
+   		    }
+   		});
+   	    Nachos.scheduler.readyToRun(thread);
+   	}
+   	Debug.println('C', "Demo terminating");
+       }
 }
 

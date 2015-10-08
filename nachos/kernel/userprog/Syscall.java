@@ -90,7 +90,25 @@ public class Syscall {
      *
      * @param name The name of the file to execute.
      */
-    public static int exec(String name) {return 0;}
+    public static int exec(String name) {
+	
+	Debug.println('S', "Exec SysCall is called");
+	
+	//Create a new process (i.e. user thread plus user address space) in which to execute the program
+	AddrSpace addrSpace = new AddrSpace();
+	UserThread userThread = new UserThread(name ,new Runnable(){
+	    public void run(){
+		
+	    }
+	},addrSpace);
+	
+	//Schedule the newly created process for execution on the CPU
+	
+	//Initializes the address space using the data from the NACHOS executable
+	//An integer value ("SpaceId") that uniquely identifies the newly created process is returned to the caller
+	return 0;
+	
+    }
 
     /**
      * Wait for the user program specified by "id" to finish, and
@@ -172,7 +190,11 @@ public class Syscall {
      * @param id The OpenFileId of the file from which to read the data.
      * @return The actual number of bytes read.
      */
-    public static int read(byte buffer[], int size, int id) {return 0;}
+    public static int read(byte buffer[], int size, int id) {
+	
+	return 0;
+	
+    }
 
     /**
      * Close the file, we're done reading and writing to it.

@@ -55,6 +55,23 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	if (which == MachineException.SyscallException) {
 
 	    switch (type) {
+
+	    case Syscall.SC_Join:
+		break;
+	    case Syscall.SC_Create:
+		break;
+	    case Syscall.SC_Open:
+		break;
+	    case Syscall.SC_Read:
+		break;
+	    case Syscall.SC_Close:
+		break;
+	    case Syscall.SC_Fork:
+		break;
+	    case Syscall.SC_Yield:
+		break;
+	    case Syscall.SC_Remove:
+		break;
 	    case Syscall.SC_Halt:
 		Syscall.halt();
 		break;
@@ -62,7 +79,8 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		Syscall.exit(CPU.readRegister(4));
 		break;
 	    case Syscall.SC_Exec:
-		Syscall.exec("");
+		String fileName = getFileName(4);
+		Syscall.exec(fileName);
 		break;
 	    case Syscall.SC_Write:
 		int ptr = CPU.readRegister(4);
@@ -85,9 +103,41 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	    return;
 	}
 
-	System.out.println("Unexpected user mode exception " + which +
-		", " + type);
+	System.out.println("Unexpected user mode exception " + which + ", " + type);
 	Debug.ASSERT(false);
 
     }
+    
+    /*
+     * Function to return a string from an array of bytes.
+     */
+    public String bytesToString(byte[] buf){
+	return new String(buf);
+    }
+    
+    /*
+     * Returns filename of address specified by register number.
+     * Register number must be between 2-25 to be a valid reg. 
+     */
+    public String getFileName(int reg){
+	
+	Debug.println('S', "getFileName obtaining name from pointer.");
+	
+	//Check reg number
+	if(reg >= 2 && reg <= 25){
+	    int ptr = CPU.readRegister(reg); //Get the address this pointer is pointing to.
+	    byte buf[] = new byte[4]; //Only 4 bytes since this is a filename.
+
+	    System.arraycopy(Machine.mainMemory, ptr, buf, 0, 4);
+	    String fileName = bytesToString(buf);
+	    Debug.println('S', "File name is: " + fileName);
+	    return fileName;
+	}
+	//Otherwise return null
+	else{
+	    Debug.println('S', "Error: Invalid register number.");
+	    return null;
+	}
+    }
+
 }

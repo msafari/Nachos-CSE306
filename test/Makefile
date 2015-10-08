@@ -74,3 +74,12 @@ halt: halt.o start.o
 	rm $*.o
 	$(COFF2NOFF) $*.coff $@
 	rm $*.coff
+
+.PHONY: clean
+
+#Delete only the executables that we made
+.PHONY: clean
+
+clean:
+	-find . -type f -not \( -name '*c' -or -name '*h' -or -name '*s' -or -name 'README' -or -name 'Makefile' \
+	-or -name 'script' -or -name 'script_paged' -or -name 'script_segmented' \) -delete

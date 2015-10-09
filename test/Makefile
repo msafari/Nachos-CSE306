@@ -75,8 +75,6 @@ halt: halt.o start.o
 	$(COFF2NOFF) $*.coff $@
 	rm $*.coff
 
-.PHONY: clean
-
 #Delete only the executables that we made
 .PHONY: clean
 

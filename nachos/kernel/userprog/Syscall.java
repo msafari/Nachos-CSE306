@@ -95,7 +95,7 @@ public class Syscall {
      *
      * @param name The name of the file to execute.
      */
-    public static int exec(String name) {
+    public static int exec(final String name) {
 	
 	Debug.println('S', "Exec SysCall is called");
 	
@@ -103,35 +103,34 @@ public class Syscall {
 	AddrSpace addrSpace = new AddrSpace();
 	UserThread userThread = new UserThread(name ,new Runnable(){
 	    public void run(){
-		//@TODO what to put here?
+		
+		//Initializes the address space using the data from the NACHOS executable
+		OpenFile executable;
+
+		if((executable = Nachos.fileSystem.open(name)) == null) {
+		    Debug.println('+', "Unable to open executable file: " + name);
+		    Nachos.scheduler.finishThread();
+		    return;
+		}
+
+		AddrSpace space = ((UserThread)NachosThread.currentThread()).space;
+		if(space.exec(executable) == -1) {
+		    Debug.println('+', "Unable to read executable file: " + name);
+		    Nachos.scheduler.finishThread();
+		    return;
+		}
+
+		space.initRegisters();		// set the initial register values
+		space.restoreState();		// load page table register
+
+		CPU.runUserCode();		// jump to the user progam
+		Debug.ASSERT(false);		// machine->Run never returns;
+		// the address space exits by doing the syscall "exit"
 	    }
 	},addrSpace);
 	
 	//Schedule the newly created process for execution on the CPU
 	Nachos.scheduler.readyToRun(userThread);
-	
-	//Initializes the address space using the data from the NACHOS executable
-	OpenFile executable;
-
-	if((executable = Nachos.fileSystem.open(name)) == null) {
-	    Debug.println('+', "Unable to open executable file: " + name);
-	    Nachos.scheduler.finishThread();
-	    return -1;
-	}
-
-	AddrSpace space = ((UserThread)NachosThread.currentThread()).space;
-	if(space.exec(executable) == -1) {
-	    Debug.println('+', "Unable to read executable file: " + name);
-	    Nachos.scheduler.finishThread();
-	    return -1;
-	}
-
-	space.initRegisters();		// set the initial register values
-	space.restoreState();		// load page table register
-
-	CPU.runUserCode();			// jump to the user progam
-	Debug.ASSERT(false);		// machine->Run never returns;
-	// the address space exits by doing the syscall "exit"
 	
 	//An integer value ("SpaceId") that uniquely identifies the newly created process is returned to the caller
 	return 0;

@@ -69,6 +69,7 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	    case Syscall.SC_Fork:
 		break;
 	    case Syscall.SC_Yield:
+		Syscall.yield();
 		break;
 	    case Syscall.SC_Remove:
 		break;

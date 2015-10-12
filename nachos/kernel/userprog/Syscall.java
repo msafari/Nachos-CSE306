@@ -8,6 +8,8 @@ package nachos.kernel.userprog;
 
 import nachos.Debug;
 import nachos.kernel.Nachos;
+import nachos.kernel.filesys.OpenFile;
+import nachos.machine.CPU;
 import nachos.machine.NachosThread;
 import nachos.machine.Simulation;
 
@@ -79,6 +81,9 @@ public class Syscall {
      * status = 0 means the program exited normally.
      */
     public static void exit(int status) {
+	
+	//Deallocate any physical memory and other resources that are assigned to this thread
+	//TODO
 	Debug.println('+', "User program exits with status=" + status
 				+ ": " + NachosThread.currentThread().name);
 	Nachos.scheduler.finishThread();
@@ -98,13 +103,36 @@ public class Syscall {
 	AddrSpace addrSpace = new AddrSpace();
 	UserThread userThread = new UserThread(name ,new Runnable(){
 	    public void run(){
-		
+		//@TODO what to put here?
 	    }
 	},addrSpace);
 	
 	//Schedule the newly created process for execution on the CPU
+	Nachos.scheduler.readyToRun(userThread);
 	
 	//Initializes the address space using the data from the NACHOS executable
+	OpenFile executable;
+
+	if((executable = Nachos.fileSystem.open(name)) == null) {
+	    Debug.println('+', "Unable to open executable file: " + name);
+	    Nachos.scheduler.finishThread();
+	    return -1;
+	}
+
+	AddrSpace space = ((UserThread)NachosThread.currentThread()).space;
+	if(space.exec(executable) == -1) {
+	    Debug.println('+', "Unable to read executable file: " + name);
+	    Nachos.scheduler.finishThread();
+	    return -1;
+	}
+
+	space.initRegisters();		// set the initial register values
+	space.restoreState();		// load page table register
+
+	CPU.runUserCode();			// jump to the user progam
+	Debug.ASSERT(false);		// machine->Run never returns;
+	// the address space exits by doing the syscall "exit"
+	
 	//An integer value ("SpaceId") that uniquely identifies the newly created process is returned to the caller
 	return 0;
 	
@@ -222,6 +250,11 @@ public class Syscall {
      * Yield the CPU to another runnable thread, whether in this address space 
      * or not. 
      */
-    public static void yield() {}
+    public static void yield() {
+	
+	//Yield the CPU to another thread
+	Nachos.scheduler.yieldThread();
+	
+    }
 
 }

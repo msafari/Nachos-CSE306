@@ -107,6 +107,8 @@ public class AddrSpace {
       pageTable[i].readOnly = false;  // if code and data segments live on
 				      // separate pages, we could set code 
 				      // pages to be read-only
+      System.out.println(i + ", Virtual Page: " + pageTable[i].virtualPage + ", Physical Page: " + pageTable[i].physicalPage
+	      + ", valid: " + pageTable[i].valid + ", use: " + pageTable[i].use + ", dirty: " + pageTable[i].dirty + ", readOnly: " + pageTable[i].readOnly);
     }
     
     // Zero out the entire address space, to zero the uninitialized data 

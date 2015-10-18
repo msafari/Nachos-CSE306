@@ -36,6 +36,7 @@ import nachos.kernel.threads.CyclicBarrier;
 import nachos.kernel.threads.Scheduler;
 import nachos.kernel.threads.TaskManager;
 import nachos.kernel.userprog.ExceptionHandler;
+import nachos.kernel.userprog.MemoryManager;
 import nachos.kernel.filesys.FileSystem;
 import nachos.kernel.threads.test.SMPTest;
 import nachos.kernel.threads.test.ThreadTest;
@@ -68,6 +69,8 @@ public class Nachos implements Runnable {
 
     /** Access to serial ports. */
     public static SerialDriver serialDriver;
+    
+    public static MemoryManager memManager;
 
     /**
      * 	Nachos initialization -- performed by first Nachos thread.
@@ -96,6 +99,9 @@ public class Nachos implements Runnable {
 	// Initialize the filesystem.
 	if(options.FILESYS_STUB || options.FILESYS_REAL)
 	    fileSystem = FileSystem.init(diskDriver);
+	
+	if(options.MEM_MANAGER)
+	    memManager = new MemoryManager();
 
 	// Do per-CPU initialization:  Before we can run user programs,
 	// we need to set an exception handler on each CPU to handle

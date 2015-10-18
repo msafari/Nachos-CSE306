@@ -5,6 +5,6 @@
 int
 main()
 {
-  Exec("haltwhoami");
+  Exec("halt");
   Exit(0);
 }

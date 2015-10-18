@@ -1,2 +1,4 @@
 ReadMe for HW2
 
+General Notes For Developers:
+- When committing code, cd into test directory and run make clean to remove any executables that might have been created.

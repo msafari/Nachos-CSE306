@@ -100,8 +100,10 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	    return;
 	}
 
-	System.out.println("Unexpected user mode exception " + which + ", "
-		+ type);
+	if(which == MachineException.PageFaultException){
+	    System.out.println("Page Fault: " + CPU.readRegister(4) );
+	}
+	System.out.println("Unexpected user mode exception " + which + ", " + type);
 	Debug.ASSERT(false);
 
     }

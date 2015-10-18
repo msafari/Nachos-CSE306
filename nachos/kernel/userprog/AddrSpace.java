@@ -48,9 +48,12 @@ public class AddrSpace {
 
   /** Page table that describes a virtual-to-physical address mapping. */
   private TranslationEntry pageTable[];
+  private TranslationEntry entry;
 
   /** Default size of the user stack area -- increase this as necessary! */
   private static final int UserStackSize = 1024;
+  
+  private int numPages;
 
   /**
    * Create a new address space.
@@ -84,7 +87,7 @@ public class AddrSpace {
 	     + roundToPage(noffH.initData.size + noffH.uninitData.size)
 	     + UserStackSize;	// we need to increase the size
     				// to leave room for the stack
-    int numPages = (int)(size / Machine.PageSize);
+    numPages = (int)(size / Machine.PageSize);
 
     Debug.ASSERT((numPages <= Machine.NumPhysPages),// check we're not trying
 		 "AddrSpace constructor: Not enough memory!");
@@ -191,5 +194,47 @@ public class AddrSpace {
    */
   private long roundToPage(long size) {
     return(Machine.PageSize * ((size+(Machine.PageSize-1))/Machine.PageSize));
+  }
+  
+  
+  /**
+   * allocate more memory for UserThread
+   * @return
+   */
+  protected int malloc() {
+      if(numPages <= Machine.NumPhysPages && numPages<=MemoryManager.freePagesList.size()){
+	  //do the allocation
+	  MemoryManager.freePagesLock.acquire();
+	  
+	  MemoryManager.freePagesLock.release();
+	  return 0;
+      }
+      
+      else{
+	  Debug.println('M', "Not enough physical memory!");
+	  return -1;
+      }
+      
+  }
+  
+  /**
+   * free resources for the current userThread
+   */
+  protected int free() {
+      try {
+	  for (int i=0; i< pageTable.length ; i++) {
+		entry = pageTable[i];
+		if (entry.valid) {
+		    MemoryManager.freePagesLock.acquire();
+		    MemoryManager.freePagesList.add(entry.physicalPage);
+		    MemoryManager.freePagesLock.release();
+		}
+	    }
+	  return 0;
+      } catch(Exception e) {
+	  Debug.println('M', "Freeing memory failed!");
+	  return -1;
+      }
+      
   }
 }

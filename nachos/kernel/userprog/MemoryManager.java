@@ -1,6 +1,7 @@
 package nachos.kernel.userprog;
 
 import java.util.LinkedList;
+import nachos.Debug;
 import nachos.kernel.threads.Lock;
 import nachos.machine.*;
 
@@ -22,6 +23,8 @@ public class MemoryManager {
 	for (int i=0; i < Machine.NumPhysPages; i++) {
 	    freePagesList.add(i);
 	}
+	
+	Debug.println('M', "Creating Memory Manager. Size: " + freePagesList.size());
 	
     }
 

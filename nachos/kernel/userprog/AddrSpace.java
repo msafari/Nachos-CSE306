@@ -25,6 +25,7 @@ import nachos.machine.MIPS;
 import nachos.machine.Machine;
 import nachos.machine.TranslationEntry;
 import nachos.noff.NoffHeader;
+import nachos.noff.NoffHeader.NoffSegment;
 import nachos.kernel.filesys.OpenFile;
 
 /**
@@ -104,42 +105,37 @@ public class AddrSpace {
       pageTable[i] = new TranslationEntry();
       pageTable[i].virtualPage = i; // for now, virtual page# = phys page#
       pageTable[i].physicalPage = i;
-      pageTable[i].valid = true;
+      pageTable[i].valid = false;
       pageTable[i].use = false;
       pageTable[i].dirty = false;
-      pageTable[i].readOnly = false;  // if code and data segments live on
-				      // separate pages, we could set code 
-				      // pages to be read-only
-      System.out.println(i + ", Virtual Page: " + pageTable[i].virtualPage + ", Physical Page: " + pageTable[i].physicalPage
-	      + ", valid: " + pageTable[i].valid + ", use: " + pageTable[i].use + ", dirty: " + pageTable[i].dirty + ", readOnly: " + pageTable[i].readOnly);
+      pageTable[i].readOnly = false;  // if code and data segments live on separate pages, we could set code pages to be read-only
     }
     
     // Zero out the entire address space, to zero the uninitialized data 
     // segment and the stack segment.
-    for(int i = 0; i < size; i++)
-	Machine.mainMemory[i] = (byte)0;
+//    for(int i = 0; i < size; i++)
+//	Machine.mainMemory[i] = (byte)0;
 
     // then, copy in the code and data segments into memory
     if (noffH.code.size > 0) {
-      Debug.println('a', "Initializing code segment, at " +
-	    noffH.code.virtualAddr + ", size " +
-	    noffH.code.size);
-
-      executable.seek(noffH.code.inFileAddr);
-      executable.read(Machine.mainMemory, noffH.code.virtualAddr, noffH.code.size);
+      Debug.println('a', "Initializing code segment, at " + noffH.code.virtualAddr + ", size " + noffH.code.size);
+      
+      
+      malloc(noffH.code, executable, true);
+//      executable.seek(noffH.code.inFileAddr);
+//      executable.read(Machine.mainMemory, noffH.code.virtualAddr, noffH.code.size);
     }
 
     if (noffH.initData.size > 0) {
-      Debug.println('a', "Initializing data segment, at " +
-	    noffH.initData.virtualAddr + ", size " +
-	    noffH.initData.size);
-
-      executable.seek(noffH.initData.inFileAddr);
-      executable.read(Machine.mainMemory, noffH.initData.virtualAddr, noffH.initData.size);
+      Debug.println('a', "Initializing data segment, at " + noffH.initData.virtualAddr + ", size " + noffH.initData.size);
+      malloc(noffH.initData, executable, false);
+//      executable.seek(noffH.initData.inFileAddr);
+//      executable.read(Machine.mainMemory, noffH.initData.virtualAddr, noffH.initData.size);
     }
 
     return(0);
   }
+
 
   /**
    * Initialize the user-level register set to values appropriate for
@@ -201,12 +197,24 @@ public class AddrSpace {
    * allocate more memory for UserThread
    * @return
    */
-  protected int malloc() {
+  protected int malloc(NoffSegment segment, OpenFile executable, boolean readOnly) {
       if(numPages <= Machine.NumPhysPages && numPages<=MemoryManager.freePagesList.size()){
-	  //do the allocation
-	  MemoryManager.freePagesLock.acquire();
 	  
+	  //Get the vpn and entry
+	  int vpn = segment.virtualAddr;
+	  TranslationEntry entry = pageTable[vpn];
+	  //Allocate some pages
+	  MemoryManager.freePagesLock.acquire();
+	  int freePageIndex = MemoryManager.freePagesList.removeFirst();
 	  MemoryManager.freePagesLock.release();
+	  entry.physicalPage = freePageIndex;
+	  entry.valid = true;
+	  entry.readOnly = readOnly;
+	  
+	  System.out.println("VPN: "+ vpn + ", ppn: " + entry.physicalPage + ", Entry: " + entry);
+	  
+	  executable.seek(segment.inFileAddr);
+	  executable.read(Machine.mainMemory, segment.virtualAddr, segment.size);
 	  return 0;
       }
       

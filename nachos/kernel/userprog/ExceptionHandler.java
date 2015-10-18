@@ -125,12 +125,15 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	
 	//Check reg number
 	if(reg >= 2 && reg <= 25){
+	    int length = 255;  //Typically allow only 255 chars for filename.
 	    int ptr = CPU.readRegister(reg); //Get the address this pointer is pointing to.
-	    byte buf[] = new byte[4]; //Only 4 bytes since this is a filename.
+	    byte buf[] = new byte[length];
+	    String fileName;
 
-	    System.arraycopy(Machine.mainMemory, ptr, buf, 0, 4);
-	    String fileName = bytesToString(buf);
+	    System.arraycopy(Machine.mainMemory, ptr, buf, 0, length);
+	    fileName = bytesToString(buf);
 	    Debug.println('S', "File name is: " + fileName);
+
 	    return fileName;
 	}
 	//Otherwise return null

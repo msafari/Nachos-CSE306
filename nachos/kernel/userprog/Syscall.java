@@ -150,7 +150,12 @@ public class Syscall {
      * @param id The "space ID" of the program to wait for.
      * @return the exit status of the specified program.
      */
-    public static int join(int id) {return 0;}
+    public static int join(int id) {
+	
+	//Loop through the child processes
+	
+	return 0;
+    }
 
 
     /* File system operations: Create, Open, Read, Write, Close
@@ -207,6 +212,7 @@ public class Syscall {
 	if (id == ConsoleOutput) {
 	    for(int i = 0; i < size; i++) {
 		Nachos.consoleDriver.putChar((char)buffer[i]);
+		Debug.println('S', "Console: " + (char)buffer[i]);
 	    }
 	}
     }
@@ -224,6 +230,14 @@ public class Syscall {
      * @return The actual number of bytes read.
      */
     public static int read(byte buffer[], int size, int id) {
+
+	if (id == ConsoleInput) {
+	    Debug.println('S', "Reading: size: " + size+ ", id: " + id);
+	    for(int i = 0; i < size; i++) {
+		Nachos.consoleDriver.putChar((char)buffer[i]);
+		Debug.println('S', "Read Console: " + (char)buffer[i]);
+	    }
+	}
 	
 	return 0;
 	

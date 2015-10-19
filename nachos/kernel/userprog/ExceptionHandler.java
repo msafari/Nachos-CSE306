@@ -59,6 +59,11 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	    case Syscall.SC_Open:
 		break;
 	    case Syscall.SC_Read:
+		Debug.showArguments();
+		int readPtr = CPU.readRegister(4);
+		int inputLength = CPU.readRegister(5);
+		byte readBuf[] = new byte[inputLength];
+		Syscall.read(readBuf, inputLength, CPU.readRegister(6));
 		break;
 	    case Syscall.SC_Close:
 		break;
@@ -76,6 +81,7 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		Syscall.exit(CPU.readRegister(4));
 		break;
 	    case Syscall.SC_Exec:
+		Debug.showArguments();
 		String fileName = getFileName(4);
 		Syscall.exec(fileName);
 		break;
@@ -112,7 +118,22 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
      * Function to return a string from an array of bytes.
      */
     public String bytesToString(byte[] buf) {
-	String fileName = new String(buf).trim();
+	
+	int i = 0;
+	for(i = 0; i < buf.length; i++){
+	    if(buf[i] == 0)
+		break;
+	}
+	
+	byte[] shortBuf = new byte[i + 1];
+	
+	int j = 0;
+	while(j < i){
+	    shortBuf[j] = buf[j];
+	    j++;
+	}
+	
+	String fileName = new String(shortBuf);
 	return fileName;
     }
 

@@ -6,12 +6,16 @@
 
 package nachos.kernel.userprog;
 
+import com.sun.org.apache.bcel.internal.generic.LCONST;
+
 import nachos.Debug;
 import nachos.kernel.Nachos;
 import nachos.kernel.filesys.OpenFile;
 import nachos.machine.CPU;
+import nachos.machine.Machine;
 import nachos.machine.NachosThread;
 import nachos.machine.Simulation;
+import nachos.kernel.threads.Semaphore;
 
 /**
  * Nachos system call interface.  These are Nachos kernel operations
@@ -62,6 +66,8 @@ public class Syscall {
 
     /** Integer code identifying the "Remove" system call. */
     public static final byte SC_Remove = 11;
+    
+    private static Semaphore joinWait = new Semaphore("joinWait", 0);
 
 
     /**
@@ -87,12 +93,26 @@ public class Syscall {
     public static void exit(int status) {
 	
 	//Deallocate any physical memory and other resources that are assigned to this thread
-	//TODO
+	
 	Debug.println('+', "User program exits with status=" + status
 				+ ": " + NachosThread.currentThread().name);
+	
+	UserThread currrThrd = ((UserThread)NachosThread.currentThread());
+	AddrSpace space = currrThrd.space;
+	
+	space.free(); //free the resources for this thread
+	
+	//if it's the last thread
+	if(((UserThread)NachosThread.currentThread()).processID == 0){
+	   Debug.println('+', "Exiting last thread. Setting exitStatus to: "+ status);
+	   
+	   currrThrd.exitStatus = status; // set the exit status of the addrspace   
+	   joinWait.V(); //unblock join
+	   
+	   //TODO halt nachos machine?
+	}
 	Nachos.scheduler.finishThread();
     }
-
     /**
      * Run the executable, stored in the Nachos file "name", and return the 
      * address space identifier.
@@ -133,6 +153,9 @@ public class Syscall {
 	    }
 	},addrSpace);
 	
+	//add the new child thread to the list of threads
+	((UserThread)NachosThread.currentThread()).childThreads.add(userThread);
+	
 	//Schedule the newly created process for execution on the CPU
 	Nachos.scheduler.readyToRun(userThread);
 	
@@ -144,17 +167,39 @@ public class Syscall {
     }
 
     /**
+     * 
+     * The Join() system call takes as its single argument a SpaceId returned by a previous call to Exec(). 
+     * The thread making the Join() call should block until the address space with the given ID has terminated, 
+     * as a result of an Exit() call having been executed by the last thread executing in that address space. 
+     * The exit status that was supplied by that thread as the argument to the Exit() call should be returned as as the result of the Join() call.
+     * 
      * Wait for the user program specified by "id" to finish, and
      * return its exit status.
+     * 
      *
      * @param id The "space ID" of the program to wait for.
      * @return the exit status of the specified program.
      */
     public static int join(int id) {
 	
-	//Loop through the child processes
+	//TODO check if join id matches anything at all?
 	
-	return 0;
+	Debug.println('J', "Starting System Call Join with id: "+ id);
+	UserThread currThrd = (UserThread)NachosThread.currentThread();
+	for(UserThread child: currThrd.childThreads){
+	    
+	    if (child.processID == id) {
+		Debug.println('J', "blocking until process is terminated");
+		
+		joinWait.P(); //block until termination	
+		
+		Debug.println('J', "Thread "+ child.name + " terminated with status: "+ child.exitStatus);
+		return child.exitStatus; //return child's exitStatus after termination
+	    }
+	   
+	   
+	}
+	return -1;
     }
 
 

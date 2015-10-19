@@ -10,6 +10,8 @@
 
 package nachos.kernel.userprog;
 
+import java.util.LinkedList;
+
 import nachos.machine.MIPS;
 import nachos.machine.NachosThread;
 import nachos.machine.CPU;
@@ -28,6 +30,8 @@ import nachos.kernel.userprog.MemoryManager;
 public class UserThread extends NachosThread {
 
     protected int processID;
+    public int exitStatus;
+    public LinkedList<UserThread> childThreads = new LinkedList<UserThread>();
     
     /** The context in which this thread will execute. */
     public final AddrSpace space;

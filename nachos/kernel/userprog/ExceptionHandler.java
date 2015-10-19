@@ -53,13 +53,13 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	    switch (type) {
 
 	    case Syscall.SC_Join:
+		Syscall.exit(CPU.readRegister(4));
 		break;
 	    case Syscall.SC_Create:
 		break;
 	    case Syscall.SC_Open:
 		break;
 	    case Syscall.SC_Read:
-		Debug.showArguments();
 		int readPtr = CPU.readRegister(4);
 		int inputLength = CPU.readRegister(5);
 		byte readBuf[] = new byte[inputLength];
@@ -81,7 +81,6 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		Syscall.exit(CPU.readRegister(4));
 		break;
 	    case Syscall.SC_Exec:
-		Debug.showArguments();
 		String fileName = getFileName(4);
 		Syscall.exec(fileName);
 		break;

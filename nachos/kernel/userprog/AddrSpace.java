@@ -236,7 +236,7 @@ public class AddrSpace {
   }
   
   /**
-   * free resources for the current userThread
+   * free all resources for the current thread
    */
   protected int free() {
       try {

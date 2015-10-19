@@ -13,6 +13,7 @@ package nachos.kernel.userprog;
 import nachos.machine.MIPS;
 import nachos.machine.NachosThread;
 import nachos.machine.CPU;
+import nachos.kernel.userprog.MemoryManager;
 
 /**
  * A UserThread is a NachosThread extended with the capability of
@@ -26,6 +27,8 @@ import nachos.machine.CPU;
  */
 public class UserThread extends NachosThread {
 
+    protected int processID;
+    
     /** The context in which this thread will execute. */
     public final AddrSpace space;
 
@@ -49,7 +52,21 @@ public class UserThread extends NachosThread {
      */
     public UserThread(String name, Runnable runObj, AddrSpace addrSpace) {
 	super(name, runObj);
+	
+	//Lock
+	MemoryManager.processIDLock.acquire();
+	
+	//Set the processID
+	this.processID  = MemoryManager.processID;
+	
+	//Increment memory manager's processID
+	MemoryManager.processID += 1;
+	
+	//Create the address space
 	space = addrSpace;
+	
+	//Release lock
+	MemoryManager.processIDLock.release();
     }
 
     /**

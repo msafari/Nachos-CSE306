@@ -75,7 +75,11 @@ public class Syscall {
     /* Address space control operations: Exit, Exec, and Join */
 
     /**
-     * This user program is done.
+     * The Exit() call takes a single argument, which is an integer status value as in Unix. 
+     * The calling thread is terminated, and the memory pages belonging to its stack area are deallocated. 
+     * When the last thread in an address space exits, 
+     * the remaining pages are deallocated, the address space terminates, 
+     * and the argument passed by the last thread to Exit() becomes the exit status for the address space. The exit status will be used by the Join() system call as described below.
      *
      * @param status Status code to pass to processes doing a Join().
      * status = 0 means the program exited normally.
@@ -132,8 +136,10 @@ public class Syscall {
 	//Schedule the newly created process for execution on the CPU
 	Nachos.scheduler.readyToRun(userThread);
 	
+	Debug.println('M', "Thread id: " + userThread.processID);
+	
 	//An integer value ("SpaceId") that uniquely identifies the newly created process is returned to the caller
-	return 0;
+	return userThread.processID;
 	
     }
 

@@ -5,6 +5,6 @@
 int
 main()
 {
-  Exec("halt");
+  Exec("test/halt");
   Exit(0);
 }

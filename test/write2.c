@@ -1,7 +1,7 @@
 #include "syscall.h"
 int main()
 {
-   char buf[] = {'a'};
+   char buf[2] = {'a', 'a'};
 
-   Write(&buf[0],1,ConsoleOutput);
+   Write(&buf[0],2,ConsoleOutput);
 }

@@ -124,7 +124,7 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		break;
 	}
 	
-	byte[] shortBuf = new byte[i + 1];
+	byte[] shortBuf = new byte[i];
 	
 	int j = 0;
 	while(j < i){

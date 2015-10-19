@@ -112,7 +112,8 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
      * Function to return a string from an array of bytes.
      */
     public String bytesToString(byte[] buf) {
-	return new String(buf);
+	String fileName = new String(buf).trim();
+	return fileName;
     }
 
     /*

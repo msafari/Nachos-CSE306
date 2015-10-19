@@ -131,8 +131,9 @@ public class AddrSpace {
 //      executable.read(Machine.mainMemory, noffH.initData.virtualAddr, noffH.initData.size);
     }
 
+    //Print out pages for debug
     for(int i = 0; i < pageTable.length; i++){
-	System.out.println("Entry: " + i + ", vpn: " + pageTable[i].virtualPage 
+	Debug.println('M', "Entry: " + i + ", vpn: " + pageTable[i].virtualPage 
 					+ ", ppn: " + pageTable[i].physicalPage
 					+ ", valid: " + pageTable[i].valid);
     }

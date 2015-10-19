@@ -6,8 +6,6 @@
 
 package nachos.kernel.userprog;
 
-import com.sun.org.apache.bcel.internal.generic.LCONST;
-
 import nachos.Debug;
 import nachos.kernel.Nachos;
 import nachos.kernel.filesys.OpenFile;

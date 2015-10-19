@@ -110,7 +110,7 @@ public class Syscall {
 		
 		//Initializes the address space using the data from the NACHOS executable
 		OpenFile executable;
-
+		
 		if((executable = Nachos.fileSystem.open(name)) == null) {
 		    Debug.println('+', "Unable to open executable file: " + name);
 		    Nachos.scheduler.finishThread();

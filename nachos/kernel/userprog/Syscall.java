@@ -187,7 +187,7 @@ public class Syscall {
 	for(UserThread child: currThrd.childThreads){
 	    
 	    if (child.processID == id) {
-		Debug.println('J', "blocking "+ child.processID +" until process is terminated"); 
+		Debug.println('J', "blocking proccesID "+ child.processID +" until process is terminated"); 
 		
 		child.joinLock.acquire();
 		child.notTerminated.await(); //block until termination	

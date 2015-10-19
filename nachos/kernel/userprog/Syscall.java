@@ -13,6 +13,7 @@ import nachos.machine.CPU;
 import nachos.machine.Machine;
 import nachos.machine.NachosThread;
 import nachos.machine.Simulation;
+import nachos.kernel.threads.Scheduler;
 import nachos.kernel.threads.Semaphore;
 
 /**
@@ -64,8 +65,7 @@ public class Syscall {
 
     /** Integer code identifying the "Remove" system call. */
     public static final byte SC_Remove = 11;
-    
-    private static Semaphore joinWait = new Semaphore("joinWait", 0);
+   
 
 
     /**
@@ -95,19 +95,18 @@ public class Syscall {
 	Debug.println('+', "User program exits with status=" + status
 				+ ": " + NachosThread.currentThread().name);
 	
-	UserThread currrThrd = ((UserThread)NachosThread.currentThread());
-	AddrSpace space = currrThrd.space;
+	UserThread currThrd = ((UserThread)NachosThread.currentThread());
+	AddrSpace space = currThrd.space;
 	
 	space.free(); //free the resources for this thread
+	currThrd.notTerminated.signal(); //unblock join
 	
 	//if it's the last thread
 	if(((UserThread)NachosThread.currentThread()).processID == 0){
 	   Debug.println('+', "Exiting last thread. Setting exitStatus to: "+ status);
 	   
-	   currrThrd.exitStatus = status; // set the exit status of the addrspace   
-	   joinWait.V(); //unblock join
-	   
-	   //TODO halt nachos machine?
+	   currThrd.exitStatus = status; // set the exit status of the addrspace   	   
+	   Simulation.stop();  //halt nachos machine?
 	}
 	Nachos.scheduler.finishThread();
     }
@@ -188,9 +187,11 @@ public class Syscall {
 	for(UserThread child: currThrd.childThreads){
 	    
 	    if (child.processID == id) {
-		Debug.println('J', "blocking until process is terminated");
+		Debug.println('J', "blocking "+ child.processID +" until process is terminated"); 
 		
-		joinWait.P(); //block until termination	
+		child.joinLock.acquire();
+		child.notTerminated.await(); //block until termination	
+		child.joinLock.release();
 		
 		Debug.println('J', "Thread "+ child.name + " terminated with status: "+ child.exitStatus);
 		return child.exitStatus; //return child's exitStatus after termination

@@ -53,7 +53,7 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	    switch (type) {
 
 	    case Syscall.SC_Join:
-		Syscall.exit(CPU.readRegister(4));
+		Syscall.join(CPU.readRegister(4));
 		break;
 	    case Syscall.SC_Create:
 		break;

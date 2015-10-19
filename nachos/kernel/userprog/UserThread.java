@@ -15,6 +15,8 @@ import java.util.LinkedList;
 import nachos.machine.MIPS;
 import nachos.machine.NachosThread;
 import nachos.machine.CPU;
+import nachos.kernel.threads.Lock;
+import nachos.kernel.threads.Condition;
 import nachos.kernel.userprog.MemoryManager;
 
 /**
@@ -32,6 +34,8 @@ public class UserThread extends NachosThread {
     protected int processID;
     public int exitStatus;
     public LinkedList<UserThread> childThreads = new LinkedList<UserThread>();
+    public Lock joinLock;
+    public Condition notTerminated;
     
     /** The context in which this thread will execute. */
     public final AddrSpace space;
@@ -68,6 +72,11 @@ public class UserThread extends NachosThread {
 	
 	//Create the address space
 	space = addrSpace;
+	
+	//make the join lock and condition variable
+	joinLock = new Lock("join lock");
+	notTerminated = new Condition("notTerminated", joinLock);
+	    
 	
 	//Release lock
 	MemoryManager.processIDLock.release();

@@ -49,7 +49,6 @@ public class AddrSpace {
 
   /** Page table that describes a virtual-to-physical address mapping. */
   private TranslationEntry pageTable[];
-  private TranslationEntry entry;
 
   /** Default size of the user stack area -- increase this as necessary! */
   private static final int UserStackSize = 1024;
@@ -105,7 +104,7 @@ public class AddrSpace {
       pageTable[i] = new TranslationEntry();
       pageTable[i].virtualPage = i; // for now, virtual page# = phys page#
       pageTable[i].physicalPage = i;
-      pageTable[i].valid = false;
+      pageTable[i].valid = true;
       pageTable[i].use = false;
       pageTable[i].dirty = false;
       pageTable[i].readOnly = false;  // if code and data segments live on separate pages, we could set code pages to be read-only
@@ -120,7 +119,6 @@ public class AddrSpace {
     if (noffH.code.size > 0) {
       Debug.println('a', "Initializing code segment, at " + noffH.code.virtualAddr + ", size " + noffH.code.size);
       
-      
       malloc(noffH.code, executable, true);
 //      executable.seek(noffH.code.inFileAddr);
 //      executable.read(Machine.mainMemory, noffH.code.virtualAddr, noffH.code.size);
@@ -133,6 +131,11 @@ public class AddrSpace {
 //      executable.read(Machine.mainMemory, noffH.initData.virtualAddr, noffH.initData.size);
     }
 
+    for(int i = 0; i < pageTable.length; i++){
+	System.out.println("Entry: " + i + ", vpn: " + pageTable[i].virtualPage 
+					+ ", ppn: " + pageTable[i].physicalPage
+					+ ", valid: " + pageTable[i].valid);
+    }
     return(0);
   }
 
@@ -198,23 +201,28 @@ public class AddrSpace {
    * @return
    */
   protected int malloc(NoffSegment segment, OpenFile executable, boolean readOnly) {
+      
       if(numPages <= Machine.NumPhysPages && numPages<=MemoryManager.freePagesList.size()){
 	  
-	  //Get the vpn and entry
-	  int vpn = segment.virtualAddr;
-	  TranslationEntry entry = pageTable[vpn];
-	  //Allocate some pages
-	  MemoryManager.freePagesLock.acquire();
-	  int freePageIndex = MemoryManager.freePagesList.removeFirst();
-	  MemoryManager.freePagesLock.release();
-	  entry.physicalPage = freePageIndex;
-	  entry.valid = true;
-	  entry.readOnly = readOnly;
-	  
-	  System.out.println("VPN: "+ vpn + ", ppn: " + entry.physicalPage + ", Entry: " + entry);
+	    long size = roundToPage(segment.size);
+	    int numSegmentPages = (int)(size / Machine.PageSize);
+	    
+	    for(int i = 0; i < numSegmentPages; i++){
+		// Get the vpn and entry
+		int vpn = segment.virtualAddr + i;
+		TranslationEntry entry = pageTable[vpn];
+		// Allocate some pages
+		MemoryManager.freePagesLock.acquire();
+		int freePageIndex = MemoryManager.freePagesList.removeFirst();
+		MemoryManager.freePagesLock.release();
+		entry.physicalPage = freePageIndex;
+		entry.valid = true;
+		entry.readOnly = readOnly;
+	    }
 	  
 	  executable.seek(segment.inFileAddr);
 	  executable.read(Machine.mainMemory, segment.virtualAddr, segment.size);
+	  
 	  return 0;
       }
       
@@ -231,7 +239,7 @@ public class AddrSpace {
   protected int free() {
       try {
 	  for (int i=0; i< pageTable.length ; i++) {
-		entry = pageTable[i];
+		TranslationEntry entry = pageTable[i];
 		if (entry.valid) {
 		    MemoryManager.freePagesLock.acquire();
 		    MemoryManager.freePagesList.add(entry.physicalPage);

@@ -47,7 +47,7 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
      */
     public void handleException(int which) {
 	int type = CPU.readRegister(2);
-
+	int result = -1;
 	if (which == MachineException.SyscallException) {
 
 	    switch (type) {
@@ -80,7 +80,7 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		break;
 	    case Syscall.SC_Exec:
 		String fileName = getFileName(4);
-		Syscall.exec(fileName);
+		result = Syscall.exec(fileName);
 		break;
 	    case Syscall.SC_Write:
 		int ptr = CPU.readRegister(4);
@@ -95,8 +95,8 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		Debug.ASSERT(false);
 	    }
 
-	    // Update the program counter to point to the next instruction
-	    // after the SYSCALL instruction.
+	    // Write syscall status back to result register and update the program counter.
+	    CPU.writeRegister(2, result);
 	    CPU.writeRegister(MIPS.PrevPCReg, CPU.readRegister(MIPS.PCReg));
 	    CPU.writeRegister(MIPS.PCReg, CPU.readRegister(MIPS.NextPCReg));
 	    CPU.writeRegister(MIPS.NextPCReg, CPU.readRegister(MIPS.NextPCReg) + 4);

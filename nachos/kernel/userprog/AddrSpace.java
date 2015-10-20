@@ -112,23 +112,19 @@ public class AddrSpace {
     
     // Zero out the entire address space, to zero the uninitialized data 
     // segment and the stack segment.
-//    for(int i = 0; i < size; i++)
-//	Machine.mainMemory[i] = (byte)0;
+    for(int i = 0; i < size; i++)
+	Machine.mainMemory[i] = (byte)0;
 
     // then, copy in the code and data segments into memory
     if (noffH.code.size > 0) {
-      Debug.println('a', "Initializing code segment, at " + noffH.code.virtualAddr + ", size " + noffH.code.size);
+      Debug.println('M', "Initializing code segment, at " + noffH.code.virtualAddr + ", size " + noffH.code.size);
       
       malloc(noffH.code, executable, true);
-//      executable.seek(noffH.code.inFileAddr);
-//      executable.read(Machine.mainMemory, noffH.code.virtualAddr, noffH.code.size);
     }
 
     if (noffH.initData.size > 0) {
-      Debug.println('a', "Initializing data segment, at " + noffH.initData.virtualAddr + ", size " + noffH.initData.size);
+      Debug.println('M', "Initializing data segment, at " + noffH.initData.virtualAddr + ", size " + noffH.initData.size);
       malloc(noffH.initData, executable, false);
-//      executable.seek(noffH.initData.inFileAddr);
-//      executable.read(Machine.mainMemory, noffH.initData.virtualAddr, noffH.initData.size);
     }
 
     //Print out pages for debug
@@ -190,6 +186,28 @@ public class AddrSpace {
     CPU.setPageTable(pageTable);
   }
 
+  
+  /**
+   * 
+   * @param bufferAddr address of virtual memory to start writing to
+   * @param data byte array to be written in virtual memory
+   * @return the number of bytes written
+   */
+  public int writeToVirtualMem(int bufferAddr, byte[] data){
+	
+	int VPN = bufferAddr / Machine.PageSize;	//calculate virtual page number
+	int vOffset = bufferAddr % Machine.PageSize;	//calculate virtual offset
+	
+	TranslationEntry entry = pageTable[VPN];	//get the page table
+	entry.use = true;				//set use flag of entry to true
+	int pAddr = (entry.physicalPage * Machine.PageSize) + vOffset; 		//entry.physicalPage is ppn or frame number
+										//paddr = ppn * pagesize + offset  basically calculating PFN::offset
+	
+	System.arraycopy(data, 0, Machine.mainMemory, pAddr, data.length);	//copy data to main mem starting from the physical address calculated above
+	return data.length;
+  }
+  
+  
   /**
    * Utility method for rounding up to a multiple of CPU.PageSize;
    */

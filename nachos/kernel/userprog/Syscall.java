@@ -15,6 +15,7 @@ import nachos.machine.MIPS;
 import nachos.machine.Machine;
 import nachos.machine.NachosThread;
 import nachos.machine.Simulation;
+import nachos.machine.TranslationEntry;
 import nachos.noff.NoffHeader.NoffSegment;
 
 
@@ -100,16 +101,16 @@ public class Syscall {
 	UserThread currThrd = ((UserThread)NachosThread.currentThread());
 	AddrSpace space = currThrd.space;
 	
-	space.free(); //free the resources for this thread
+	space.free(); 		//free the resources for this thread
 	
-	currThrd.joinSem.V(); //unblock join
+	joinSem.V(); 		//unblock join
 	
 	//if it's the last thread
 	if(((UserThread)NachosThread.currentThread()).processID == 0){
 	    
 	   Debug.println('+', "Exiting last thread. Setting exitStatus to: "+ status);   
-	   currThrd.exitStatus = status; // set the exit status of the addrspace   
-	   Simulation.stop();  //halt nachos machine?
+	   currThrd.exitStatus = status; 	// set the exit status of the addrspace   
+	   Simulation.stop(); 			//halt nachos machine?
 	}
 	Nachos.scheduler.finishThread();
     }
@@ -130,7 +131,7 @@ public class Syscall {
 		
 		//Initializes the address space using the data from the NACHOS executable
 		OpenFile executable;
-		
+		Debug.println('S', "Executing Runnable");
 		if((executable = Nachos.fileSystem.open(name)) == null) {
 		    Debug.println('+', "Unable to open executable file: " + name);
 		    Nachos.scheduler.finishThread();
@@ -184,16 +185,15 @@ public class Syscall {
 	
 
 	UserThread currThrd = (UserThread)NachosThread.currentThread();
-	Debug.println('J', "Starting System Call Join with id: "+ id + "currthrd: " + currThrd.processID);
+	Debug.println('J', "Starting System Call Join with id: "+ id);
 	
 	for(UserThread child: currThrd.childThreads){
-	    Debug.println('J', "Child ID:" + child.processID);
 	    if (child.processID == id) {
 		Debug.println('J', "blocking proccesID "+ child.processID +" until process is terminated"); 
 		
-		child.joinSem.P(); //block join
+		joinSem.P(); 			//block join
 		Debug.println('J', "Thread "+ child.name + " terminated with status: "+ child.exitStatus);
-		return child.exitStatus; //return child's exitStatus after termination
+		return child.exitStatus; 	//return child's exitStatus after termination
 	    }
 	}
 	
@@ -303,6 +303,7 @@ public class Syscall {
 
     }
 
+    
     /**
      * Close the file, we're done reading and writing to it.
      *
@@ -337,10 +338,12 @@ public class Syscall {
 		
 	    }
 	}, ((UserThread)NachosThread.currentThread()).space);
+	
+	
     }
     
     public static void forkHelper(int funcAddr) {
-	((UserThread)NachosThread.currentThread()).space.restoreState(); //load page tables
+	((UserThread)NachosThread.currentThread()).space.restoreState(); 	//load page tables? or not?
 	CPU.writeRegister(MIPS.PCReg, funcAddr);
 	CPU.writeRegister(MIPS.NextPCReg, funcAddr + 4);
     }

@@ -9,9 +9,14 @@ package nachos.kernel.userprog;
 import nachos.Debug;
 import nachos.kernel.Nachos;
 import nachos.kernel.filesys.OpenFile;
+import nachos.kernel.threads.Semaphore;
 import nachos.machine.CPU;
+import nachos.machine.MIPS;
+import nachos.machine.Machine;
 import nachos.machine.NachosThread;
 import nachos.machine.Simulation;
+import nachos.noff.NoffHeader.NoffSegment;
+
 
 /**
  * Nachos system call interface.  These are Nachos kernel operations
@@ -62,6 +67,7 @@ public class Syscall {
 
     /** Integer code identifying the "Remove" system call. */
     public static final byte SC_Remove = 11;
+    public static Semaphore joinSem = new Semaphore("joinSem", 0);;
 
 
     /**
@@ -87,12 +93,26 @@ public class Syscall {
     public static void exit(int status) {
 	
 	//Deallocate any physical memory and other resources that are assigned to this thread
-	//TODO
+	
 	Debug.println('+', "User program exits with status=" + status
 				+ ": " + NachosThread.currentThread().name);
+	
+	UserThread currThrd = ((UserThread)NachosThread.currentThread());
+	AddrSpace space = currThrd.space;
+	
+	space.free(); //free the resources for this thread
+	
+	currThrd.joinSem.V(); //unblock join
+	
+	//if it's the last thread
+	if(((UserThread)NachosThread.currentThread()).processID == 0){
+	    
+	   Debug.println('+', "Exiting last thread. Setting exitStatus to: "+ status);   
+	   currThrd.exitStatus = status; // set the exit status of the addrspace   
+	   Simulation.stop();  //halt nachos machine?
+	}
 	Nachos.scheduler.finishThread();
     }
-
     /**
      * Run the executable, stored in the Nachos file "name", and return the 
      * address space identifier.
@@ -133,6 +153,9 @@ public class Syscall {
 	    }
 	},addrSpace);
 	
+	//add the new child thread to the list of threads
+	((UserThread)NachosThread.currentThread()).childThreads.add(userThread);
+	
 	//Schedule the newly created process for execution on the CPU
 	Nachos.scheduler.readyToRun(userThread);
 	
@@ -144,17 +167,39 @@ public class Syscall {
     }
 
     /**
+     * 
+     * The Join() system call takes as its single argument a SpaceId returned by a previous call to Exec(). 
+     * The thread making the Join() call should block until the address space with the given ID has terminated, 
+     * as a result of an Exit() call having been executed by the last thread executing in that address space. 
+     * The exit status that was supplied by that thread as the argument to the Exit() call should be returned as as the result of the Join() call.
+     * 
      * Wait for the user program specified by "id" to finish, and
      * return its exit status.
+     * 
      *
      * @param id The "space ID" of the program to wait for.
      * @return the exit status of the specified program.
      */
     public static int join(int id) {
 	
-	//Loop through the child processes
+
+	UserThread currThrd = (UserThread)NachosThread.currentThread();
+	Debug.println('J', "Starting System Call Join with id: "+ id + "currthrd: " + currThrd.processID);
 	
-	return 0;
+	for(UserThread child: currThrd.childThreads){
+	    Debug.println('J', "Child ID:" + child.processID);
+	    if (child.processID == id) {
+		Debug.println('J', "blocking proccesID "+ child.processID +" until process is terminated"); 
+		
+		child.joinSem.P(); //block join
+		Debug.println('J', "Thread "+ child.name + " terminated with status: "+ child.exitStatus);
+		return child.exitStatus; //return child's exitStatus after termination
+	    }
+	}
+	
+	//if it gets here means it couldn't match the processId to an existing process's ID
+	Debug.println('J', "There's no existing thread with proccesID: "+ id);
+	return -1;
     }
 
 
@@ -272,13 +317,33 @@ public class Syscall {
      */
 
     /**
+     * The Fork() system call takes a single void (*)() function pointer as an argument, 
+     * it creates a new UserThread that shares its address space (except for the stack) with the calling thread, 
+     * and the new thread begins execution with a call to the argument function. 
+     * The threads sharing an address space will each have their own page table. 
+     * Although the stack portion of each page table should map physical pages that are private to one thread, 
+     * the code and data pages will be the same for (i.e. shared between) all the threads executing in the same address space.
+     * 
      * Fork a thread to run a procedure ("func") in the *same* address space 
      * as the current thread.
      *
      * @param func The user address of the procedure to be run by the
      * new thread.
      */
-    public static void fork(int func) {}
+    public static void fork(int func) {
+	Debug.println('F', "Syscall fork is getting called");
+	UserThread thrd = new UserThread("forkThrd", new Runnable() {
+	    public void run() {
+		
+	    }
+	}, ((UserThread)NachosThread.currentThread()).space);
+    }
+    
+    public static void forkHelper(int funcAddr) {
+	((UserThread)NachosThread.currentThread()).space.restoreState(); //load page tables
+	CPU.writeRegister(MIPS.PCReg, funcAddr);
+	CPU.writeRegister(MIPS.NextPCReg, funcAddr + 4);
+    }
 
     /**
      * Yield the CPU to another runnable thread, whether in this address space 

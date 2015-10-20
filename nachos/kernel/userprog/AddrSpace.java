@@ -236,9 +236,10 @@ public class AddrSpace {
   }
   
   /**
-   * free resources for the current userThread
+   * free all resources for the current thread
    */
   protected int free() {
+      Debug.println('+', "freeing all resources for thread");
       try {
 	  for (int i=0; i< pageTable.length ; i++) {
 		TranslationEntry entry = pageTable[i];

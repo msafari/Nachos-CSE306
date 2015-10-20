@@ -7,7 +7,7 @@ import nachos.machine.*;
 
 public class MemoryManager {
     
-    public static int processID; //Every time a new thread is created, give it a new processID
+    public static int processID; // Every time a new thread is created, give it a new processID
     public static LinkedList<Integer> freePagesList = new LinkedList<Integer>();
     public static Lock processIDLock;
     public static Lock freePagesLock;

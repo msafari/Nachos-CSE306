@@ -2,3 +2,4 @@
 .metadata/
 test/*.o
 test/halt
+test/Makefile

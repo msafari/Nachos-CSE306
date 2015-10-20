@@ -10,11 +10,9 @@ import nachos.Debug;
 import nachos.kernel.Nachos;
 import nachos.kernel.filesys.OpenFile;
 import nachos.machine.CPU;
-import nachos.machine.Machine;
 import nachos.machine.NachosThread;
 import nachos.machine.Simulation;
-import nachos.kernel.threads.Scheduler;
-import nachos.kernel.threads.Semaphore;
+
 
 /**
  * Nachos system call interface.  These are Nachos kernel operations
@@ -99,13 +97,14 @@ public class Syscall {
 	AddrSpace space = currThrd.space;
 	
 	space.free(); //free the resources for this thread
-	currThrd.notTerminated.signal(); //unblock join
+	
+	currThrd.joinSem.V(); //unblock join
 	
 	//if it's the last thread
 	if(((UserThread)NachosThread.currentThread()).processID == 0){
-	   Debug.println('+', "Exiting last thread. Setting exitStatus to: "+ status);
-	   
-	   currThrd.exitStatus = status; // set the exit status of the addrspace   	   
+	    
+	   Debug.println('+', "Exiting last thread. Setting exitStatus to: "+ status);   
+	   currThrd.exitStatus = status; // set the exit status of the addrspace   
 	   Simulation.stop();  //halt nachos machine?
 	}
 	Nachos.scheduler.finishThread();
@@ -180,25 +179,22 @@ public class Syscall {
      */
     public static int join(int id) {
 	
-	//TODO check if join id matches anything at all?
-	
 	Debug.println('J', "Starting System Call Join with id: "+ id);
 	UserThread currThrd = (UserThread)NachosThread.currentThread();
+	
 	for(UserThread child: currThrd.childThreads){
 	    
 	    if (child.processID == id) {
 		Debug.println('J', "blocking proccesID "+ child.processID +" until process is terminated"); 
 		
-		child.joinLock.acquire();
-		child.notTerminated.await(); //block until termination	
-		child.joinLock.release();
-		
+		child.joinSem.P();
 		Debug.println('J', "Thread "+ child.name + " terminated with status: "+ child.exitStatus);
 		return child.exitStatus; //return child's exitStatus after termination
 	    }
-	   
-	   
 	}
+	
+	//if it gets here means it couldn't match the processId to an existing process's ID
+	Debug.println('J', "There's no existing thread with proccesID: "+ id + "");
 	return -1;
     }
 

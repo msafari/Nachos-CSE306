@@ -67,6 +67,7 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	    case Syscall.SC_Close:
 		break;
 	    case Syscall.SC_Fork:
+		Syscall.fork(CPU.readRegister(4));
 		break;
 	    case Syscall.SC_Yield:
 		Syscall.yield();

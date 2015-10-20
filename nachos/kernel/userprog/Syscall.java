@@ -9,9 +9,13 @@ package nachos.kernel.userprog;
 import nachos.Debug;
 import nachos.kernel.Nachos;
 import nachos.kernel.filesys.OpenFile;
+import nachos.kernel.threads.Semaphore;
 import nachos.machine.CPU;
+import nachos.machine.MIPS;
+import nachos.machine.Machine;
 import nachos.machine.NachosThread;
 import nachos.machine.Simulation;
+import nachos.noff.NoffHeader.NoffSegment;
 
 
 /**
@@ -63,7 +67,7 @@ public class Syscall {
 
     /** Integer code identifying the "Remove" system call. */
     public static final byte SC_Remove = 11;
-   
+    public static Semaphore joinSem = new Semaphore("joinSem", 0);;
 
 
     /**
@@ -178,22 +182,23 @@ public class Syscall {
      */
     public static int join(int id) {
 	
-	Debug.println('J', "Starting System Call Join with id: "+ id);
+
 	UserThread currThrd = (UserThread)NachosThread.currentThread();
+	Debug.println('J', "Starting System Call Join with id: "+ id + "currthrd: " + currThrd.processID);
 	
 	for(UserThread child: currThrd.childThreads){
-	    
+	    Debug.println('J', "Child ID:" + child.processID);
 	    if (child.processID == id) {
 		Debug.println('J', "blocking proccesID "+ child.processID +" until process is terminated"); 
 		
-		child.joinSem.P();
+		child.joinSem.P(); //block join
 		Debug.println('J', "Thread "+ child.name + " terminated with status: "+ child.exitStatus);
 		return child.exitStatus; //return child's exitStatus after termination
 	    }
 	}
 	
 	//if it gets here means it couldn't match the processId to an existing process's ID
-	Debug.println('J', "There's no existing thread with proccesID: "+ id + "");
+	Debug.println('J', "There's no existing thread with proccesID: "+ id);
 	return -1;
     }
 
@@ -312,13 +317,33 @@ public class Syscall {
      */
 
     /**
+     * The Fork() system call takes a single void (*)() function pointer as an argument, 
+     * it creates a new UserThread that shares its address space (except for the stack) with the calling thread, 
+     * and the new thread begins execution with a call to the argument function. 
+     * The threads sharing an address space will each have their own page table. 
+     * Although the stack portion of each page table should map physical pages that are private to one thread, 
+     * the code and data pages will be the same for (i.e. shared between) all the threads executing in the same address space.
+     * 
      * Fork a thread to run a procedure ("func") in the *same* address space 
      * as the current thread.
      *
      * @param func The user address of the procedure to be run by the
      * new thread.
      */
-    public static void fork(int func) {}
+    public static void fork(int func) {
+	Debug.println('F', "Syscall fork is getting called");
+	UserThread thrd = new UserThread("forkThrd", new Runnable() {
+	    public void run() {
+		
+	    }
+	}, ((UserThread)NachosThread.currentThread()).space);
+    }
+    
+    public static void forkHelper(int funcAddr) {
+	((UserThread)NachosThread.currentThread()).space.restoreState(); //load page tables
+	CPU.writeRegister(MIPS.PCReg, funcAddr);
+	CPU.writeRegister(MIPS.NextPCReg, funcAddr + 4);
+    }
 
     /**
      * Yield the CPU to another runnable thread, whether in this address space 

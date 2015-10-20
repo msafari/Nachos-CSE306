@@ -112,7 +112,6 @@ public class Syscall {
 		OpenFile executable;
 		
 		if((executable = Nachos.fileSystem.open(name)) == null) {
-
 		    Debug.println('+', "Unable to open executable file: " + name);
 		    Nachos.scheduler.finishThread();
 		    return;
@@ -232,18 +231,31 @@ public class Syscall {
      */
     public static int read(byte buffer[], int size, int id) {
 
+	int i = 0;
 	//Read from Console
 	if (id == ConsoleInput) {
-	    Debug.println('S', "Reading: size: " + size+ ", id: " + id);
-	    for(int i = 0; i < size; i++) {
-		buffer[i] = (byte)Nachos.consoleDriver.getChar();
-		Debug.println('S', "Read Console: " + (char)buffer[i]);
+	    try {
+		
+		Debug.println('S', "Reading: size: " + size + ", id: " + id);
+		for (i = 0; i < size; i++) {
+		    buffer[i] = (byte) Nachos.consoleDriver.getChar();
+
+		    Debug.println('S', "Read Console: " + (char) buffer[i]);
+		}
+	    } catch (Exception e) {
+		Debug.println('S', "Exception occured");
+		return i;
 	    }
+
+	    //Return num of bytes read
+	    return i;
+	    
 	}
 	//Otherwise read from file
-	
-	return 0;
-	
+	else{
+		return 0;
+	}
+
     }
 
     /**

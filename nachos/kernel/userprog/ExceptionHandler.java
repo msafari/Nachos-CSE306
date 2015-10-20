@@ -48,21 +48,24 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
     public void handleException(int which) {
 	int type = CPU.readRegister(2);
 	int result = -1;
+	
 	if (which == MachineException.SyscallException) {
 
 	    switch (type) {
 
 	    case Syscall.SC_Join:
-		Syscall.join(CPU.readRegister(4));
+		result = Syscall.join(CPU.readRegister(4));
 		break;
 	    case Syscall.SC_Create:
 		break;
 	    case Syscall.SC_Open:
+		String openFile = getFileName(4);
+		result = Syscall.open(openFile);
 		break;
 	    case Syscall.SC_Read:
 		int inputLength = CPU.readRegister(5);
 		byte readBuf[] = new byte[inputLength];
-		Syscall.read(readBuf, inputLength, CPU.readRegister(6));
+		result = Syscall.read(readBuf, inputLength, CPU.readRegister(6));
 		break;
 	    case Syscall.SC_Close:
 		break;

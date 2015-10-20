@@ -8,3 +8,4 @@ Next, cd to root and run ./run -mm -x test/<name of executable>
 General Notes For Developers:
 - When committing code, cd into test directory and run make clean to remove any executables that might have been created.
 - ProgTest has method start() which is what you're doing when you call ./run -x
+- Syscall status is returned for Read, Open, Join and Exec

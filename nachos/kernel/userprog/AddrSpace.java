@@ -119,8 +119,8 @@ public class AddrSpace {
     
     // Zero out the entire address space, to zero the uninitialized data 
     // segment and the stack segment.
-//    for(int i = 0; i < size; i++)
-//	Machine.mainMemory[i] = (byte)0;
+    for(int i = 0; i < size; i++)
+	Machine.mainMemory[i] = (byte)0;
 
     // then, copy in the code and data segments into memory
     if (noffH.code.size > 0) {

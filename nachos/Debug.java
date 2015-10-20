@@ -373,6 +373,16 @@ public static class AssertException extends RuntimeException {
       }
   }
   
+  /**
+   * Shows contents of registers $r4-$r7
+   */
+  public static void showResults(){
+      System.out.println("Results: ");
+      for(int i = 2; i <= 3; i++){
+	      System.out.println("$r" + i + ": "+ CPU.readRegister(i));
+      }
+  }
+  
   public static void showMainMemory(){
       System.out.println("Main Memory: ");
       for(int i = 0; i < Machine.mainMemory.length; i++){

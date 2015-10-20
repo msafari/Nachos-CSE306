@@ -53,6 +53,10 @@ public class AddrSpace {
   /** Default size of the user stack area -- increase this as necessary! */
   private static final int UserStackSize = 1024;
   
+  private static final long LOW32BITS = 0x00000000ffffffffL;
+  
+  private static int nextVirtualIndex = 0;
+  
   private int numPages;
 
   /**
@@ -79,9 +83,12 @@ public class AddrSpace {
     NoffHeader noffH;
     long size;
     
-    if((noffH = NoffHeader.readHeader(executable)) == null)
+    if((noffH = NoffHeader.readHeader(executable)) == null){
+	Debug.println('M', "Executable header is empty");
 	return(-1);
+    }
 
+    System.out.println("Transferring exec to addrspace");
     // how big is address space?
     size = roundToPage(noffH.code.size)
 	     + roundToPage(noffH.initData.size + noffH.uninitData.size)
@@ -117,7 +124,7 @@ public class AddrSpace {
 
     // then, copy in the code and data segments into memory
     if (noffH.code.size > 0) {
-      Debug.println('a', "Initializing code segment, at " + noffH.code.virtualAddr + ", size " + noffH.code.size);
+      Debug.println('M', "Initializing code segment, at " + noffH.code.virtualAddr + ", size " + noffH.code.size);
       
       malloc(noffH.code, executable, true);
 //      executable.seek(noffH.code.inFileAddr);
@@ -125,7 +132,7 @@ public class AddrSpace {
     }
 
     if (noffH.initData.size > 0) {
-      Debug.println('a', "Initializing data segment, at " + noffH.initData.virtualAddr + ", size " + noffH.initData.size);
+      Debug.println('M', "Initializing data segment, at " + noffH.initData.virtualAddr + ", size " + noffH.initData.size);
       malloc(noffH.initData, executable, false);
 //      executable.seek(noffH.initData.inFileAddr);
 //      executable.read(Machine.mainMemory, noffH.initData.virtualAddr, noffH.initData.size);
@@ -188,6 +195,7 @@ public class AddrSpace {
    */
   public void restoreState() {
     CPU.setPageTable(pageTable);
+    System.out.println("Setting pageTable");
   }
 
   /**
@@ -211,8 +219,11 @@ public class AddrSpace {
 	    
 	    for(int i = 0; i < numSegmentPages; i++){
 		// Get the vpn and entry
-		int vpn = segment.virtualAddr + i;
-		TranslationEntry entry = pageTable[vpn];
+		//int vpn = segment.virtualAddr + i;
+		//int vpn = (int) (segment.virtualAddr & LOW32BITS) / Machine.PageSize;
+		TranslationEntry entry = pageTable[nextVirtualIndex];
+		nextVirtualIndex++;
+		
 		// Allocate some pages
 		MemoryManager.freePagesLock.acquire();
 		int freePageIndex = MemoryManager.freePagesList.removeFirst();

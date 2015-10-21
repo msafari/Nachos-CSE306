@@ -9,6 +9,7 @@ import nachos.machine.CPU;
 import nachos.machine.MIPS;
 import nachos.machine.Machine;
 import nachos.machine.MachineException;
+import nachos.machine.NachosThread;
 import nachos.kernel.userprog.Syscall;
 
 /**
@@ -55,17 +56,23 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 
 	    case Syscall.SC_Join:
 		result = Syscall.join(CPU.readRegister(4));
+		CPU.writeRegister(2, result);
 		break;
 	    case Syscall.SC_Create:
 		break;
 	    case Syscall.SC_Open:
 		String openFile = getFileName(4);
 		result = Syscall.open(openFile);
+		CPU.writeRegister(2, result);
 		break;
 	    case Syscall.SC_Read:
+		int virtualAddress = CPU.readRegister(4);
 		int inputLength = CPU.readRegister(5);
 		byte readBuf[] = new byte[inputLength];
 		result = Syscall.read(readBuf, inputLength, CPU.readRegister(6));
+		int physicalAddress = ((UserThread)NachosThread.currentThread()).space.virtualToPhysical(virtualAddress, true);
+		System.arraycopy(readBuf, 0, Machine.mainMemory, physicalAddress, inputLength);
+		CPU.writeRegister(2, result);
 		break;
 	    case Syscall.SC_Close:
 		break;
@@ -86,12 +93,13 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	    case Syscall.SC_Exec:
 		String fileName = getFileName(4);
 		result = Syscall.exec(fileName);
+		CPU.writeRegister(2, result);
+		
 		break;
 	    case Syscall.SC_Write:
 		int ptr = CPU.readRegister(4);
 		int len = CPU.readRegister(5);
 		byte buf[] = new byte[len];
-
 		System.arraycopy(Machine.mainMemory, ptr, buf, 0, len);
 		Syscall.write(buf, len, CPU.readRegister(6));
 		break;
@@ -101,10 +109,10 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	    }
 
 	    // Write syscall status back to result register and update the program counter.
-	    CPU.writeRegister(2, result);
 	    CPU.writeRegister(MIPS.PrevPCReg, CPU.readRegister(MIPS.PCReg));
 	    CPU.writeRegister(MIPS.PCReg, CPU.readRegister(MIPS.NextPCReg));
 	    CPU.writeRegister(MIPS.NextPCReg, CPU.readRegister(MIPS.NextPCReg) + 4);
+	    
 	    return;
 	}
 

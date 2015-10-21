@@ -74,8 +74,10 @@ public class Syscall {
      * Stop Nachos, and print out performance stats.
      */
     public static void halt() {
-	Debug.print('+', "Shutdown, initiated by user program.\n");
-	Simulation.stop();
+	if(((UserThread)NachosThread.currentThread()).processID == 0){
+        	Debug.print('+', "Shutdown, initiated by user program.\n");
+        	Simulation.stop();
+	}
     }
 
     /* Address space control operations: Exit, Exec, and Join */
@@ -125,12 +127,12 @@ public class Syscall {
 	
 	//Create a new process (i.e. user thread plus user address space) in which to execute the program
 	AddrSpace addrSpace = new AddrSpace();
+	
 	UserThread userThread = new UserThread(name ,new Runnable(){
 	    public void run(){
-		
+		Debug.println('S', "Executing Runnable...");
 		//Initializes the address space using the data from the NACHOS executable
 		OpenFile executable;
-		
 		if((executable = Nachos.fileSystem.open(name)) == null) {
 		    Debug.println('+', "Unable to open executable file: " + name);
 		    Nachos.scheduler.finishThread();
@@ -146,10 +148,11 @@ public class Syscall {
 
 		space.initRegisters();		// set the initial register values
 		space.restoreState();		// load page table register
-
-		CPU.runUserCode();		// jump to the user progam
+		
+		CPU.runUserCode();		// jump to the user program
 		Debug.ASSERT(false);		// machine->Run never returns;
 		// the address space exits by doing the syscall "exit"
+		
 	    }
 	},addrSpace);
 	
@@ -157,7 +160,9 @@ public class Syscall {
 	((UserThread)NachosThread.currentThread()).childThreads.add(userThread);
 	
 	//Schedule the newly created process for execution on the CPU
-	Nachos.scheduler.readyToRun(userThread);
+	//Nachos.scheduler.readyToRun(userThread);
+	userThread.runnable.run();
+
 	
 	Debug.println('M', "Thread id: " + userThread.processID);
 	
@@ -182,7 +187,6 @@ public class Syscall {
      */
     public static int join(int id) {
 	
-
 	UserThread currThrd = (UserThread)NachosThread.currentThread();
 	Debug.println('J', "Starting System Call Join with id: "+ id + "currthrd: " + currThrd.processID);
 	
@@ -257,7 +261,7 @@ public class Syscall {
 	if (id == ConsoleOutput) {
 	    for(int i = 0; i < size; i++) {
 		Nachos.consoleDriver.putChar((char)buffer[i]);
-		Debug.println('S', "Console: " + (char)buffer[i]);
+		Debug.println('S', "Write Console: " + (char)buffer[i]);
 	    }
 	}
     }
@@ -284,9 +288,9 @@ public class Syscall {
 		Debug.println('S', "Reading: size: " + size + ", id: " + id);
 		for (i = 0; i < size; i++) {
 		    buffer[i] = (byte) Nachos.consoleDriver.getChar();
-
 		    Debug.println('S', "Read Console: " + (char) buffer[i]);
 		}
+		
 	    } catch (Exception e) {
 		Debug.println('S', "Exception occured");
 		return i;
@@ -350,7 +354,7 @@ public class Syscall {
      * or not. 
      */
     public static void yield() {
-	
+	Debug.println('Y', "Syscall Yield is called");
 	//Yield the CPU to another thread
 	Nachos.scheduler.yieldThread();
 	

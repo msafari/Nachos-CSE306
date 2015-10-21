@@ -160,7 +160,8 @@ public class Syscall {
 	((UserThread)NachosThread.currentThread()).childThreads.add(userThread);
 	
 	//Schedule the newly created process for execution on the CPU
-	Nachos.scheduler.readyToRun(userThread);
+//	Nachos.scheduler.readyToRun(userThread);
+	userThread.runnable.run();
 	
 	Debug.println('M', "Thread id: " + userThread.processID);
 	

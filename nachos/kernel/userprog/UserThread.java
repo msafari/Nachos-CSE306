@@ -34,6 +34,7 @@ public class UserThread extends NachosThread {
     public int exitStatus;
     public LinkedList<UserThread> childThreads = new LinkedList<UserThread>();
     public Semaphore joinSem;
+    public Runnable runnable;
     
     /** The context in which this thread will execute. */
     public final AddrSpace space;
@@ -58,6 +59,8 @@ public class UserThread extends NachosThread {
      */
     public UserThread(String name, Runnable runObj, AddrSpace addrSpace) {
 	super(name, runObj);
+	
+	runnable = runObj;
 	
 	//Lock
 	MemoryManager.processIDLock.acquire();

@@ -101,7 +101,7 @@ public class AddrSpace {
 						// at least until we have
 						// virtual memory
 
-    Debug.println('a', "Initializing address space, numPages=" 
+    Debug.println('M', "Initializing address space, numPages=" 
 		+ numPages + ", size=" + size);
 
     // first, set up the translation 
@@ -136,6 +136,7 @@ public class AddrSpace {
 //      executable.seek(noffH.initData.inFileAddr);
 //      executable.read(Machine.mainMemory, noffH.initData.virtualAddr, noffH.initData.size);
     }
+    
 
     //Print out pages for debug
     for(int i = 0; i < pageTable.length; i++){
@@ -143,6 +144,9 @@ public class AddrSpace {
 					+ ", ppn: " + pageTable[i].physicalPage
 					+ ", valid: " + pageTable[i].valid);
     }
+    
+    //allocate space for the stack 
+    mallocStack(numPages);
     
     return(0);
   }
@@ -203,6 +207,11 @@ public class AddrSpace {
     return(Machine.PageSize * ((size+(Machine.PageSize-1))/Machine.PageSize));
   }
   
+//  private boolean load(String name) {
+//      initalPC =;
+//      
+//  }
+  
   
   /**
    * allocate more memory for UserThread
@@ -242,6 +251,26 @@ public class AddrSpace {
 	  return -1;
       }
       
+  }
+  
+  protected void mallocStack(int stackSize){
+      Debug.println('M', "Allocating Space for stack");
+      int numStackPages = stackSize / Machine.PageSize;
+      for (int i = 0; i <= numStackPages; i++) {
+	  TranslationEntry entry = pageTable[nextVirtualIndex];
+	  nextVirtualIndex++;
+	  
+	  // Allocate some pages
+	  MemoryManager.freePagesLock.acquire();
+	  int freePageIndex = MemoryManager.freePagesList.removeFirst();
+	  MemoryManager.freePagesLock.release();
+	  entry.physicalPage = freePageIndex;
+	  entry.valid = true;
+	  Debug.println('M', "Stack Entry: " + i + ", vpn: " + pageTable[nextVirtualIndex-1].virtualPage 
+			+ ", ppn: " + pageTable[i].physicalPage
+			+ ", valid: " + pageTable[i].valid);
+	  
+      }
   }
   
   /**

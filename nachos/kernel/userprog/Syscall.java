@@ -130,7 +130,7 @@ public class Syscall {
 	
 	UserThread userThread = new UserThread(name ,new Runnable(){
 	    public void run(){
-		
+		Debug.println('S', "Executing Runnable...");
 		//Initializes the address space using the data from the NACHOS executable
 		OpenFile executable;
 		if((executable = Nachos.fileSystem.open(name)) == null) {
@@ -160,7 +160,7 @@ public class Syscall {
 	((UserThread)NachosThread.currentThread()).childThreads.add(userThread);
 	
 	//Schedule the newly created process for execution on the CPU
-//	Nachos.scheduler.readyToRun(userThread);
+	//Nachos.scheduler.readyToRun(userThread);
 	userThread.runnable.run();
 	
 	Debug.println('M', "Thread id: " + userThread.processID);

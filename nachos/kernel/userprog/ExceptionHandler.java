@@ -66,6 +66,8 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		CPU.writeRegister(2, result);
 		break;
 	    case Syscall.SC_Read:
+		Debug.showArguments();
+		int virtualAddress = CPU.readRegister(4);
 		int inputLength = CPU.readRegister(5);
 		byte readBuf[] = new byte[inputLength];
 		result = Syscall.read(readBuf, inputLength, CPU.readRegister(6));
@@ -96,6 +98,7 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		
 		break;
 	    case Syscall.SC_Write:
+		Debug.showArguments();
 		int ptr = CPU.readRegister(4);
 		int len = CPU.readRegister(5);
 		byte buf[] = new byte[len];

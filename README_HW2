@@ -5,6 +5,11 @@ To run any of the c user programs, cd into the test directory and run "Make <nam
 Next, cd to root and run ./run -mm -x test/<name of executable>
 -mm will turn on the memory manager. Otherwise an error will be thrown.
 
+Testing the SysCalls
+
+Read()/Write():
+Read/Write from console can be tested by compiling console1.c and running it with ./run -mm -x test/console1 
+
 General Notes For Developers:
 - When committing code, cd into test directory and run make clean to remove any executables that might have been created.
 - ProgTest has method start() which is what you're doing when you call ./run -x

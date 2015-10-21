@@ -88,7 +88,6 @@ public class AddrSpace {
 	return(-1);
     }
 
-    System.out.println("Transferring exec to addrspace");
     // how big is address space?
     size = roundToPage(noffH.code.size)
 	     + roundToPage(noffH.initData.size + noffH.uninitData.size)
@@ -195,7 +194,6 @@ public class AddrSpace {
    */
   public void restoreState() {
     CPU.setPageTable(pageTable);
-    System.out.println("Setting pageTable");
   }
 
   /**
@@ -267,4 +265,30 @@ public class AddrSpace {
       }
       
   }
+  
+  
+ public int virtualToPhysical(int virtAddr, boolean writing){
+     
+     // Translation using page table or TLB.
+     long vpn, offset;
+     TranslationEntry entry;
+     long pageFrame;
+     int physAddr;
+     
+     // calculate the virtual page number, and offset within the page,
+     // from the virtual address
+     vpn = (virtAddr & LOW32BITS) / Machine.PageSize;
+     offset = (virtAddr & LOW32BITS) % Machine.PageSize;
+     entry = pageTable[(int)vpn];
+     pageFrame = entry.physicalPage;
+     entry.use = true;		// set the use, dirty bits
+     
+     if (writing)
+ 	entry.dirty = true;
+     
+     physAddr = (int) (pageFrame * Machine.PageSize + offset);
+     Debug.println('M', "Virtual Address: " + virtAddr + ", physical Address: " + physAddr);
+     
+     return physAddr;
+ }
 }

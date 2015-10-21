@@ -1,7 +1,7 @@
 /* Basic test of console reads and writes */
 
 #include "syscall.h"
-#define INPUTSIZE 20
+#define INPUTSIZE 5
 
 int main()
 {

@@ -260,7 +260,7 @@ public class Syscall {
 	if (id == ConsoleOutput) {
 	    for(int i = 0; i < size; i++) {
 		Nachos.consoleDriver.putChar((char)buffer[i]);
-		Debug.println('S', "Console: " + (char)buffer[i]);
+		Debug.println('S', "Write Console: " + (char)buffer[i]);
 	    }
 	}
     }
@@ -287,9 +287,9 @@ public class Syscall {
 		Debug.println('S', "Reading: size: " + size + ", id: " + id);
 		for (i = 0; i < size; i++) {
 		    buffer[i] = (byte) Nachos.consoleDriver.getChar();
-
 		    Debug.println('S', "Read Console: " + (char) buffer[i]);
 		}
+		
 	    } catch (Exception e) {
 		Debug.println('S', "Exception occured");
 		return i;

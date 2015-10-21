@@ -25,6 +25,15 @@ Join can be tested by compiling join1.c and running it with ./run -d MSJ -mm -x 
 You should see the main thread creating a timeshare2 thread which will run to completion.
 One issue encountered was the parent thread terminating before all of the child threads were executed. 
 
+Exit()
+Exit can be tested by compiling exec1.c and running it with ./run -d MS -mm -x test/exec1
+You will see the same outut as Exec() syscall. It will also call exit at the end which frees all of process's resources and
+will set the exit status to the argument passed in by the last thread.
+
+Yield()
+Yield can tested by compiling yield1.c and running it with ./run -d MSJY -mm -x test/yield1
+You will see that yield syscall will get called yield CPU to another thread
+
 General Notes For Developers:
 - When committing code, cd into test directory and run make clean to remove any executables that might have been created.
 - ProgTest has method start() which is what you're doing when you call ./run -x

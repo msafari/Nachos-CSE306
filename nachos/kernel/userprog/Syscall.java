@@ -354,7 +354,7 @@ public class Syscall {
      * or not. 
      */
     public static void yield() {
-	
+	Debug.println('Y', "Syscall Yield is called");
 	//Yield the CPU to another thread
 	Nachos.scheduler.yieldThread();
 	

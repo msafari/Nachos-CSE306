@@ -126,15 +126,11 @@ public class AddrSpace {
       Debug.println('M', "Initializing code segment, at " + noffH.code.virtualAddr + ", size " + noffH.code.size);
       
       malloc(noffH.code, executable, true);
-//      executable.seek(noffH.code.inFileAddr);
-//      executable.read(Machine.mainMemory, noffH.code.virtualAddr, noffH.code.size);
     }
 
     if (noffH.initData.size > 0) {
       Debug.println('M', "Initializing data segment, at " + noffH.initData.virtualAddr + ", size " + noffH.initData.size);
       malloc(noffH.initData, executable, false);
-//      executable.seek(noffH.initData.inFileAddr);
-//      executable.read(Machine.mainMemory, noffH.initData.virtualAddr, noffH.initData.size);
     }
     
 
@@ -146,7 +142,7 @@ public class AddrSpace {
     }
     
     //allocate space for the stack 
-    mallocStack(numPages);
+   // mallocStack(numPages);
     
     return(0);
   }

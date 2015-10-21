@@ -68,6 +68,7 @@ public class Syscall {
 
     /** Integer code identifying the "Remove" system call. */
     public static final byte SC_Remove = 11;
+    
     public static Semaphore joinSem = new Semaphore("joinSem", 0);;
 
 
@@ -75,8 +76,10 @@ public class Syscall {
      * Stop Nachos, and print out performance stats.
      */
     public static void halt() {
-	Debug.print('+', "Shutdown, initiated by user program.\n");
-	Simulation.stop();
+	if(((UserThread)NachosThread.currentThread()).processID == 0){
+        	Debug.print('+', "Shutdown, initiated by user program.\n");
+        	Simulation.stop();
+	}
     }
 
     /* Address space control operations: Exit, Exec, and Join */
@@ -103,7 +106,7 @@ public class Syscall {
 	
 	space.free(); 		//free the resources for this thread
 	
-	joinSem.V(); 		//unblock join
+	currThrd.joinSem.V(); 		//unblock join
 	
 	//if it's the last thread
 	if(((UserThread)NachosThread.currentThread()).processID == 0){
@@ -126,12 +129,14 @@ public class Syscall {
 	
 	//Create a new process (i.e. user thread plus user address space) in which to execute the program
 	AddrSpace addrSpace = new AddrSpace();
+	
 	UserThread userThread = new UserThread(name ,new Runnable(){
 	    public void run(){
 		
 		//Initializes the address space using the data from the NACHOS executable
 		OpenFile executable;
 		Debug.println('S', "Executing Runnable");
+
 		if((executable = Nachos.fileSystem.open(name)) == null) {
 		    Debug.println('+', "Unable to open executable file: " + name);
 		    Nachos.scheduler.finishThread();
@@ -147,10 +152,11 @@ public class Syscall {
 
 		space.initRegisters();		// set the initial register values
 		space.restoreState();		// load page table register
-
-		CPU.runUserCode();		// jump to the user progam
+		
+		CPU.runUserCode();		// jump to the user program
 		Debug.ASSERT(false);		// machine->Run never returns;
 		// the address space exits by doing the syscall "exit"
+		
 	    }
 	},addrSpace);
 	
@@ -191,7 +197,7 @@ public class Syscall {
 	    if (child.processID == id) {
 		Debug.println('J', "blocking proccesID "+ child.processID +" until process is terminated"); 
 		
-		joinSem.P(); 			//block join
+		child.joinSem.P(); 			//block join
 		Debug.println('J', "Thread "+ child.name + " terminated with status: "+ child.exitStatus);
 		return child.exitStatus; 	//return child's exitStatus after termination
 	    }
@@ -257,7 +263,7 @@ public class Syscall {
 	if (id == ConsoleOutput) {
 	    for(int i = 0; i < size; i++) {
 		Nachos.consoleDriver.putChar((char)buffer[i]);
-		Debug.println('S', "Console: " + (char)buffer[i]);
+		//Debug.println('S', "Console: " + (char)buffer[i]);
 	    }
 	}
     }

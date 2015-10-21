@@ -55,17 +55,20 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 
 	    case Syscall.SC_Join:
 		result = Syscall.join(CPU.readRegister(4));
+		CPU.writeRegister(2, result);
 		break;
 	    case Syscall.SC_Create:
 		break;
 	    case Syscall.SC_Open:
 		String openFile = getFileName(4);
 		result = Syscall.open(openFile);
+		CPU.writeRegister(2, result);
 		break;
 	    case Syscall.SC_Read:
 		int inputLength = CPU.readRegister(5);
 		byte readBuf[] = new byte[inputLength];
 		result = Syscall.read(readBuf, inputLength, CPU.readRegister(6));
+		CPU.writeRegister(2, result);
 		break;
 	    case Syscall.SC_Close:
 		break;
@@ -84,14 +87,16 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		Syscall.exit(CPU.readRegister(4));
 		break;
 	    case Syscall.SC_Exec:
+		
 		String fileName = getFileName(4);
 		result = Syscall.exec(fileName);
+		CPU.writeRegister(2, result);
+		
 		break;
 	    case Syscall.SC_Write:
 		int ptr = CPU.readRegister(4);
 		int len = CPU.readRegister(5);
 		byte buf[] = new byte[len];
-
 		System.arraycopy(Machine.mainMemory, ptr, buf, 0, len);
 		Syscall.write(buf, len, CPU.readRegister(6));
 		break;
@@ -101,10 +106,10 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	    }
 
 	    // Write syscall status back to result register and update the program counter.
-	    CPU.writeRegister(2, result);
 	    CPU.writeRegister(MIPS.PrevPCReg, CPU.readRegister(MIPS.PCReg));
 	    CPU.writeRegister(MIPS.PCReg, CPU.readRegister(MIPS.NextPCReg));
 	    CPU.writeRegister(MIPS.NextPCReg, CPU.readRegister(MIPS.NextPCReg) + 4);
+	    
 	    return;
 	}
 

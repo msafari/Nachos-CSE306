@@ -162,6 +162,7 @@ public class Syscall {
 	//Schedule the newly created process for execution on the CPU
 	//Nachos.scheduler.readyToRun(userThread);
 	userThread.runnable.run();
+
 	
 	Debug.println('M', "Thread id: " + userThread.processID);
 	
@@ -186,7 +187,6 @@ public class Syscall {
      */
     public static int join(int id) {
 	
-
 	UserThread currThrd = (UserThread)NachosThread.currentThread();
 	Debug.println('J', "Starting System Call Join with id: "+ id + "currthrd: " + currThrd.processID);
 	

@@ -58,6 +58,7 @@ public class AddrSpace {
   private static int nextVirtualIndex = 0;
   
   private int numPages;
+ 
 
   /**
    * Create a new address space.
@@ -107,11 +108,13 @@ public class AddrSpace {
 
     // first, set up the translation 
     pageTable = new TranslationEntry[numPages];
+    
+    //initializing page tables
     for (int i = 0; i < numPages; i++) {
       pageTable[i] = new TranslationEntry();
-      pageTable[i].virtualPage = i; // for now, virtual page# = phys page#
-      pageTable[i].physicalPage = i;
-      pageTable[i].valid = true;
+      pageTable[i].virtualPage = i; 	
+      pageTable[i].physicalPage = -1; 	//these will get over written later in malloc
+      pageTable[i].valid = false;
       pageTable[i].use = false;
       pageTable[i].dirty = false;
       pageTable[i].readOnly = false;  // if code and data segments live on separate pages, we could set code pages to be read-only
@@ -119,8 +122,8 @@ public class AddrSpace {
     
     // Zero out the entire address space, to zero the uninitialized data 
     // segment and the stack segment.
-    for(int i = 0; i < size; i++)
-	Machine.mainMemory[i] = (byte)0;
+//    for(int i = 0; i < size; i++)
+//	Machine.mainMemory[i] = (byte)0;
 
     // then, copy in the code and data segments into memory
     if (noffH.code.size > 0) {
@@ -192,27 +195,6 @@ public class AddrSpace {
   public void restoreState() {
     CPU.setPageTable(pageTable);
   }
-
-  
-  /**
-   * 
-   * @param bufferAddr address of virtual memory to start writing to
-   * @param data byte array to be written in virtual memory
-   * @return the number of bytes written
-   */
-  public int writeToVirtualMem(int bufferAddr, byte[] data){
-	
-	int VPN = bufferAddr / Machine.PageSize;	//calculate virtual page number
-	int vOffset = bufferAddr % Machine.PageSize;	//calculate virtual offset
-	
-	TranslationEntry entry = pageTable[VPN];	//get the page table
-	entry.use = true;				//set use flag of entry to true
-	int pAddr = (entry.physicalPage * Machine.PageSize) + vOffset; 		//entry.physicalPage is ppn or frame number
-										//paddr = ppn * pagesize + offset  basically calculating PFN::offset
-	
-	System.arraycopy(data, 0, Machine.mainMemory, pAddr, data.length);	//copy data to main mem starting from the physical address calculated above
-	return data.length;
-  }
   
   
   /**
@@ -221,7 +203,36 @@ public class AddrSpace {
   private long roundToPage(long size) {
     return(Machine.PageSize * ((size+(Machine.PageSize-1))/Machine.PageSize));
   }
+
   
+  /**
+   * 
+   * @param bufferAddr address of virtual memory to start writing to
+   * @param data byte array to be written in virtual memory
+   * @return the number of bytes written
+   */
+  public int writeToVirtualMem(int bufferAddr,  byte[] data, int startIndex){
+	
+	int vOffset = bufferAddr % Machine.PageSize;	//calculate virtual offset
+	TranslationEntry entry = getEntry(bufferAddr);
+	
+	entry.use = true;				//set use flag of entry to true
+	int pAddr = (entry.physicalPage * Machine.PageSize) + vOffset; 		//entry.physicalPage is ppn or frame number
+										//paddr = ppn * pagesize + offset  basically calculating PFN::offset
+	System.arraycopy(data, startIndex, Machine.mainMemory, pAddr, Machine.PageSize);	//copy data to main mem starting from the physical address calculated above
+	return data.length;
+  }
+  
+  /**
+   * 
+   * @param bufferAddr
+   * @return
+   */
+  public TranslationEntry getEntry(int bufferAddr) {
+      int VPN = bufferAddr / Machine.PageSize;	//calculate virtual page number
+      TranslationEntry entry = pageTable[VPN];	//get the page table
+      return entry;
+  }
   
   /**
    * allocate more memory for UserThread
@@ -229,30 +240,37 @@ public class AddrSpace {
    */
   protected int malloc(NoffSegment segment, OpenFile executable, boolean readOnly) {
       
+      
       if(numPages <= Machine.NumPhysPages && numPages<=MemoryManager.freePagesList.size()){
 	  
 	    long size = roundToPage(segment.size);
 	    int numSegmentPages = (int)(size / Machine.PageSize);
 	    
+	    byte[] data = new byte[(int)size]; //buffer to store segment data in
+	    executable.seek(segment.inFileAddr);
+	    executable.read(data, 0, Machine.PageSize);		//read the entire segment into a buffer
+	    
+	    TranslationEntry entry;
+	    
 	    for(int i = 0; i < numSegmentPages; i++){
 		// Get the vpn and entry
-		//int vpn = segment.virtualAddr + i;
-		//int vpn = (int) (segment.virtualAddr & LOW32BITS) / Machine.PageSize;
-		TranslationEntry entry = pageTable[nextVirtualIndex];
-		nextVirtualIndex++;
+		int startIndex = i * Machine.PageSize;
+		int bufferAddr = segment.virtualAddr + startIndex;
 		
+		entry = getEntry(bufferAddr);
+
 		// Allocate some pages
 		MemoryManager.freePagesLock.acquire();
-		int freePageIndex = MemoryManager.freePagesList.removeFirst();
+		int freePageAddr= MemoryManager.freePagesList.removeFirst();
 		MemoryManager.freePagesLock.release();
-		entry.physicalPage = freePageIndex;
+		entry.physicalPage = freePageAddr;
 		entry.valid = true;
 		entry.readOnly = readOnly;
+		
+		writeToVirtualMem(bufferAddr, data, startIndex);
 	    }
 	  
-	  executable.seek(segment.inFileAddr);
-	  executable.read(Machine.mainMemory, segment.virtualAddr, segment.size);
-	  
+
 	  return 0;
       }
       

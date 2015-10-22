@@ -129,29 +129,31 @@ public class Syscall {
 	
 	//Create a new process (i.e. user thread plus user address space) in which to execute the program
 	AddrSpace addrSpace = new AddrSpace();
+
+	OpenFile executable;
+	if((executable = Nachos.fileSystem.open(name)) == null) {
+	    Debug.println('+', "Unable to open executable file: " + name);
+	    Nachos.scheduler.finishThread();
+	}
+	
+	if(addrSpace.exec(executable) == -1) {
+	    Debug.println('+', "Unable to read executable file: " + name);
+	    Nachos.scheduler.finishThread();
+	}
+	
+	addrSpace.initRegisters();
+	addrSpace.restoreState();
 	
 	UserThread userThread = new UserThread(name ,new Runnable(){
 	    public void run(){
+
 		
 		//Initializes the address space using the data from the NACHOS executable
-		OpenFile executable;
-		Debug.println('S', "Executing Runnable");
-
-		if((executable = Nachos.fileSystem.open(name)) == null) {
-		    Debug.println('+', "Unable to open executable file: " + name);
-		    Nachos.scheduler.finishThread();
-		    return;
-		}
-
-		AddrSpace space = ((UserThread)NachosThread.currentThread()).space;
-		if(space.exec(executable) == -1) {
-		    Debug.println('+', "Unable to read executable file: " + name);
-		    Nachos.scheduler.finishThread();
-		    return;
-		}
-
-		space.initRegisters();		// set the initial register values
-		space.restoreState();		// load page table register
+		
+		//Initializes the address space using the data from the NACHOS executable
+		//AddrSpace space = ((UserThread)NachosThread.currentThread()).space;
+		//space.initRegisters();		// set the initial register values
+		//space.restoreState();		// load page table register
 		
 		CPU.runUserCode();		// jump to the user program
 		Debug.ASSERT(false);		// machine->Run never returns;
@@ -162,6 +164,7 @@ public class Syscall {
 	
 	//add the new child thread to the list of threads
 	((UserThread)NachosThread.currentThread()).childThreads.add(userThread);
+
 	
 	//Schedule the newly created process for execution on the CPU
 	Nachos.scheduler.readyToRun(userThread);

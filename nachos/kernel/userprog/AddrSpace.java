@@ -261,9 +261,9 @@ public class AddrSpace {
 	    long size = roundToPage(segment.size);
 	    int numSegmentPages = (int)(size / Machine.PageSize);
 	    
-	    byte[] data = new byte[(int)size]; //buffer to store segment data in
+	    byte[] data = new byte[(int)size]; 		//buffer to store segment data in
 	    executable.seek(segment.inFileAddr);
-	    executable.read(data, 0, Machine.PageSize);		//read the entire segment into a buffer
+	    executable.read(data, 0, segment.size);	//read the entire segment into a buffer
 	    
 	    TranslationEntry entry;
 	    

@@ -266,7 +266,7 @@ public class Syscall {
 	if (id == ConsoleOutput) {
 	    for(int i = 0; i < size; i++) {
 		Nachos.consoleDriver.putChar((char)buffer[i]);
-		Debug.println('S', "Console: " + (char)buffer[i]);
+		Debug.println('S', "Write Console: " + (char)buffer[i]);
 	    }
 	}
     }

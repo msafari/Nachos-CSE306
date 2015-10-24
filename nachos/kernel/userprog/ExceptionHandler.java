@@ -9,6 +9,7 @@ import nachos.machine.CPU;
 import nachos.machine.MIPS;
 import nachos.machine.Machine;
 import nachos.machine.MachineException;
+import nachos.machine.NachosThread;
 import nachos.kernel.userprog.Syscall;
 
 /**
@@ -65,9 +66,12 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		CPU.writeRegister(2, result);
 		break;
 	    case Syscall.SC_Read:
+		int virtualAddress = CPU.readRegister(4);
 		int inputLength = CPU.readRegister(5);
 		byte readBuf[] = new byte[inputLength];
 		result = Syscall.read(readBuf, inputLength, CPU.readRegister(6));
+		int physicalAddress = ((UserThread)NachosThread.currentThread()).space.virtualToPhysical(virtualAddress, true);
+		System.arraycopy(readBuf, 0, Machine.mainMemory, physicalAddress, inputLength);
 		CPU.writeRegister(2, result);
 		break;
 	    case Syscall.SC_Close:

@@ -153,8 +153,7 @@ public class Syscall {
 		//Initializes the address space using the data from the NACHOS executable
 		//AddrSpace space = ((UserThread)NachosThread.currentThread()).space;
 		//space.initRegisters();		// set the initial register values
-		//space.restoreState();		// load page table register
-		
+		//space.restoreState();		// load page table register		
 		CPU.runUserCode();		// jump to the user program
 		Debug.ASSERT(false);		// machine->Run never returns;
 		// the address space exits by doing the syscall "exit"
@@ -167,7 +166,9 @@ public class Syscall {
 
 	
 	//Schedule the newly created process for execution on the CPU
-	Nachos.scheduler.readyToRun(userThread);
+	//Nachos.scheduler.readyToRun(userThread);
+	userThread.runnable.run();
+
 	
 	Debug.println('M', "Thread id: " + userThread.processID);
 	
@@ -192,7 +193,6 @@ public class Syscall {
      */
     public static int join(int id) {
 	
-
 	UserThread currThrd = (UserThread)NachosThread.currentThread();
 	Debug.println('J', "Starting System Call Join with id: "+ id);
 	
@@ -293,9 +293,9 @@ public class Syscall {
 		Debug.println('S', "Reading: size: " + size + ", id: " + id);
 		for (i = 0; i < size; i++) {
 		    buffer[i] = (byte) Nachos.consoleDriver.getChar();
-
 		    Debug.println('S', "Read Console: " + (char) buffer[i]);
 		}
+		
 	    } catch (Exception e) {
 		Debug.println('S', "Exception occured");
 		return i;
@@ -362,7 +362,7 @@ public class Syscall {
      * or not. 
      */
     public static void yield() {
-	
+	Debug.println('Y', "Syscall Yield is called");
 	//Yield the CPU to another thread
 	Nachos.scheduler.yieldThread();
 	

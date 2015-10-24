@@ -238,6 +238,11 @@ public class AddrSpace {
       return entry;
   }
   
+//  private boolean load(String name) {
+//      initalPC =;
+//      
+//  }
+  
   
   /**
    * allocate more memory for UserThread

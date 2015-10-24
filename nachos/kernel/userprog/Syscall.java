@@ -76,12 +76,13 @@ public class Syscall {
      * Stop Nachos, and print out performance stats.
      */
     public static void halt() {
+	Debug.println('M', "Halt called");
 	if(((UserThread)NachosThread.currentThread()).processID == 0){
         	Debug.print('+', "Shutdown, initiated by user program.\n");
         	Simulation.stop();
 	}
     }
-
+    
     /* Address space control operations: Exit, Exec, and Join */
 
     /**

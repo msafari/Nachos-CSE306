@@ -23,6 +23,8 @@ import nachos.Debug;
 import nachos.machine.CPU;
 import nachos.machine.MIPS;
 import nachos.machine.Machine;
+import nachos.machine.MachineException;
+import nachos.machine.Simulation;
 import nachos.machine.TranslationEntry;
 import nachos.noff.NoffHeader;
 import nachos.noff.NoffHeader.NoffSegment;
@@ -55,7 +57,7 @@ public class AddrSpace {
   
   private static final long LOW32BITS = 0x00000000ffffffffL;
   
-  private static int nextVirtualIndex = 0;
+  private static int nextVPN = 0;
   
   private int numPages;
  
@@ -122,8 +124,6 @@ public class AddrSpace {
     
     // Zero out the entire address space, to zero the uninitialized data 
     // segment and the stack segment.
-    for(int i = 0; i < size; i++)
-	Machine.mainMemory[i] = (byte)0;
 
     // then, copy in the code and data segments into memory
     if (noffH.code.size > 0) {
@@ -137,6 +137,11 @@ public class AddrSpace {
       malloc(noffH.initData, executable, false);
     }
     
+    if(noffH.uninitData.size > 0) {
+	Debug.println('M', "Initializing uninitialized data segment, at " + noffH.uninitData.virtualAddr + ", size " + noffH.uninitData.size);
+	malloc(noffH.uninitData, executable, false);
+    }
+    
 
     //Print out pages for debug
     for(int i = 0; i < pageTable.length; i++){
@@ -146,7 +151,7 @@ public class AddrSpace {
     }
     
     //allocate space for the stack 
-   // mallocStack(numPages);
+   mallocStack();
     
     return(0);
   }
@@ -217,12 +222,23 @@ public class AddrSpace {
    */
   public int writeToVirtualMem(int bufferAddr,  byte[] data, int startIndex){
 	
-	int vOffset = bufferAddr % Machine.PageSize;	//calculate virtual offset
-	TranslationEntry entry = getEntry(bufferAddr);
-	
+	int vOffset = (int) ((bufferAddr & LOW32BITS) % Machine.PageSize);	//calculate virtual offset
+	//TranslationEntry entry = getEntry(bufferAddr);
+	 int vpn = (int) ((bufferAddr & LOW32BITS) / Machine.PageSize);	//calculate virtual page number
+	 
+	//check for page faults
+	if (vpn >= Machine.PageSize) {
+  	    Debug.println('a', "virtual page # " + vpn + 
+  			  " too large for page table size " + Machine.PageSize);
+  	} else if (!pageTable[(int)vpn].valid) {
+  	    Debug.println('a', "virtual page # " + vpn + " not valid");
+  	}
+  	TranslationEntry entry = pageTable[(int)vpn];
+      
 	entry.use = true;				//set use flag of entry to true
 	int pAddr = (entry.physicalPage * Machine.PageSize) + vOffset; 		//entry.physicalPage is ppn or frame number
 										//paddr = ppn * pagesize + offset  basically calculating PFN::offset
+	
 	System.arraycopy(data, startIndex, Machine.mainMemory, pAddr, Machine.PageSize);	//copy data to main mem starting from the physical address calculated above
 	return data.length;
   }
@@ -233,20 +249,10 @@ public class AddrSpace {
    * @return
    */
   public TranslationEntry getEntry(int bufferAddr) {
-      int VPN = bufferAddr / Machine.PageSize;	//calculate virtual page number
+      int VPN = (int) ((bufferAddr & LOW32BITS) / Machine.PageSize);	//calculate virtual page number
       TranslationEntry entry = pageTable[VPN];	//get the page table
       return entry;
   }
-  
-//  private boolean load(String name) {
-//      initalPC =;
-//      
-//  }
-  
-//  private boolean load(String name) {
-//      initalPC =;
-//      
-//  }
   
   
   /**
@@ -284,6 +290,7 @@ public class AddrSpace {
 		entry.readOnly = readOnly;
 		
 		writeToVirtualMem(bufferAddr, data, startIndex);
+		nextVPN++;
 	    }
 	  
 
@@ -296,13 +303,14 @@ public class AddrSpace {
       }
       
   }
-  
-  protected void mallocStack(int stackSize){
+  /**
+   * 
+   */
+  protected void mallocStack(){
       Debug.println('M', "Allocating Space for stack");
-      int numStackPages = stackSize / Machine.PageSize;
-      for (int i = 0; i <= numStackPages; i++) {
-	  TranslationEntry entry = pageTable[nextVirtualIndex];
-	  nextVirtualIndex++;
+      int numStackPages = UserStackSize / Machine.PageSize;
+      for (int i = 0; i < numStackPages; i++) {
+	  TranslationEntry entry = pageTable[nextVPN];
 	  
 	  // Allocate some pages
 	  MemoryManager.freePagesLock.acquire();
@@ -310,9 +318,11 @@ public class AddrSpace {
 	  MemoryManager.freePagesLock.release();
 	  entry.physicalPage = freePageIndex;
 	  entry.valid = true;
-	  Debug.println('M', "Stack Entry: " + i + ", vpn: " + pageTable[nextVirtualIndex-1].virtualPage 
+	  entry.use= true;
+	  Debug.println('M', "Stack Entry: " + i + ", vpn: " + pageTable[nextVPN].virtualPage 
 			+ ", ppn: " + pageTable[i].physicalPage
 			+ ", valid: " + pageTable[i].valid);
+	  nextVPN++;
 	  
       }
   }

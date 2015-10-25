@@ -91,7 +91,7 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		Syscall.exit(CPU.readRegister(4));
 		break;
 	    case Syscall.SC_Exec:
-		
+		Debug.showArguments();
 		String fileName = getFileName(4);
 		result = Syscall.exec(fileName);
 		CPU.writeRegister(2, result);
@@ -99,9 +99,11 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		break;
 	    case Syscall.SC_Write:
 		int ptr = CPU.readRegister(4);
+		int pAddr = ((UserThread)NachosThread.currentThread()).space.virtualToPhysical(ptr, false);
 		int len = CPU.readRegister(5);
 		byte buf[] = new byte[len];
-		System.arraycopy(Machine.mainMemory, ptr, buf, 0, len);
+		System.arraycopy(Machine.mainMemory, pAddr, buf, 0, len);
+		String value = bytesToString(buf);
 		Syscall.write(buf, len, CPU.readRegister(6));
 		break;
 	    default:

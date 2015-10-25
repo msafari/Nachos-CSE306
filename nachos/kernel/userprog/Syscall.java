@@ -6,10 +6,17 @@
 
 package nachos.kernel.userprog;
 
+import java.util.Currency;
+import java.util.LinkedList;
+
+import javax.print.attribute.standard.Finishings;
+
 import nachos.Debug;
 import nachos.kernel.Nachos;
 import nachos.kernel.filesys.OpenFile;
+import nachos.kernel.threads.Lock;
 import nachos.kernel.threads.Semaphore;
+import nachos.kernel.userprog.test.ProgTest;
 import nachos.machine.CPU;
 import nachos.machine.MIPS;
 import nachos.machine.Machine;
@@ -69,9 +76,13 @@ public class Syscall {
     /** Integer code identifying the "Remove" system call. */
     public static final byte SC_Remove = 11;
     
-    public static Semaphore joinSem = new Semaphore("joinSem", 0);;
+    public static Semaphore joinSem = new Semaphore("joinSem", 0);
+    
+    public static AddrSpace addrSpace;
+    
+    private static Lock lock = new Lock("ThreadsLock");
 
-
+    public static LinkedList<UserThread> runningThreads = new LinkedList<UserThread>();
     /**
      * Stop Nachos, and print out performance stats.
      */
@@ -99,24 +110,42 @@ public class Syscall {
 	
 	//Deallocate any physical memory and other resources that are assigned to this thread
 	
+	//UserThread currThrd = ((UserThread)NachosThread.currentThread());
+	lock.acquire();
+	UserThread currThrd = runningThreads.pollLast();
+	lock.release();
+	
+	
+	
 	Debug.println('+', "User program exits with status=" + status
-				+ ": " + NachosThread.currentThread().name);
+		+ ": " + currThrd.name);
 	
-	UserThread currThrd = ((UserThread)NachosThread.currentThread());
 	AddrSpace space = currThrd.space;
-	
 	space.free(); 		//free the resources for this thread
 	
 	currThrd.joinSem.V(); 		//unblock join
 	
+	
+	
+	
 	//if it's the last thread
-	if(((UserThread)NachosThread.currentThread()).processID == 0){
+	if(currThrd.processID == 0) {
 	    
 	   Debug.println('+', "Exiting last thread. Setting exitStatus to: "+ status);   
 	   currThrd.exitStatus = status; 	// set the exit status of the addrspace   
+	   Nachos.scheduler.finishThread();
 	   Simulation.stop(); 			//halt nachos machine?
+	   
 	}
-	Nachos.scheduler.finishThread();
+	
+	
+	//Remove thread from list of children
+	((UserThread)NachosThread.currentThread()).childThreads.remove(currThrd);
+	
+	
+	//currThrd.finish();  //commenting this out till I'm done with finish()
+	currThrd.setStatus(NachosThread.FINISHED);
+		
     }
     /**
      * Run the executable, stored in the Nachos file "name", and return the 
@@ -128,33 +157,28 @@ public class Syscall {
 	
 	Debug.println('S', "Exec SysCall is called");
 	
+	//Initializes the address space using the data from the NACHOS executable
 	//Create a new process (i.e. user thread plus user address space) in which to execute the program
-	AddrSpace addrSpace = new AddrSpace();
-
-	OpenFile executable;
-	if((executable = Nachos.fileSystem.open(name)) == null) {
-	    Debug.println('+', "Unable to open executable file: " + name);
-	    Nachos.scheduler.finishThread();
-	}
+	addrSpace = new AddrSpace();
 	
-	if(addrSpace.exec(executable) == -1) {
-	    Debug.println('+', "Unable to read executable file: " + name);
-	    Nachos.scheduler.finishThread();
-	}
-	
-	addrSpace.initRegisters();
-	addrSpace.restoreState();
+	((UserThread)NachosThread.currentThread()).saveState();
 	
 	UserThread userThread = new UserThread(name ,new Runnable(){
 	    public void run(){
-
+		OpenFile executable;
+		CPU.writeRegister(4, 0);
+		int readReg  = CPU.readRegister(4);
+		if((executable = Nachos.fileSystem.open(name)) == null) {
+		    Debug.println('+', "Unable to open executable file: " + name);
+		    Nachos.scheduler.finishThread();
+		}
 		
-		//Initializes the address space using the data from the NACHOS executable
-		
-		//Initializes the address space using the data from the NACHOS executable
-		//AddrSpace space = ((UserThread)NachosThread.currentThread()).space;
-		//space.initRegisters();		// set the initial register values
-		//space.restoreState();		// load page table register		
+		if(addrSpace.exec(executable) == -1) {
+		    Debug.println('+', "Unable to read executable file: " + name);
+		    Nachos.scheduler.finishThread();
+		}
+		addrSpace.initRegisters();
+		addrSpace.restoreState();
 		CPU.runUserCode();		// jump to the user program
 		Debug.ASSERT(false);		// machine->Run never returns;
 		// the address space exits by doing the syscall "exit"
@@ -164,12 +188,12 @@ public class Syscall {
 	
 	//add the new child thread to the list of threads
 	((UserThread)NachosThread.currentThread()).childThreads.add(userThread);
-
 	
 	//Schedule the newly created process for execution on the CPU
 	//Nachos.scheduler.readyToRun(userThread);
-	userThread.runnable.run();
 
+	userThread.runnable.run();
+	
 	
 	Debug.println('M', "Thread id: " + userThread.processID);
 	

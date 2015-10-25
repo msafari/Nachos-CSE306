@@ -57,7 +57,7 @@ public class AddrSpace {
   
   private static final long LOW32BITS = 0x00000000ffffffffL;
   
-  private static int nextVPN = 0;
+  public int nextVPN;
   
   private int numPages;
  
@@ -65,7 +65,9 @@ public class AddrSpace {
   /**
    * Create a new address space.
    */
-  public AddrSpace() { }
+  public AddrSpace() { 
+      nextVPN = 0;
+  }
 
   /**
    * Load the program from a file "executable", and set everything
@@ -151,7 +153,7 @@ public class AddrSpace {
     }
     
     //allocate space for the stack 
-   mallocStack();
+    mallocStack();
     
     return(0);
   }
@@ -222,7 +224,7 @@ public class AddrSpace {
    */
   public int writeToVirtualMem(int bufferAddr,  byte[] data, int startIndex){
 	
-	int vOffset = (int) ((bufferAddr & LOW32BITS) % Machine.PageSize);	//calculate virtual offset
+	int vOffset = (int) ((bufferAddr & LOW32BITS ) % Machine.PageSize);	//calculate virtual offset
 	//TranslationEntry entry = getEntry(bufferAddr);
 	 int vpn = (int) ((bufferAddr & LOW32BITS) / Machine.PageSize);	//calculate virtual page number
 	 
@@ -306,25 +308,32 @@ public class AddrSpace {
   /**
    * 
    */
-  protected void mallocStack(){
+  protected int mallocStack(){
       Debug.println('M', "Allocating Space for stack");
       int numStackPages = UserStackSize / Machine.PageSize;
-      for (int i = 0; i < numStackPages; i++) {
-	  TranslationEntry entry = pageTable[nextVPN];
-	  
-	  // Allocate some pages
-	  MemoryManager.freePagesLock.acquire();
-	  int freePageIndex = MemoryManager.freePagesList.removeFirst();
-	  MemoryManager.freePagesLock.release();
-	  entry.physicalPage = freePageIndex;
-	  entry.valid = true;
-	  entry.use= true;
-	  Debug.println('M', "Stack Entry: " + i + ", vpn: " + pageTable[nextVPN].virtualPage 
-			+ ", ppn: " + pageTable[i].physicalPage
-			+ ", valid: " + pageTable[i].valid);
-	  nextVPN++;
-	  
+      if(numPages <= Machine.NumPhysPages && numPages<=MemoryManager.freePagesList.size()) {
+          for (int i = 0; i < numStackPages; i++) {
+    	  TranslationEntry entry = pageTable[nextVPN];
+    	  
+    	  // Allocate some pages
+    	  MemoryManager.freePagesLock.acquire();
+    	  int freePageIndex = MemoryManager.freePagesList.removeFirst();
+    	  MemoryManager.freePagesLock.release();
+    	  entry.physicalPage = freePageIndex;
+    	  entry.valid = true;
+    	  entry.use= true;
+    	  Debug.println('M', "Stack Entry: " + i + ", vpn: " + entry.virtualPage 
+    			+ ", ppn: " + entry.physicalPage
+    			+ ", valid: " + entry.valid);
+    	  nextVPN++;
+    	  
+          }
       }
+      else {
+	  Debug.println('M', "Not enough physical memory!");
+	  return -1;
+      }
+      return 0;
   }
   
   /**

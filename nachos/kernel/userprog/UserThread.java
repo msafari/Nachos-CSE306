@@ -11,11 +11,14 @@
 package nachos.kernel.userprog;
 
 import java.util.LinkedList;
-
+import nachos.Debug;
 import nachos.machine.MIPS;
+import nachos.machine.Machine;
 import nachos.machine.NachosThread;
 import nachos.machine.CPU;
+import nachos.kernel.Nachos;
 import nachos.kernel.threads.Semaphore;
+import nachos.kernel.threads.SpinLock;
 import nachos.kernel.userprog.MemoryManager;
 
 /**
@@ -35,6 +38,12 @@ public class UserThread extends NachosThread {
     public LinkedList<UserThread> childThreads = new LinkedList<UserThread>();
     public Semaphore joinSem;
     public Runnable runnable;
+    
+    /** Terminated thread awaiting reclamation of its stack. */
+    private volatile NachosThread threadToBeDestroyed;
+
+    /** Spin lock for mutually exclusive access to scheduler state. */
+    private final SpinLock mutex = new SpinLock("scheduler mutex");
     
     /** The context in which this thread will execute. */
     public final AddrSpace space;
@@ -79,6 +88,8 @@ public class UserThread extends NachosThread {
 	
 	//Release lock
 	MemoryManager.processIDLock.release();
+	
+	Syscall.runningThreads.add(this);
     }
 
     /**
@@ -111,5 +122,39 @@ public class UserThread extends NachosThread {
 
 	// Restore state associated with the address space.
 	space.restoreState();
+    }
+    
+    /**
+     * Terminates the Userthread
+     * TODO: finish this method?
+     */
+    public void finish() {
+
+	CPU.setLevel(CPU.IntOff);
+	
+	Debug.println('M', "finishing thread : "+ this.name);
+	
+	// We have to make sure the thread has been set to the FINISHED state
+	// before making it the thread to be destroyed, because we don't want
+	// someone to try to destroy a thread that is not FINISHED.
+	this.setStatus(NachosThread.FINISHED);
+	
+	// Delete the carcass of any thread that died previously.
+	// This ensures that there is at most one dead thread ever waiting
+	// to be cleaned up.
+	mutex.acquire();
+	if (threadToBeDestroyed != null) {
+	    threadToBeDestroyed.destroy();
+	    threadToBeDestroyed = null;
+	}
+	threadToBeDestroyed = this;
+	mutex.release();
+	
+	//TODO figure out how to yeild CPU? 
+	//NachosThread.yieldCPU(NachosThread.FINISHED, null);  
+	// not reached
+
+	// Interrupts will be re-enabled when the next thread runs or the
+	// current CPU goes idle.
     }
 }

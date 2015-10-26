@@ -93,7 +93,6 @@ public class AddrSpace {
 	return(-1);
     }
 
-    System.out.println("Transferring exec to addrspace");
     // how big is address space?
     size = roundToPage(noffH.code.size)
 	     + roundToPage(noffH.initData.size + noffH.uninitData.size)
@@ -357,30 +356,85 @@ public class AddrSpace {
       }
       
   }
-  
-  
- public int virtualToPhysical(int virtAddr, boolean writing){
-     
-     // Translation using page table or TLB.
-     long vpn, offset;
-     TranslationEntry entry;
-     long pageFrame;
-     int physAddr;
-     
-     // calculate the virtual page number, and offset within the page,
-     // from the virtual address
-     vpn = (virtAddr & LOW32BITS) / Machine.PageSize;
-     offset = (virtAddr & LOW32BITS) % Machine.PageSize;
+ 
+ public int translate(int virtAddr, int size, boolean writing){
+      int i = 0;
+      int physAddr;
+
+      // check for alignment errors
+      if (((size == 4) && (virtAddr & 0x3) != 0) || 
+  	((size == 2) && (virtAddr & 0x1) != 0)) {
+        Debug.println('a', "alignment problem at " + virtAddr + ", size " + size);
+        return -1;
+      }
+
+      // Translation using page table
+      long vpn, offset;
+      TranslationEntry entry;
+      long pageFrame;
+      
+      // calculate the virtual page number, and offset within the page,
+      // from the virtual address
+      vpn = (virtAddr & LOW32BITS) / Machine.PageSize;
+      offset = (virtAddr & LOW32BITS) % Machine.PageSize;
+
+	if (vpn >= pageTable.length) {
+	    Debug.println('a', "virtual page # " + vpn
+		    + " too large for page table size " + pageTable.length);
+	    return -1;
+	} else if (!pageTable[(int) vpn].valid) {
+	    Debug.println('a', "virtual page # " + vpn + " not valid");
+	    Simulation.stats.numPageFaults++;
+	    return -1;
+	}
      entry = pageTable[(int)vpn];
-     pageFrame = entry.physicalPage;
-     entry.use = true;		// set the use, dirty bits
-     
-     if (writing)
- 	entry.dirty = true;
-     
-     physAddr = (int) (pageFrame * Machine.PageSize + offset);
-     Debug.println('M', "Virtual Address: " + virtAddr + ", physical Address: " + physAddr);
-     
-     return physAddr;
- }
+
+      if (entry.readOnly && writing) {	// trying to write to a read-only page
+        Debug.println('a', virtAddr + " mapped read-only at " + i + " in TLB!");
+        return -1;
+      }
+      pageFrame = entry.physicalPage;
+
+      // if the pageFrame is too big, there is something really wrong! 
+      // An invalid translation was loaded into the page table or TLB. 
+      if (pageFrame >= Machine.NumPhysPages) { 
+        Debug.println('a', "*** frame " + pageFrame + " > " + Machine.NumPhysPages);
+        return -1;
+      }
+      entry.use = true;		// set the use, dirty bits
+      if (writing)
+  	entry.dirty = true;
+      physAddr = (int) (pageFrame * Machine.PageSize + offset);
+
+      Debug.ASSERT((physAddr >= 0) && ((physAddr + size) <= Machine.MemorySize));
+      if (Debug.isEnabled('a')) {
+        Debug.printf('a', "phys addr = 0x%x\n", new Integer(physAddr));
+      }
+
+      return physAddr;
+    }
+ 
+    public int readVirtualMemory(int virtualAddress, byte[] data, int offset, int length) {
+
+	byte[] memory = Machine.mainMemory;
+
+	// address translation
+	int vpn = virtualAddress / Machine.PageSize;
+	int voffset = virtualAddress % Machine.PageSize;
+	TranslationEntry entry = pageTable[vpn];
+	entry.use = true;
+	int physicalAddress = entry.physicalPage * Machine.PageSize + voffset;
+
+	// if entry is not valid, then don't read
+	if (physicalAddress < 0 || physicalAddress >= memory.length || !entry.valid)
+	    return 0;
+
+	int amount = Math.min(length, memory.length - physicalAddress);
+
+	// copies 'amount' bytes from byte array 'memory' starting at byte 'vaddr' to byte array 'data' starting 'offset' bytes into 'data'
+	System.arraycopy(memory, physicalAddress, data, offset, amount);
+
+	return amount;
+    }
+ 
 }

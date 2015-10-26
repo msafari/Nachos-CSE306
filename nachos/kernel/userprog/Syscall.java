@@ -6,24 +6,17 @@
 
 package nachos.kernel.userprog;
 
-import java.util.Currency;
 import java.util.LinkedList;
-
-import javax.print.attribute.standard.Finishings;
 
 import nachos.Debug;
 import nachos.kernel.Nachos;
 import nachos.kernel.filesys.OpenFile;
 import nachos.kernel.threads.Lock;
 import nachos.kernel.threads.Semaphore;
-import nachos.kernel.userprog.test.ProgTest;
 import nachos.machine.CPU;
 import nachos.machine.MIPS;
-import nachos.machine.Machine;
 import nachos.machine.NachosThread;
 import nachos.machine.Simulation;
-import nachos.machine.TranslationEntry;
-import nachos.noff.NoffHeader.NoffSegment;
 
 
 /**
@@ -87,7 +80,6 @@ public class Syscall {
      * Stop Nachos, and print out performance stats.
      */
     public static void halt() {
-	Debug.println('M', "Halt called");
 	if(((UserThread)NachosThread.currentThread()).processID == 0){
         	Debug.print('+', "Shutdown, initiated by user program.\n");
         	Simulation.stop();
@@ -110,27 +102,25 @@ public class Syscall {
 	
 	//Deallocate any physical memory and other resources that are assigned to this thread
 	
-	//UserThread currThrd = ((UserThread)NachosThread.currentThread());
-	lock.acquire();
-	UserThread currThrd = runningThreads.pollLast();
-	lock.release();
+	UserThread currThrd = ((UserThread)NachosThread.currentThread());
+//	lock.acquire();
+//	UserThread currThrd = runningThreads.pollLast();
+//	lock.release();
 	
+	//Set the exit status of the thread
+	currThrd.exitStatus = status;
 	
-	
-	Debug.println('+', "User program exits with status=" + status
+	Debug.println('M', "User program exits with status=" + status
 		+ ": " + currThrd.name);
 	
+	//Free the address space
 	AddrSpace space = currThrd.space;
-	space.free(); 		//free the resources for this thread
+	space.free();
 	
 	currThrd.joinSem.V(); 		//unblock join
 	
-	
-	
-	
-	//if it's the last thread
-	if(currThrd.processID == 0) {
-	    
+	//if there are no more running threads exit
+	if(runningThreads.isEmpty()) {
 	   Debug.println('+', "Exiting last thread. Setting exitStatus to: "+ status);   
 	   currThrd.exitStatus = status; 	// set the exit status of the addrspace   
 	   Nachos.scheduler.finishThread();
@@ -138,14 +128,11 @@ public class Syscall {
 	   
 	}
 	
-	
 	//Remove thread from list of children
-	((UserThread)NachosThread.currentThread()).childThreads.remove(currThrd);
-	
-	
-	//currThrd.finish();  //commenting this out till I'm done with finish()
-	currThrd.setStatus(NachosThread.FINISHED);
-		
+	//((UserThread)NachosThread.currentThread()).childThreads.remove(currThrd);
+	System.out.println("current thread: " + ((UserThread)NachosThread.currentThread()).processID);
+	//currThrd.setStatus(NachosThread.FINISHED);
+	Nachos.scheduler.finishThread();
     }
     /**
      * Run the executable, stored in the Nachos file "name", and return the 
@@ -161,13 +148,11 @@ public class Syscall {
 	//Create a new process (i.e. user thread plus user address space) in which to execute the program
 	addrSpace = new AddrSpace();
 	
-	((UserThread)NachosThread.currentThread()).saveState();
+	//((UserThread)NachosThread.currentThread()).saveState();
 	
 	UserThread userThread = new UserThread(name ,new Runnable(){
 	    public void run(){
 		OpenFile executable;
-		CPU.writeRegister(4, 0);
-		int readReg  = CPU.readRegister(4);
 		if((executable = Nachos.fileSystem.open(name)) == null) {
 		    Debug.println('+', "Unable to open executable file: " + name);
 		    Nachos.scheduler.finishThread();
@@ -177,6 +162,7 @@ public class Syscall {
 		    Debug.println('+', "Unable to read executable file: " + name);
 		    Nachos.scheduler.finishThread();
 		}
+		
 		addrSpace.initRegisters();
 		addrSpace.restoreState();
 		CPU.runUserCode();		// jump to the user program
@@ -186,14 +172,8 @@ public class Syscall {
 	    }
 	},addrSpace);
 	
-	//add the new child thread to the list of threads
-	((UserThread)NachosThread.currentThread()).childThreads.add(userThread);
-	
 	//Schedule the newly created process for execution on the CPU
-	//Nachos.scheduler.readyToRun(userThread);
-
-	userThread.runnable.run();
-	
+	Nachos.scheduler.readyToRun(userThread);
 	
 	Debug.println('M', "Thread id: " + userThread.processID);
 	

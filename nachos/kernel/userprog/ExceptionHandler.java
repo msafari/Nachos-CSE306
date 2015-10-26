@@ -70,7 +70,7 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		int inputLength = CPU.readRegister(5);
 		byte readBuf[] = new byte[inputLength];
 		result = Syscall.read(readBuf, inputLength, CPU.readRegister(6));
-		int physicalAddress = ((UserThread)NachosThread.currentThread()).space.virtualToPhysical(virtualAddress, true);
+		int physicalAddress = ((UserThread)NachosThread.currentThread()).space.translate(virtualAddress, inputLength, true);
 		System.arraycopy(readBuf, 0, Machine.mainMemory, physicalAddress, inputLength);
 		CPU.writeRegister(2, result);
 		break;
@@ -98,12 +98,16 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		
 		break;
 	    case Syscall.SC_Write:
+		Debug.println('S', "Write syscall");
+		Debug.showArguments();
 		int ptr = CPU.readRegister(4);
-		int pAddr = ((UserThread)NachosThread.currentThread()).space.virtualToPhysical(ptr, false);
 		int len = CPU.readRegister(5);
+		
 		byte buf[] = new byte[len];
-		System.arraycopy(Machine.mainMemory, pAddr, buf, 0, len);
+		AddrSpace testspace = ((UserThread)NachosThread.currentThread()).space;
+		((UserThread)NachosThread.currentThread()).space.readVirtualMemory(ptr, buf, 0, len);
 		String value = bytesToString(buf);
+		
 		Syscall.write(buf, len, CPU.readRegister(6));
 		break;
 	    default:

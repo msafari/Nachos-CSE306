@@ -10,12 +10,14 @@ import java.util.LinkedList;
 
 import nachos.Debug;
 import nachos.kernel.Nachos;
+import nachos.kernel.devices.ConsoleDriver;
 import nachos.kernel.filesys.OpenFile;
 import nachos.kernel.threads.Lock;
 import nachos.kernel.threads.Semaphore;
 import nachos.kernel.userprog.test.ProgTest;
 import nachos.machine.CPU;
 import nachos.machine.MIPS;
+import nachos.machine.Machine;
 import nachos.machine.NachosThread;
 import nachos.machine.Simulation;
 
@@ -73,8 +75,6 @@ public class Syscall {
     public static Semaphore joinSem = new Semaphore("joinSem", 0);
     
     public static AddrSpace addrSpace;
-    
-    private static Lock lock = new Lock("ThreadsLock");
 
     public static LinkedList<UserThread> runningThreads = new LinkedList<UserThread>();
     
@@ -124,7 +124,7 @@ public class Syscall {
 	if(runningThreads.isEmpty()) {
 	   Debug.println('+', "Exiting last thread. Setting exitStatus to: "+ status);   
 	   currThrd.exitStatus = status; 	// set the exit status of the addrspace   
-	   Simulation.stop(); 			//halt nachos machine?
+	   Simulation.stop(); 			//halt nachos machine
 	   
 	}
 	

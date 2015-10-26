@@ -6,6 +6,5 @@ int
 main()
 {
   Exec("test/console1");
-  Exec("test/console1");
   Exit(0);
 }

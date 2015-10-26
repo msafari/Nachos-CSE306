@@ -32,6 +32,7 @@ public class ProgTest implements Runnable {
     /** The name of the program to execute. */
     private String execName;
 
+    public int processID;
     /**
      * Start the test by creating a new address space and user thread,
      * then arranging for the new thread to begin executing the run() method
@@ -39,14 +40,15 @@ public class ProgTest implements Runnable {
      *
      * @param filename The name of the program to execute.
      */
-    public ProgTest(String filename, int num) {
-	String name = "ProgTest"+ num + "(" + filename + ")";
+    public ProgTest(String filename) {
+	String name = "ProgTest (" + filename + ")";
 	
 	Debug.println('+', "starting ProgTest: " + name);
 
 	execName = filename;
 	AddrSpace space = new AddrSpace();
 	UserThread t = new UserThread(name, this, space);
+	this.processID = t.processID;
 	Nachos.scheduler.readyToRun(t);
     }
 
@@ -89,7 +91,6 @@ public class ProgTest implements Runnable {
     public static void start() {
 	Debug.ASSERT(Nachos.options.FILESYS_REAL || Nachos.options.FILESYS_STUB,
 			"A filesystem is required to execute user programs");
-	final int[] count = new int[1];
 	Nachos.options.processOptions
 		(new Options.Spec[] {
 			new Options.Spec
@@ -98,7 +99,7 @@ public class ProgTest implements Runnable {
 				 "Usage: -x <executable file>",
 				 new Options.Action() {
 				    public void processOption(String flag, Object[] params) {
-					new ProgTest((String)params[0], count[0]++);
+					new ProgTest((String)params[0]);
 				    }
 				 })
 		 });

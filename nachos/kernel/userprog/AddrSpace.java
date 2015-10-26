@@ -24,6 +24,7 @@ import nachos.machine.CPU;
 import nachos.machine.MIPS;
 import nachos.machine.Machine;
 import nachos.machine.MachineException;
+import nachos.machine.NachosThread;
 import nachos.machine.Simulation;
 import nachos.machine.TranslationEntry;
 import nachos.noff.NoffHeader;
@@ -339,7 +340,7 @@ public class AddrSpace {
    * free all resources for the current thread
    */
   protected int free() {
-      Debug.println('+', "freeing all resources for thread");
+      Debug.println('+', "freeing all resources for thread: " + ((UserThread)NachosThread.currentThread()).name);
       try {
 	  for (int i=0; i< pageTable.length ; i++) {
 		TranslationEntry entry = pageTable[i];

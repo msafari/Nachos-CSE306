@@ -13,6 +13,7 @@ import nachos.kernel.Nachos;
 import nachos.kernel.filesys.OpenFile;
 import nachos.kernel.threads.Lock;
 import nachos.kernel.threads.Semaphore;
+import nachos.kernel.userprog.test.ProgTest;
 import nachos.machine.CPU;
 import nachos.machine.MIPS;
 import nachos.machine.NachosThread;
@@ -76,6 +77,7 @@ public class Syscall {
     private static Lock lock = new Lock("ThreadsLock");
 
     public static LinkedList<UserThread> runningThreads = new LinkedList<UserThread>();
+    
     /**
      * Stop Nachos, and print out performance stats.
      */
@@ -144,41 +146,11 @@ public class Syscall {
 	
 	Debug.println('S', "Exec SysCall is called");
 	
-	//Initializes the address space using the data from the NACHOS executable
-	//Create a new process (i.e. user thread plus user address space) in which to execute the program
-	addrSpace = new AddrSpace();
-	
-	//((UserThread)NachosThread.currentThread()).saveState();
-	
-	UserThread userThread = new UserThread(name ,new Runnable(){
-	    public void run(){
-		OpenFile executable;
-		if((executable = Nachos.fileSystem.open(name)) == null) {
-		    Debug.println('+', "Unable to open executable file: " + name);
-		    Nachos.scheduler.finishThread();
-		}
-		
-		if(addrSpace.exec(executable) == -1) {
-		    Debug.println('+', "Unable to read executable file: " + name);
-		    Nachos.scheduler.finishThread();
-		}
-		
-		addrSpace.initRegisters();
-		addrSpace.restoreState();
-		CPU.runUserCode();		// jump to the user program
-		Debug.ASSERT(false);		// machine->Run never returns;
-		// the address space exits by doing the syscall "exit"
-		
-	    }
-	},addrSpace);
-	
-	//Schedule the newly created process for execution on the CPU
-	Nachos.scheduler.readyToRun(userThread);
-	
-	Debug.println('M', "Thread id: " + userThread.processID);
+	//Create a new ProgTest object, ignore num since processID is managed in the UserThread class
+	ProgTest userProgram = new ProgTest(name);
 	
 	//An integer value ("SpaceId") that uniquely identifies the newly created process is returned to the caller
-	return userThread.processID;
+	return userProgram.processID;
 	
     }
 

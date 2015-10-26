@@ -10,8 +10,7 @@ import nachos.kernel.userprog.UserThread;
 import nachos.kernel.filesys.OpenFile;
 
 /**
- * This is a test class for demonstrating that Nachos can load a user
- * program and execute it.
+ * This is a class for a User Process that makes a new UserThread with it's own address space
  * 
  * @author Thomas Anderson (UC Berkeley), original C++ version
  * @author Peter Druschel (Rice University), Java translation
@@ -31,9 +30,9 @@ public class UserProcess implements Runnable {
      * @param filename The name of the program to execute.
      */
     public UserProcess(String filename) {
-	String name = "ProgTest (" + filename + ")";
+	String name = "UserProcess (" + filename + ")";
 	
-	Debug.println('+', "starting ProgTest: " + name);
+	Debug.println('+', "starting UserProcess: " + name);
 
 	execName = filename;
 	AddrSpace space = new AddrSpace();
@@ -41,9 +40,10 @@ public class UserProcess implements Runnable {
 	
 	
 	this.processID = t.processID;
-	//add this to the child thread list
-	//join syscall uses this list
-	if(this.processID != 0)
+	
+	//add this to the child thread list, join syscall uses this list
+
+	if(this.processID != 0)		//check if it's not the parent(main) thread
 	    ((UserThread)NachosThread.currentThread()).childThreads.add(t);
 	
 	Nachos.scheduler.readyToRun(t);

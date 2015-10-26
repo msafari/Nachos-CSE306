@@ -6,16 +6,18 @@
 
 package nachos.kernel.userprog;
 
+import java.util.LinkedList;
+
 import nachos.Debug;
 import nachos.kernel.Nachos;
 import nachos.kernel.filesys.OpenFile;
+import nachos.kernel.threads.Lock;
 import nachos.kernel.threads.Semaphore;
+import nachos.kernel.userprog.test.ProgTest;
 import nachos.machine.CPU;
 import nachos.machine.MIPS;
-import nachos.machine.Machine;
 import nachos.machine.NachosThread;
 import nachos.machine.Simulation;
-import nachos.noff.NoffHeader.NoffSegment;
 
 
 /**
@@ -67,9 +69,15 @@ public class Syscall {
 
     /** Integer code identifying the "Remove" system call. */
     public static final byte SC_Remove = 11;
-    public static Semaphore joinSem = new Semaphore("joinSem", 0);;
+    
+    public static Semaphore joinSem = new Semaphore("joinSem", 0);
+    
+    public static AddrSpace addrSpace;
+    
+    private static Lock lock = new Lock("ThreadsLock");
 
-
+    public static LinkedList<UserThread> runningThreads = new LinkedList<UserThread>();
+    
     /**
      * Stop Nachos, and print out performance stats.
      */
@@ -79,7 +87,7 @@ public class Syscall {
         	Simulation.stop();
 	}
     }
-
+    
     /* Address space control operations: Exit, Exec, and Join */
 
     /**
@@ -96,23 +104,36 @@ public class Syscall {
 	
 	//Deallocate any physical memory and other resources that are assigned to this thread
 	
-	Debug.println('+', "User program exits with status=" + status
-				+ ": " + NachosThread.currentThread().name);
-	
 	UserThread currThrd = ((UserThread)NachosThread.currentThread());
+//	lock.acquire();
+//	UserThread currThrd = runningThreads.pollLast();
+//	lock.release();
+	
+	//Set the exit status of the thread
+	currThrd.exitStatus = status;
+	
+	Debug.println('M', "User program exits with status=" + status
+		+ ": " + currThrd.name);
+	
+	//Free the address space
 	AddrSpace space = currThrd.space;
+	space.free();
 	
-	space.free(); //free the resources for this thread
+	currThrd.joinSem.V(); 		//unblock join
 	
-	currThrd.joinSem.V(); //unblock join
-	
-	//if it's the last thread
-	if(((UserThread)NachosThread.currentThread()).processID == 0){
-	    
+	//if there are no more running threads exit
+	if(runningThreads.isEmpty()) {
 	   Debug.println('+', "Exiting last thread. Setting exitStatus to: "+ status);   
-	   currThrd.exitStatus = status; // set the exit status of the addrspace   
-	   Simulation.stop();  //halt nachos machine?
+	   currThrd.exitStatus = status; 	// set the exit status of the addrspace   
+	   Nachos.scheduler.finishThread();
+	   Simulation.stop(); 			//halt nachos machine?
+	   
 	}
+	
+	//Remove thread from list of children
+	//((UserThread)NachosThread.currentThread()).childThreads.remove(currThrd);
+	System.out.println("current thread: " + ((UserThread)NachosThread.currentThread()).processID);
+	//currThrd.setStatus(NachosThread.FINISHED);
 	Nachos.scheduler.finishThread();
     }
     /**
@@ -125,49 +146,11 @@ public class Syscall {
 	
 	Debug.println('S', "Exec SysCall is called");
 	
-	//Create a new process (i.e. user thread plus user address space) in which to execute the program
-	AddrSpace addrSpace = new AddrSpace();
-	
-	UserThread userThread = new UserThread(name ,new Runnable(){
-	    public void run(){
-		Debug.println('S', "Executing Runnable...");
-		//Initializes the address space using the data from the NACHOS executable
-		OpenFile executable;
-		if((executable = Nachos.fileSystem.open(name)) == null) {
-		    Debug.println('+', "Unable to open executable file: " + name);
-		    Nachos.scheduler.finishThread();
-		    return;
-		}
-
-		AddrSpace space = ((UserThread)NachosThread.currentThread()).space;
-		if(space.exec(executable) == -1) {
-		    Debug.println('+', "Unable to read executable file: " + name);
-		    Nachos.scheduler.finishThread();
-		    return;
-		}
-
-		space.initRegisters();		// set the initial register values
-		space.restoreState();		// load page table register
-		
-		CPU.runUserCode();		// jump to the user program
-		Debug.ASSERT(false);		// machine->Run never returns;
-		// the address space exits by doing the syscall "exit"
-		
-	    }
-	},addrSpace);
-	
-	//add the new child thread to the list of threads
-	((UserThread)NachosThread.currentThread()).childThreads.add(userThread);
-	
-	//Schedule the newly created process for execution on the CPU
-	//Nachos.scheduler.readyToRun(userThread);
-	userThread.runnable.run();
-
-	
-	Debug.println('M', "Thread id: " + userThread.processID);
+	//Create a new ProgTest object, ignore num since processID is managed in the UserThread class
+	ProgTest userProgram = new ProgTest(name);
 	
 	//An integer value ("SpaceId") that uniquely identifies the newly created process is returned to the caller
-	return userThread.processID;
+	return userProgram.processID;
 	
     }
 
@@ -188,16 +171,15 @@ public class Syscall {
     public static int join(int id) {
 	
 	UserThread currThrd = (UserThread)NachosThread.currentThread();
-	Debug.println('J', "Starting System Call Join with id: "+ id + "currthrd: " + currThrd.processID);
+	Debug.println('J', "Starting System Call Join with id: "+ id);
 	
 	for(UserThread child: currThrd.childThreads){
-	    Debug.println('J', "Child ID:" + child.processID);
 	    if (child.processID == id) {
 		Debug.println('J', "blocking proccesID "+ child.processID +" until process is terminated"); 
 		
-		child.joinSem.P(); //block join
+		child.joinSem.P(); 			//block join
 		Debug.println('J', "Thread "+ child.name + " terminated with status: "+ child.exitStatus);
-		return child.exitStatus; //return child's exitStatus after termination
+		return child.exitStatus; 	//return child's exitStatus after termination
 	    }
 	}
 	
@@ -307,6 +289,7 @@ public class Syscall {
 
     }
 
+    
     /**
      * Close the file, we're done reading and writing to it.
      *
@@ -341,10 +324,12 @@ public class Syscall {
 		
 	    }
 	}, ((UserThread)NachosThread.currentThread()).space);
+	
+	
     }
     
     public static void forkHelper(int funcAddr) {
-	((UserThread)NachosThread.currentThread()).space.restoreState(); //load page tables
+	((UserThread)NachosThread.currentThread()).space.restoreState(); 	//load page tables? or not?
 	CPU.writeRegister(MIPS.PCReg, funcAddr);
 	CPU.writeRegister(MIPS.NextPCReg, funcAddr + 4);
     }

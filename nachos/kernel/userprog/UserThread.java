@@ -12,10 +12,14 @@ package nachos.kernel.userprog;
 
 import java.util.LinkedList;
 
+import nachos.Debug;
 import nachos.machine.MIPS;
+import nachos.machine.Machine;
 import nachos.machine.NachosThread;
 import nachos.machine.CPU;
+import nachos.kernel.Nachos;
 import nachos.kernel.threads.Semaphore;
+import nachos.kernel.threads.SpinLock;
 import nachos.kernel.userprog.MemoryManager;
 
 /**
@@ -30,12 +34,12 @@ import nachos.kernel.userprog.MemoryManager;
  */
 public class UserThread extends NachosThread {
 
-    protected int processID;
+    public int processID;
     public int exitStatus;
     public LinkedList<UserThread> childThreads = new LinkedList<UserThread>();
     public Semaphore joinSem;
     public Runnable runnable;
-    
+
     /** The context in which this thread will execute. */
     public final AddrSpace space;
 
@@ -79,6 +83,8 @@ public class UserThread extends NachosThread {
 	
 	//Release lock
 	MemoryManager.processIDLock.release();
+	
+	Syscall.runningThreads.add(this);
     }
 
     /**
@@ -111,5 +117,16 @@ public class UserThread extends NachosThread {
 
 	// Restore state associated with the address space.
 	space.restoreState();
+    }
+    
+    /**
+     * Terminates the Userthread
+     * TODO: finish this method?
+     */
+    public void finish() {
+	
+	Debug.println('M', "finishing thread : "+ this.name);
+	System.out.println("current thread: " + ((UserThread)NachosThread.currentThread()).processID);
+	Nachos.scheduler.finishThread();
     }
 }

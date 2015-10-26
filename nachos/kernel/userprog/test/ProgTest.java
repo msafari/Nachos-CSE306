@@ -32,7 +32,6 @@ public class ProgTest implements Runnable {
     /** The name of the program to execute. */
     private String execName;
 
-    public int processID;
     /**
      * Start the test by creating a new address space and user thread,
      * then arranging for the new thread to begin executing the run() method

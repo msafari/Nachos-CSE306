@@ -8,7 +8,7 @@
 // All rights reserved.  See the COPYRIGHT file for copyright notice and
 // limitation of liability and disclaimer of warranty provisions.
 
-package nachos.kernel.userprog.test;
+package nachos.kernel.userprog;
 
 import nachos.Debug;
 import nachos.Options;
@@ -27,7 +27,7 @@ import nachos.kernel.filesys.OpenFile;
  * @author Peter Druschel (Rice University), Java translation
  * @author Eugene W. Stark (Stony Brook University)
  */
-public class ProgTest implements Runnable {
+public class UserProcess implements Runnable {
 
     /** The name of the program to execute. */
     private String execName;
@@ -40,7 +40,7 @@ public class ProgTest implements Runnable {
      *
      * @param filename The name of the program to execute.
      */
-    public ProgTest(String filename) {
+    public UserProcess(String filename) {
 	String name = "ProgTest (" + filename + ")";
 	
 	Debug.println('+', "starting ProgTest: " + name);
@@ -48,6 +48,13 @@ public class ProgTest implements Runnable {
 	execName = filename;
 	AddrSpace space = new AddrSpace();
 	UserThread t = new UserThread(name, this, space);
+	
+	
+	this.processID = t.processID;
+	//add this to the child thread list
+	//join syscall uses this list
+	if(this.processID != 0)
+	    ((UserThread)NachosThread.currentThread()).childThreads.add(t);
 	
 	Nachos.scheduler.readyToRun(t);
     }
@@ -82,26 +89,5 @@ public class ProgTest implements Runnable {
 	// the address space exits
 	// by doing the syscall "exit"
     }
-
-    /**
-     * Entry point for the test.  Command line arguments are checked for
-     * the name of the program to execute, then the test is started by
-     * creating a new ProgTest object.
-     */
-    public static void start() {
-	Debug.ASSERT(Nachos.options.FILESYS_REAL || Nachos.options.FILESYS_STUB,
-			"A filesystem is required to execute user programs");
-	Nachos.options.processOptions
-		(new Options.Spec[] {
-			new Options.Spec
-				("-x",
-				 new Class[] {String.class},
-				 "Usage: -x <executable file>",
-				 new Options.Action() {
-				    public void processOption(String flag, Object[] params) {
-					new ProgTest((String)params[0]);
-				    }
-				 })
-		 });
-    }
+    
 }

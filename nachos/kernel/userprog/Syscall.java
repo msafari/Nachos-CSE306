@@ -143,10 +143,10 @@ public class Syscall {
 	Debug.println('S', "Exec SysCall is called");
 	
 	//Create a new ProgTest object, ignore num since processID is managed in the UserThread class
-	ProgTest userProgram = new ProgTest(name);
+	UserProcess userProcess = new UserProcess(name);
 	
 	//An integer value ("SpaceId") that uniquely identifies the newly created process is returned to the caller
-	return userProgram.processID;
+	return userProcess.processID;
 	
     }
 

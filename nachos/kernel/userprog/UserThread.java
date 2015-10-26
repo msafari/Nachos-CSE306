@@ -119,14 +119,4 @@ public class UserThread extends NachosThread {
 	space.restoreState();
     }
     
-    /**
-     * Terminates the Userthread
-     * TODO: finish this method?
-     */
-    public void finish() {
-	
-	Debug.println('M', "finishing thread : "+ this.name);
-	System.out.println("current thread: " + ((UserThread)NachosThread.currentThread()).processID);
-	Nachos.scheduler.finishThread();
-    }
 }

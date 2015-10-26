@@ -105,15 +105,11 @@ public class Syscall {
 	//Deallocate any physical memory and other resources that are assigned to this thread
 	
 	UserThread currThrd = ((UserThread)NachosThread.currentThread());
-//	lock.acquire();
-//	UserThread currThrd = runningThreads.pollLast();
-//	lock.release();
 	
 	//Set the exit status of the thread
 	currThrd.exitStatus = status;
 	
-	Debug.println('M', "User program exits with status=" + status
-		+ ": " + currThrd.name);
+	Debug.println('M', "User program exits with status=" + status + ": " + currThrd.name);
 	
 	//Free the address space
 	AddrSpace space = currThrd.space;
@@ -121,19 +117,19 @@ public class Syscall {
 	
 	currThrd.joinSem.V(); 		//unblock join
 	
+	//Remove thread from running list
+	runningThreads.remove(currThrd);
+	
 	//if there are no more running threads exit
 	if(runningThreads.isEmpty()) {
 	   Debug.println('+', "Exiting last thread. Setting exitStatus to: "+ status);   
 	   currThrd.exitStatus = status; 	// set the exit status of the addrspace   
-	   Nachos.scheduler.finishThread();
 	   Simulation.stop(); 			//halt nachos machine?
 	   
 	}
 	
-	//Remove thread from list of children
-	//((UserThread)NachosThread.currentThread()).childThreads.remove(currThrd);
-	System.out.println("current thread: " + ((UserThread)NachosThread.currentThread()).processID);
-	//currThrd.setStatus(NachosThread.FINISHED);
+	Debug.println('S', "Current thread: " + ((UserThread)NachosThread.currentThread()).processID);
+
 	Nachos.scheduler.finishThread();
     }
     /**

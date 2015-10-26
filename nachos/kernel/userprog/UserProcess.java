@@ -1,13 +1,3 @@
-// ProgTest.java
-//	Test class for demonstrating that Nachos can load
-//	a user program and execute it.  
-//
-// Copyright (c) 1992-1993 The Regents of the University of California.
-// Copyright (c) 1998 Rice University.
-// Copyright (c) 2003 State University of New York at Stony Brook.
-// All rights reserved.  See the COPYRIGHT file for copyright notice and
-// limitation of liability and disclaimer of warranty provisions.
-
 package nachos.kernel.userprog;
 
 import nachos.Debug;

@@ -1,3 +1,13 @@
+// UserThread.java
+//	A UserThread is a NachosThread extended with the capability of
+//	executing user code.
+//
+// Copyright (c) 1992-1993 The Regents of the University of California.
+// Copyright (c) 1998 Rice University.
+// Copyright (c) 2003 State University of New York at Stony Brook.
+// All rights reserved.  See the COPYRIGHT file for copyright notice and
+// limitation of liability and disclaimer of warranty provisions.
+
 package nachos.kernel.userprog;
 
 import java.util.LinkedList;
@@ -18,6 +28,9 @@ import nachos.kernel.userprog.MemoryManager;
  * for the possibility of having multiple UserThreads running in a
  * single AddrSpace.
  * 
+ * @author Thomas Anderson (UC Berkeley), original C++ version
+ * @author Peter Druschel (Rice University), Java translation
+ * @author Eugene W. Stark (Stony Brook University)
  */
 public class UserThread extends NachosThread {
 

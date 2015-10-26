@@ -1,14 +1,4 @@
-// ProgTest.java
-//	Test class for demonstrating that Nachos can load
-//	a user program and execute it.  
-//
-// Copyright (c) 1992-1993 The Regents of the University of California.
-// Copyright (c) 1998 Rice University.
-// Copyright (c) 2003 State University of New York at Stony Brook.
-// All rights reserved.  See the COPYRIGHT file for copyright notice and
-// limitation of liability and disclaimer of warranty provisions.
-
-package nachos.kernel.userprog.test;
+package nachos.kernel.userprog;
 
 import nachos.Debug;
 import nachos.Options;
@@ -20,18 +10,18 @@ import nachos.kernel.userprog.UserThread;
 import nachos.kernel.filesys.OpenFile;
 
 /**
- * This is a test class for demonstrating that Nachos can load a user
- * program and execute it.
+ * This is a class for a User Process that makes a new UserThread with it's own address space
  * 
  * @author Thomas Anderson (UC Berkeley), original C++ version
  * @author Peter Druschel (Rice University), Java translation
  * @author Eugene W. Stark (Stony Brook University)
  */
-public class ProgTest implements Runnable {
+public class UserProcess implements Runnable {
 
     /** The name of the program to execute. */
     private String execName;
 
+    public int processID;
     /**
      * Start the test by creating a new address space and user thread,
      * then arranging for the new thread to begin executing the run() method
@@ -39,14 +29,22 @@ public class ProgTest implements Runnable {
      *
      * @param filename The name of the program to execute.
      */
-    public ProgTest(String filename) {
-	String name = "ProgTest (" + filename + ")";
+    public UserProcess(String filename) {
+	String name = "UserProcess (" + filename + ")";
 	
-	Debug.println('+', "starting ProgTest: " + name);
+	Debug.println('+', "starting UserProcess: " + name);
 
 	execName = filename;
 	AddrSpace space = new AddrSpace();
 	UserThread t = new UserThread(name, this, space);
+	
+	
+	this.processID = t.processID;
+	
+	//add this to the child thread list, join syscall uses this list
+
+	if(this.processID != 0)		//check if it's not the parent(main) thread
+	    ((UserThread)NachosThread.currentThread()).childThreads.add(t);
 	
 	Nachos.scheduler.readyToRun(t);
     }
@@ -81,26 +79,5 @@ public class ProgTest implements Runnable {
 	// the address space exits
 	// by doing the syscall "exit"
     }
-
-    /**
-     * Entry point for the test.  Command line arguments are checked for
-     * the name of the program to execute, then the test is started by
-     * creating a new ProgTest object.
-     */
-    public static void start() {
-	Debug.ASSERT(Nachos.options.FILESYS_REAL || Nachos.options.FILESYS_STUB,
-			"A filesystem is required to execute user programs");
-	Nachos.options.processOptions
-		(new Options.Spec[] {
-			new Options.Spec
-				("-x",
-				 new Class[] {String.class},
-				 "Usage: -x <executable file>",
-				 new Options.Action() {
-				    public void processOption(String flag, Object[] params) {
-					new ProgTest((String)params[0]);
-				    }
-				 })
-		 });
-    }
+    
 }

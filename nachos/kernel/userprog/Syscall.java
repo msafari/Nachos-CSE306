@@ -124,7 +124,6 @@ public class Syscall {
 	if(runningThreads.isEmpty()) {
 	   Debug.println('+', "Exiting last thread. Setting exitStatus to: "+ status);   
 	   currThrd.exitStatus = status; 	// set the exit status of the addrspace   
-	   Nachos.scheduler.finishThread();
 	   Simulation.stop(); 			//halt nachos machine?
 	   
 	}

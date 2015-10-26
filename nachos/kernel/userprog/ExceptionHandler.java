@@ -4,6 +4,7 @@
 
 package nachos.kernel.userprog;
 
+import nachos.kernel.threads.Semaphore;
 import nachos.Debug;
 import nachos.machine.CPU;
 import nachos.machine.MIPS;
@@ -24,6 +25,9 @@ import nachos.kernel.userprog.Syscall;
  */
 public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 
+    //Semaphore for read/write
+    private Semaphore ioSemaphore = new Semaphore("ioSemaphore", 1);
+    
     /**
      * Entry point into the Nachos kernel. Called when a user program is
      * executing, and either does a syscall, or generates an addressing or
@@ -66,6 +70,9 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		CPU.writeRegister(2, result);
 		break;
 	    case Syscall.SC_Read:
+		//Block on read
+		ioSemaphore.P();
+		
 		int virtualAddress = CPU.readRegister(4);
 		int inputLength = CPU.readRegister(5);
 		byte readBuf[] = new byte[inputLength];
@@ -73,6 +80,9 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		int physicalAddress = ((UserThread)NachosThread.currentThread()).space.translate(virtualAddress, inputLength, true);
 		System.arraycopy(readBuf, 0, Machine.mainMemory, physicalAddress, inputLength);
 		CPU.writeRegister(2, result);
+		
+		//Release block
+		ioSemaphore.V();
 		break;
 	    case Syscall.SC_Close:
 		break;
@@ -97,6 +107,8 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		
 		break;
 	    case Syscall.SC_Write:
+		//Block on write
+		ioSemaphore.P();
 		Debug.println('S', "Write syscall");
 		int ptr = CPU.readRegister(4);
 		int len = CPU.readRegister(5);
@@ -105,6 +117,9 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		((UserThread)NachosThread.currentThread()).space.readVirtualMemory(ptr, buf, 0, len);
 		
 		Syscall.write(buf, len, CPU.readRegister(6));
+		
+		//Release block
+		ioSemaphore.V();
 		break;
 	    default:
 		Debug.println('S', "Invalid Syscall: " + type);

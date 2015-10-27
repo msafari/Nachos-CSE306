@@ -317,9 +317,9 @@ public class Syscall {
 	Debug.println('F', "Syscall fork is getting called");
 	UserThread thrd = new UserThread("forkThrd", new Runnable() {
 	    public void run() {
-		
+		//execute the function 
 	    }
-	}, ((UserThread)NachosThread.currentThread()).space);
+	}, ((UserThread)NachosThread.currentThread()).space.clone());
 	
 	
     }

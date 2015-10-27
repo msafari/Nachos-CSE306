@@ -153,7 +153,7 @@ public class AddrSpace {
     }
     
     //allocate space for the stack 
-    mallocStack(pageTable);
+    mallocStack(pageTable, nextVPN);
     
     return(0);
   }
@@ -222,12 +222,18 @@ public class AddrSpace {
    * @param data byte array to be written in virtual memory
    * @return the number of bytes written
    */
-  public int writeToVirtualMem(int bufferAddr,  byte[] data, int startIndex){
+  public int writeToVirtualMem(int bufferAddr,  byte[] data, int startIndex, boolean isEntryVPN, TranslationEntry pageTable[]){
 	
 	int vOffset = (int) ((bufferAddr & LOW32BITS ) % Machine.PageSize);	//calculate virtual offset
-	//TranslationEntry entry = getEntry(bufferAddr);
-	 int vpn = (int) ((bufferAddr & LOW32BITS) / Machine.PageSize);	//calculate virtual page number
-	 
+	int vpn;
+	
+	if(isEntryVPN){
+	    vpn = bufferAddr;
+	}
+	else {
+	    vpn = (int) ((bufferAddr & LOW32BITS) / Machine.PageSize);	//calculate virtual page number 
+	}
+	
 	//check for page faults
 	if (vpn >= Machine.PageSize) {
   	    Debug.println('a', "virtual page # " + vpn + 
@@ -291,7 +297,7 @@ public class AddrSpace {
 		entry.valid = true;
 		entry.readOnly = readOnly;
 		
-		writeToVirtualMem(bufferAddr, data, startIndex);
+		writeToVirtualMem(bufferAddr, data, startIndex, false, pageTable);
 		nextVPN++;
 	    }
 	  
@@ -308,7 +314,7 @@ public class AddrSpace {
   /**
    * 
    */
-  protected int mallocStack(TranslationEntry pageTable[]){
+  protected int mallocStack(TranslationEntry pageTable[], int nextVPN){
       Debug.println('M', "Allocating Space for stack");
       int numStackPages = UserStackSize / Machine.PageSize;
       if(numPages <= Machine.NumPhysPages && numPages<=MemoryManager.freePagesList.size()) {
@@ -415,12 +421,19 @@ public class AddrSpace {
       return physAddr;
     }
  
-    public int readVirtualMemory(int virtualAddress, byte[] data, int offset, int length) {
+    public int readVirtualMemory(int virtualAddress, byte[] data, int offset, int length, boolean isEntryVPN) {
 
 	byte[] memory = Machine.mainMemory;
 
+	int vpn;
 	// address translationTranslationEntry page
-	int vpn = virtualAddress / Machine.PageSize;
+	if(isEntryVPN) {
+	    vpn = virtualAddress;
+	}
+	else {
+	    vpn = virtualAddress / Machine.PageSize;   
+	}
+	
 	int voffset = virtualAddress % Machine.PageSize;
 	TranslationEntry entry = pageTable[vpn];
 	entry.use = true;
@@ -470,8 +483,8 @@ public class AddrSpace {
 	    newSpace.pageTable[i].physicalPage = freePageAddr;
 	    newSpace.pageTable[i].valid = true;
 	    
-	   readVirtualMemory(this.pageTable[i].virtualPage, tmpBuffer, 0, Machine.PageSize);	//read in a page to tmpBuffer
-	   writeToVirtualMem(newSpace.pageTable[i].virtualPage, tmpBuffer, 0);			//write tmpBuffer's data to mem
+	   readVirtualMemory(this.pageTable[i].virtualPage, tmpBuffer, 0, Machine.PageSize, true);	//read in a page to tmpBuffer
+	   writeToVirtualMem(newSpace.pageTable[i].virtualPage, tmpBuffer, 0, true, newSpace.pageTable);			//write tmpBuffer's data to mem
 	   
 	    //Print out pages for debug
 	    Debug.println('M', "Entry: " + i + ", vpn: "
@@ -479,11 +492,12 @@ public class AddrSpace {
 		    + newSpace.pageTable[i].physicalPage + ", valid: "
 		    + newSpace.pageTable[i].valid);
 	    
+	    newSpace.nextVPN++; 
 	    
 	}
 	
 	//allocate space for the new space's userstack
-	mallocStack(newSpace.pageTable);
+	mallocStack(newSpace.pageTable, newSpace.nextVPN);
 	
 	return newSpace;
 	

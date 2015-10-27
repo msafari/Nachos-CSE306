@@ -114,7 +114,7 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		int len = CPU.readRegister(5);
 		
 		byte buf[] = new byte[len];
-		((UserThread)NachosThread.currentThread()).space.readVirtualMemory(ptr, buf, 0, len);
+		((UserThread)NachosThread.currentThread()).space.readVirtualMemory(ptr, buf, 0, len, false);
 		
 		Syscall.write(buf, len, CPU.readRegister(6));
 		

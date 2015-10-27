@@ -236,6 +236,7 @@ public class Syscall {
      * @param id The OpenFileId of the file to which to write the data.
      */
     public static void write(byte buffer[], int size, int id) {
+	String currThrdName = NachosThread.currentThread().name;
 	if (id == ConsoleOutput) {
 	    for(int i = 0; i < size; i++) {
 		Nachos.consoleDriver.putChar((char)buffer[i]);
@@ -315,12 +316,10 @@ public class Syscall {
      */
     public static void fork(int func) {
 	Debug.println('F', "Syscall fork is getting called");
-	UserThread thrd = new UserThread("forkThrd", new Runnable() {
-	    public void run() {
-		//execute the function 
-	    }
-	}, ((UserThread)NachosThread.currentThread()).space.clone());
 	
+	AddrSpace newSpace = ((UserThread)NachosThread.currentThread()).space.clone();
+	
+	UserProcess forkedProcess = new UserProcess(func, newSpace);	
 	
     }
     
@@ -328,6 +327,8 @@ public class Syscall {
 	((UserThread)NachosThread.currentThread()).space.restoreState(); 	//load page tables? or not?
 	CPU.writeRegister(MIPS.PCReg, funcAddr);
 	CPU.writeRegister(MIPS.NextPCReg, funcAddr + 4);
+	
+	
     }
 
     /**

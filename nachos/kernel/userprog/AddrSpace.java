@@ -153,7 +153,7 @@ public class AddrSpace {
     }
     
     //allocate space for the stack 
-    mallocStack(pageTable, nextVPN);
+    mallocStack(pageTable, this);
     
     return(0);
   }
@@ -200,7 +200,7 @@ public class AddrSpace {
   /**
    * On a context switch, restore any machine state specific
    * to this address space.
-   *
+   *, 
    * For now, just tell the machine where to find the page table.
    */
   public void restoreState() {
@@ -314,12 +314,12 @@ public class AddrSpace {
   /**
    * 
    */
-  protected int mallocStack(TranslationEntry pageTable[], int nextVPN){
+  protected int mallocStack(TranslationEntry pageTable[], AddrSpace space){
       Debug.println('M', "Allocating Space for stack");
       int numStackPages = UserStackSize / Machine.PageSize;
       if(numPages <= Machine.NumPhysPages && numPages<=MemoryManager.freePagesList.size()) {
           for (int i = 0; i < numStackPages; i++) {
-    	  TranslationEntry entry = pageTable[nextVPN];
+    	  TranslationEntry entry = pageTable[space.nextVPN];
     	  
     	  // Allocate some pages
     	  MemoryManager.freePagesLock.acquire();
@@ -331,7 +331,7 @@ public class AddrSpace {
     	  Debug.println('M', "Stack Entry: " + i + ", vpn: " + entry.virtualPage 
     			+ ", ppn: " + entry.physicalPage
     			+ ", valid: " + entry.valid);
-    	  nextVPN++;
+    	  space.nextVPN++;
     	  
           }
       }
@@ -497,7 +497,7 @@ public class AddrSpace {
 	}
 	
 	//allocate space for the new space's userstack
-	mallocStack(newSpace.pageTable, newSpace.nextVPN);
+	mallocStack(newSpace.pageTable, newSpace);
 	
 	return newSpace;
 	

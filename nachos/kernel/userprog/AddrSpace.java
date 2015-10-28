@@ -61,7 +61,7 @@ public class AddrSpace {
   public int nextVPN;
   
   private int numPages;
- 
+  private long sharedSize;
 
   /**
    * Create a new address space.
@@ -95,9 +95,9 @@ public class AddrSpace {
     }
 
     // how big is address space?
-    size = roundToPage(noffH.code.size)
-	     + roundToPage(noffH.initData.size + noffH.uninitData.size)
-	     + UserStackSize;	// we need to increase the size
+    sharedSize = roundToPage(noffH.code.size)		//need this for clone
+	    	+ roundToPage(noffH.initData.size + noffH.uninitData.size);
+    size = sharedSize  + UserStackSize;	// we need to increase the size
     				// to leave room for the stack
     numPages = (int)(size / Machine.PageSize);
 
@@ -153,7 +153,7 @@ public class AddrSpace {
     }
     
     //allocate space for the stack 
-    mallocStack();
+    mallocStack(pageTable, this);
     
     return(0);
   }
@@ -200,7 +200,7 @@ public class AddrSpace {
   /**
    * On a context switch, restore any machine state specific
    * to this address space.
-   *
+   *, 
    * For now, just tell the machine where to find the page table.
    */
   public void restoreState() {
@@ -222,12 +222,18 @@ public class AddrSpace {
    * @param data byte array to be written in virtual memory
    * @return the number of bytes written
    */
-  public int writeToVirtualMem(int bufferAddr,  byte[] data, int startIndex){
+  public int writeToVirtualMem(int bufferAddr,  byte[] data, int startIndex, boolean isEntryVPN, TranslationEntry pageTable[]){
 	
 	int vOffset = (int) ((bufferAddr & LOW32BITS ) % Machine.PageSize);	//calculate virtual offset
-	//TranslationEntry entry = getEntry(bufferAddr);
-	 int vpn = (int) ((bufferAddr & LOW32BITS) / Machine.PageSize);	//calculate virtual page number
-	 
+	int vpn;
+	
+	if(isEntryVPN){
+	    vpn = bufferAddr;
+	}
+	else {
+	    vpn = (int) ((bufferAddr & LOW32BITS) / Machine.PageSize);	//calculate virtual page number 
+	}
+	
 	//check for page faults
 	if (vpn >= Machine.PageSize) {
   	    Debug.println('a', "virtual page # " + vpn + 
@@ -291,7 +297,7 @@ public class AddrSpace {
 		entry.valid = true;
 		entry.readOnly = readOnly;
 		
-		writeToVirtualMem(bufferAddr, data, startIndex);
+		writeToVirtualMem(bufferAddr, data, startIndex, false, pageTable);
 		nextVPN++;
 	    }
 	  
@@ -308,12 +314,12 @@ public class AddrSpace {
   /**
    * 
    */
-  protected int mallocStack(){
+  protected int mallocStack(TranslationEntry pageTable[], AddrSpace space){
       Debug.println('M', "Allocating Space for stack");
       int numStackPages = UserStackSize / Machine.PageSize;
       if(numPages <= Machine.NumPhysPages && numPages<=MemoryManager.freePagesList.size()) {
           for (int i = 0; i < numStackPages; i++) {
-    	  TranslationEntry entry = pageTable[nextVPN];
+    	  TranslationEntry entry = pageTable[space.nextVPN];
     	  
     	  // Allocate some pages
     	  MemoryManager.freePagesLock.acquire();
@@ -325,7 +331,7 @@ public class AddrSpace {
     	  Debug.println('M', "Stack Entry: " + i + ", vpn: " + entry.virtualPage 
     			+ ", ppn: " + entry.physicalPage
     			+ ", valid: " + entry.valid);
-    	  nextVPN++;
+    	  space.nextVPN++;
     	  
           }
       }
@@ -357,7 +363,14 @@ public class AddrSpace {
       }
       
   }
- 
+  
+ /**
+  * 
+  * @param virtAddr
+  * @param size
+  * @param writing
+  * @return
+  */
  public int translate(int virtAddr, int size, boolean writing){
       int i = 0;
       int physAddr;
@@ -415,12 +428,19 @@ public class AddrSpace {
       return physAddr;
     }
  
-    public int readVirtualMemory(int virtualAddress, byte[] data, int offset, int length) {
+    public int readVirtualMemory(int virtualAddress, byte[] data, int offset, int length, boolean isEntryVPN) {
 
 	byte[] memory = Machine.mainMemory;
 
-	// address translation
-	int vpn = virtualAddress / Machine.PageSize;
+	int vpn;
+	// address translationTranslationEntry page
+	if(isEntryVPN) {
+	    vpn = virtualAddress;
+	}
+	else {
+	    vpn = virtualAddress / Machine.PageSize;   
+	}
+	
 	int voffset = virtualAddress % Machine.PageSize;
 	TranslationEntry entry = pageTable[vpn];
 	entry.use = true;
@@ -436,6 +456,59 @@ public class AddrSpace {
 	System.arraycopy(memory, physicalAddress, data, offset, amount);
 
 	return amount;
+    }
+    
+    /**
+     * Clone will make a new addrspace
+     * it will allocate memory for each pagetable
+     * it will copy over the original addrspace's code, data, and uninitdata segement
+     * 
+     */
+    public AddrSpace clone() {
+	AddrSpace newSpace = new AddrSpace();
+	newSpace.pageTable = new TranslationEntry[numPages];
+	int sharedPages = (int)sharedSize / Machine.PageSize;
+	
+	//initializing page tables
+	for (int i = 0; i < numPages; i++) {
+	    newSpace.pageTable[i] = new TranslationEntry();
+	    newSpace.pageTable[i].virtualPage = i; 	
+	    newSpace.pageTable[i].physicalPage = -1; 	//these will get over written later after mem allocation
+	    newSpace.pageTable[i].valid = false;
+	    newSpace.pageTable[i].use = false;
+	    newSpace.pageTable[i].dirty = false;
+	    newSpace.pageTable[i].readOnly = false;  // if code and data segments live on separate pages, we could set code pages to be read-only
+	}
+	
+	byte[] tmpBuffer = new byte[Machine.PageSize];
+	 
+	for(int i = 0; i <sharedPages; i++) {
+	    // Allocate some pages
+	    MemoryManager.freePagesLock.acquire();
+	    int freePageAddr= MemoryManager.freePagesList.removeFirst();
+	    MemoryManager.freePagesLock.release();
+	    newSpace.pageTable[i].physicalPage = freePageAddr;
+	    newSpace.pageTable[i].valid = true;
+	    newSpace.pageTable[i].readOnly = this.pageTable[i].readOnly;
+	    
+	   readVirtualMemory(this.pageTable[i].virtualPage, tmpBuffer, 0, Machine.PageSize, true);	//read in a page to tmpBuffer
+	   writeToVirtualMem(newSpace.pageTable[i].virtualPage, tmpBuffer, 0, true, newSpace.pageTable);			//write tmpBuffer's data to mem
+	   
+	    //Print out pages for debug
+	    Debug.println('M', "Entry: " + i + ", vpn: "
+		    + newSpace.pageTable[i].virtualPage + ", ppn: "
+		    + newSpace.pageTable[i].physicalPage + ", valid: "
+		    + newSpace.pageTable[i].valid);
+	    
+	    newSpace.nextVPN++; 
+	    
+	}
+	
+	//allocate space for the new space's userstack
+	mallocStack(newSpace.pageTable, newSpace);
+	
+	return newSpace;
+	
     }
  
 }

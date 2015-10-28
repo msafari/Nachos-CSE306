@@ -315,12 +315,10 @@ public class Syscall {
      */
     public static void fork(int func) {
 	Debug.println('F', "Syscall fork is getting called");
-	UserThread thrd = new UserThread("forkThrd", new Runnable() {
-	    public void run() {
-		
-	    }
-	}, ((UserThread)NachosThread.currentThread()).space);
 	
+	AddrSpace newSpace = ((UserThread)NachosThread.currentThread()).space.clone();
+	
+	UserProcess forkedProcess = new UserProcess(func, newSpace);	
 	
     }
     
@@ -328,6 +326,8 @@ public class Syscall {
 	((UserThread)NachosThread.currentThread()).space.restoreState(); 	//load page tables? or not?
 	CPU.writeRegister(MIPS.PCReg, funcAddr);
 	CPU.writeRegister(MIPS.NextPCReg, funcAddr + 4);
+	
+	
     }
 
     /**

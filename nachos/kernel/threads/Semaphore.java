@@ -77,7 +77,7 @@ public class Semaphore {
 	queue = new FIFOQueue<NachosThread>();
 	spinLock = new SpinLock(name + " spin lock");
     }
-
+    
     /**
      * 	Wait until semaphore value > 0, then decrement.
      */

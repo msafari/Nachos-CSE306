@@ -32,8 +32,11 @@ import nachos.kernel.devices.SerialDriver;
 import nachos.kernel.devices.test.ConsoleTest;
 import nachos.kernel.devices.test.NetworkTest;
 import nachos.kernel.devices.test.SerialTest;
+import nachos.kernel.threads.CyclicBarrier;
 import nachos.kernel.threads.Scheduler;
+import nachos.kernel.threads.TaskManager;
 import nachos.kernel.userprog.ExceptionHandler;
+import nachos.kernel.userprog.MemoryManager;
 import nachos.kernel.filesys.FileSystem;
 import nachos.kernel.threads.test.SMPTest;
 import nachos.kernel.threads.test.ThreadTest;
@@ -66,6 +69,8 @@ public class Nachos implements Runnable {
 
     /** Access to serial ports. */
     public static SerialDriver serialDriver;
+    
+    public static MemoryManager memManager;
 
     /**
      * 	Nachos initialization -- performed by first Nachos thread.
@@ -92,9 +97,11 @@ public class Nachos implements Runnable {
 	    networkDriver = new NetworkDriver();
 	
 	// Initialize the filesystem.
-
 	if(options.FILESYS_STUB || options.FILESYS_REAL)
 	    fileSystem = FileSystem.init(diskDriver);
+	
+	if(options.MEM_MANAGER)
+	    memManager = new MemoryManager();
 
 	// Do per-CPU initialization:  Before we can run user programs,
 	// we need to set an exception handler on each CPU to handle
@@ -121,6 +128,23 @@ public class Nachos implements Runnable {
 	    NetworkTest.start();
 	if(options.CONSOLE_TEST)
 	    ConsoleTest.start();
+	
+	//CyclicBarrier
+	if(options.CYCLICBARRIER_TEST_0)
+	    CyclicBarrier.demo();
+	if(options.CYCLICBARRIER_TEST_1)
+	    CyclicBarrier.demo2();
+	if(options.CYCLICBARRIER_TEST_2)
+	    CyclicBarrier.demo3();
+	
+	//TaskManger
+	if(options.TASKMANAGER_TEST_0)
+	    TaskManager.demo();
+	if(options.TASKMANAGER_TEST_1)
+	    TaskManager.demo2();
+	if(options.TASKMANAGER_TEST_2)
+	    TaskManager.demo3();
+	
 	
 	// Terminate the first thread, its job is done.
 	// Alternatively, you could give this thread the responsibility

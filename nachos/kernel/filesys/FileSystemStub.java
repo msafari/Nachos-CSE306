@@ -62,9 +62,10 @@ class FileSystemStub extends FileSystem {
      */
     public OpenFile open(String name) {
 	RandomAccessFile file;
-
-	if (!new File(name).exists())
+	if (!new File(name).exists()){
 	    return null;
+	}
+
 	try {
 	    file = new RandomAccessFile(name, "rw");
 	}

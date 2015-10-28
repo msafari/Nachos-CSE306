@@ -9,6 +9,7 @@
 package nachos;
 
 import nachos.machine.CPU;
+import nachos.machine.Machine;
 import nachos.machine.Simulation;
 
 /**
@@ -39,6 +40,11 @@ import nachos.machine.Simulation;
  *    s  Synchronization
  *    t  Threads and scheduling
  *    @  Simulation internals
+ *    
+ *    C CyclicBarrier
+ *    T TaskManager
+ *    
+ *    S Syscall
  *    
  * The easiest way to see which messages are which is to run Nachos
  * with the arguments  "-d +", which will show all debugging printout
@@ -355,6 +361,33 @@ public static class AssertException extends RuntimeException {
 	  System.out.print(Long.toHexString(l));
       else
 	  System.out.print(Long.toString(l, base));
+  }
+  
+  /**
+   * Shows contents of registers $r4-$r7
+   */
+  public static void showArguments(){
+      System.out.println("Arguments: ");
+      for(int i = 4; i <= 7; i++){
+	      System.out.println("$r" + i + ": "+ CPU.readRegister(i));
+      }
+  }
+  
+  /**
+   * Shows contents of registers $r4-$r7
+   */
+  public static void showResults(){
+      System.out.println("Results: ");
+      for(int i = 2; i <= 3; i++){
+	      System.out.println("$r" + i + ": "+ CPU.readRegister(i));
+      }
+  }
+  
+  public static void showMainMemory(){
+      System.out.println("Main Memory: ");
+      for(int i = 0; i < Machine.mainMemory.length; i++){
+	  System.out.print(Machine.mainMemory[i] + " ");
+      }
   }
 
 }

@@ -1,0 +1,43 @@
+ReadMe for HW1
+
+Exercise 1:
+	For the CyclicBarrier class, only Semaphores were used as a synchronization primitive. 
+	This class has three semaphores: One for blocking access to changing variables, 
+	another as a method for forcing threads to wait at the barrier, and one which blocks when the last thread has reached the barrier.
+	
+	The reset method was implemented in a way which triggers a BrokenBarrier exception
+	in any threads following the thread which called barrier.reset(). 
+	Note: any threads already waiting will be released and also throw a BrokenBarrier exception.
+	
+	-CB:  Will run the original demo function provided in the skeleton
+	
+	-CB1: Will run demo2() method which tests the CyclicBarrier's reset method by creating four threads, 
+		  having the third thread reset the barrier and displaying the exceptions thrown by the waiting threads and
+		  any threads which try to call .await() on the broken barrier.
+	
+	-CB2: Will run demo3() method which demonstrates the CyclicBarrier's action being executed once the barrier is tripped.
+	
+	
+	
+Exercise 2:
+	For the TaskManager class, Semaphores and locks were used as synchronization primitives.
+	Demo methods were added as new options to ensure correction of program.
+	
+	-TM : 	Will run the original demo function provided in the skeleton
+	
+	-TM1: 	Will run method demo2() which creates tasks but one of them cancels the task inside doInBackground() method.
+			This ensures that program handles canceled tasks as expected.
+			
+	-TM2:	Will run demo3() which creates two new tasks to be executed However the second task will create 20 more tasks onCompletion()
+	
+	-d T: 	Turn on 'T' flag to display the debug statements for TaskManager 
+
+General Notes For Developers:
+-Options.java stores the options to specify when the program is run. This is where you can add new tests.
+Once the tests are added in Options.java, you can start them in Nachos.java.
+-Debug.java allows you to add new debug flags to Nachos. To add new flags just specify them in Debug.println() method.
+- -d followed by custom arguments will display debug info
+- -CT/TM will run the CyclicBarrier and/or TaskManager demos
+- Use -RY to turn random yield on, together with -rs <seed>
+- Use -ps for preemptive scheduling. Preemptive scheduling allows for the scheduler to prioritize threads.
+- Removing -ps allows the program to terminate.

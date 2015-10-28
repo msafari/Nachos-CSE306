@@ -1,0 +1,40 @@
+README for HW2
+
+Instructions:
+To run any of the c user programs, cd into the test directory and run "Make <name of executable>".
+Next, cd to root and run ./run -mm -x test/<name of executable>
+-mm will turn on the memory manager. Otherwise an error will be thrown.
+
+Testing the SysCalls
+
+Read()/Write():
+Read/Write from console can be tested by compiling console1.c and running it with ./run -mm -x test/console1 
+You should see a console pop up and be prompted for input. Enter some characters and observe the output by enabling -d S
+Since the console will close quickly, enabling -d S will show you the output in the debug console.
+
+Halt():
+Halt can be tested by compiling halt.c and running it with ./run -mm -x test/halt
+
+Exec():
+Exec can be tested by compiling exec1.c and running it with ./run -d MS -mm -x test/exec1
+You will see the exec1 thread be created, and then call exec on the halt thread which will spawn another thread.
+Observe the output in the debug console.
+
+Join():
+Join can be tested by compiling join1.c and running it with ./run -d MSJ -mm -x test/join1
+You should see the main thread creating a timeshare2 thread which will run to completion.
+One issue encountered was the parent thread terminating before all of the child threads were executed. 
+
+Exit()
+Exit can be tested by compiling exec1.c and running it with ./run -d MS -mm -x test/exec1
+You will see the same outut as Exec() syscall. It will also call exit at the end which frees all of process's resources and
+will set the exit status to the argument passed in by the last thread.
+
+Yield()
+Yield can tested by compiling yield1.c and running it with ./run -d MSJY -mm -x test/yield1
+You will see that yield syscall will get called yield CPU to another thread
+
+General Notes For Developers:
+- When committing code, cd into test directory and run make clean to remove any executables that might have been created.
+- ProgTest has method start() which is what you're doing when you call ./run -x
+- Syscall status is returned for Read, Open, Join and Exec

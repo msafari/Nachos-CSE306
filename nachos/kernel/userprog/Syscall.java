@@ -6,10 +6,21 @@
 
 package nachos.kernel.userprog;
 
+import java.util.LinkedList;
+
 import nachos.Debug;
 import nachos.kernel.Nachos;
+import nachos.kernel.devices.ConsoleDriver;
+import nachos.kernel.filesys.OpenFile;
+import nachos.kernel.threads.Lock;
+import nachos.kernel.threads.Semaphore;
+import nachos.kernel.userprog.test.ProgTest;
+import nachos.machine.CPU;
+import nachos.machine.MIPS;
+import nachos.machine.Machine;
 import nachos.machine.NachosThread;
 import nachos.machine.Simulation;
+
 
 /**
  * Nachos system call interface.  These are Nachos kernel operations
@@ -60,46 +71,118 @@ public class Syscall {
 
     /** Integer code identifying the "Remove" system call. */
     public static final byte SC_Remove = 11;
+    
+    public static Semaphore joinSem = new Semaphore("joinSem", 0);
+    
+    public static AddrSpace addrSpace;
 
-
+    public static LinkedList<UserThread> runningThreads = new LinkedList<UserThread>();
+    
     /**
      * Stop Nachos, and print out performance stats.
      */
     public static void halt() {
-	Debug.print('+', "Shutdown, initiated by user program.\n");
-	Simulation.stop();
+	if(((UserThread)NachosThread.currentThread()).processID == 0){
+        	Debug.print('+', "Shutdown, initiated by user program.\n");
+        	Simulation.stop();
+	}
     }
-
+    
     /* Address space control operations: Exit, Exec, and Join */
 
     /**
-     * This user program is done.
+     * The Exit() call takes a single argument, which is an integer status value as in Unix. 
+     * The calling thread is terminated, and the memory pages belonging to its stack area are deallocated. 
+     * When the last thread in an address space exits, 
+     * the remaining pages are deallocated, the address space terminates, 
+     * and the argument passed by the last thread to Exit() becomes the exit status for the address space. The exit status will be used by the Join() system call as described below.
      *
      * @param status Status code to pass to processes doing a Join().
      * status = 0 means the program exited normally.
      */
     public static void exit(int status) {
-	Debug.println('+', "User program exits with status=" + status
-				+ ": " + NachosThread.currentThread().name);
+	
+	//Deallocate any physical memory and other resources that are assigned to this thread
+	
+	UserThread currThrd = ((UserThread)NachosThread.currentThread());
+	
+	//Set the exit status of the thread
+	currThrd.exitStatus = status;
+	
+	Debug.println('M', "User program exits with status=" + status + ": " + currThrd.name);
+	
+	//Free the address space
+	AddrSpace space = currThrd.space;
+	space.free();
+	
+	currThrd.joinSem.V(); 		//unblock join
+	
+	//Remove thread from running list
+	runningThreads.remove(currThrd);
+	
+	//if there are no more running threads exit
+	if(runningThreads.isEmpty()) {
+	   Debug.println('+', "Exiting last thread. Setting exitStatus to: "+ status);   
+	   currThrd.exitStatus = status; 	// set the exit status of the addrspace   
+	   Simulation.stop(); 			//halt nachos machine
+	   
+	}
+	
+	Debug.println('S', "Current thread: " + ((UserThread)NachosThread.currentThread()).processID);
+
 	Nachos.scheduler.finishThread();
     }
-
     /**
      * Run the executable, stored in the Nachos file "name", and return the 
      * address space identifier.
      *
      * @param name The name of the file to execute.
      */
-    public static int exec(String name) {return 0;}
+    public static int exec(final String name) {
+	
+	Debug.println('S', "Exec SysCall is called");
+	
+	//Create a new ProgTest object, ignore num since processID is managed in the UserThread class
+	UserProcess userProcess = new UserProcess(name);
+	
+	//An integer value ("SpaceId") that uniquely identifies the newly created process is returned to the caller
+	return userProcess.processID;
+	
+    }
 
     /**
+     * 
+     * The Join() system call takes as its single argument a SpaceId returned by a previous call to Exec(). 
+     * The thread making the Join() call should block until the address space with the given ID has terminated, 
+     * as a result of an Exit() call having been executed by the last thread executing in that address space. 
+     * The exit status that was supplied by that thread as the argument to the Exit() call should be returned as as the result of the Join() call.
+     * 
      * Wait for the user program specified by "id" to finish, and
      * return its exit status.
+     * 
      *
      * @param id The "space ID" of the program to wait for.
      * @return the exit status of the specified program.
      */
-    public static int join(int id) {return 0;}
+    public static int join(int id) {
+	
+	UserThread currThrd = (UserThread)NachosThread.currentThread();
+	Debug.println('J', "Starting System Call Join with id: "+ id);
+	
+	for(UserThread child: currThrd.childThreads){
+	    if (child.processID == id) {
+		Debug.println('J', "blocking proccesID "+ child.processID +" until process is terminated"); 
+		
+		child.joinSem.P(); 			//block join
+		Debug.println('J', "Thread "+ child.name + " terminated with status: "+ child.exitStatus);
+		return child.exitStatus; 	//return child's exitStatus after termination
+	    }
+	}
+	
+	//if it gets here means it couldn't match the processId to an existing process's ID
+	Debug.println('J', "There's no existing thread with proccesID: "+ id);
+	return -1;
+    }
 
 
     /* File system operations: Create, Open, Read, Write, Close
@@ -156,6 +239,7 @@ public class Syscall {
 	if (id == ConsoleOutput) {
 	    for(int i = 0; i < size; i++) {
 		Nachos.consoleDriver.putChar((char)buffer[i]);
+		Debug.println('S', "Write Console: " + (char)buffer[i]);
 	    }
 	}
     }
@@ -172,8 +256,36 @@ public class Syscall {
      * @param id The OpenFileId of the file from which to read the data.
      * @return The actual number of bytes read.
      */
-    public static int read(byte buffer[], int size, int id) {return 0;}
+    public static int read(byte buffer[], int size, int id) {
 
+	int i = 0;
+	//Read from Console
+	if (id == ConsoleInput) {
+	    try {
+		
+		Debug.println('S', "Reading: size: " + size + ", id: " + id);
+		for (i = 0; i < size; i++) {
+		    buffer[i] = (byte) Nachos.consoleDriver.getChar();
+		    Debug.println('S', "Read Console: " + (char) buffer[i]);
+		}
+		
+	    } catch (Exception e) {
+		Debug.println('S', "Exception occured");
+		return i;
+	    }
+
+	    //Return num of bytes read
+	    return i;
+	    
+	}
+	//Otherwise read from file
+	else{
+		return 0;
+	}
+
+    }
+
+    
     /**
      * Close the file, we're done reading and writing to it.
      *
@@ -188,18 +300,45 @@ public class Syscall {
      */
 
     /**
+     * The Fork() system call takes a single void (*)() function pointer as an argument, 
+     * it creates a new UserThread that shares its address space (except for the stack) with the calling thread, 
+     * and the new thread begins execution with a call to the argument function. 
+     * The threads sharing an address space will each have their own page table. 
+     * Although the stack portion of each page table should map physical pages that are private to one thread, 
+     * the code and data pages will be the same for (i.e. shared between) all the threads executing in the same address space.
+     * 
      * Fork a thread to run a procedure ("func") in the *same* address space 
      * as the current thread.
      *
      * @param func The user address of the procedure to be run by the
      * new thread.
      */
-    public static void fork(int func) {}
+    public static void fork(int func) {
+	Debug.println('F', "Syscall fork is getting called");
+	
+	AddrSpace newSpace = ((UserThread)NachosThread.currentThread()).space.clone();
+	
+	UserProcess forkedProcess = new UserProcess(func, newSpace);	
+	
+    }
+    
+    public static void forkHelper(int funcAddr) {
+	((UserThread)NachosThread.currentThread()).space.restoreState(); 	//load page tables? or not?
+	CPU.writeRegister(MIPS.PCReg, funcAddr);
+	CPU.writeRegister(MIPS.NextPCReg, funcAddr + 4);
+	
+	
+    }
 
     /**
      * Yield the CPU to another runnable thread, whether in this address space 
      * or not. 
      */
-    public static void yield() {}
+    public static void yield() {
+	Debug.println('Y', "Syscall Yield is called");
+	//Yield the CPU to another thread
+	Nachos.scheduler.yieldThread();
+	
+    }
 
 }

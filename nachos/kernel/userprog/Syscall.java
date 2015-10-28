@@ -236,7 +236,6 @@ public class Syscall {
      * @param id The OpenFileId of the file to which to write the data.
      */
     public static void write(byte buffer[], int size, int id) {
-	String currThrdName = NachosThread.currentThread().name;
 	if (id == ConsoleOutput) {
 	    for(int i = 0; i < size; i++) {
 		Nachos.consoleDriver.putChar((char)buffer[i]);

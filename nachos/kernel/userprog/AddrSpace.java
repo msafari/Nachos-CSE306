@@ -363,7 +363,14 @@ public class AddrSpace {
       }
       
   }
- 
+  
+ /**
+  * 
+  * @param virtAddr
+  * @param size
+  * @param writing
+  * @return
+  */
  public int translate(int virtAddr, int size, boolean writing){
       int i = 0;
       int physAddr;
@@ -466,14 +473,14 @@ public class AddrSpace {
 	for (int i = 0; i < numPages; i++) {
 	    newSpace.pageTable[i] = new TranslationEntry();
 	    newSpace.pageTable[i].virtualPage = i; 	
-	    newSpace.pageTable[i].physicalPage = -1; 	//these will get over written later in malloc
+	    newSpace.pageTable[i].physicalPage = -1; 	//these will get over written later after mem allocation
 	    newSpace.pageTable[i].valid = false;
 	    newSpace.pageTable[i].use = false;
 	    newSpace.pageTable[i].dirty = false;
 	    newSpace.pageTable[i].readOnly = false;  // if code and data segments live on separate pages, we could set code pages to be read-only
 	}
 	
-	 byte[] tmpBuffer = new byte[Machine.PageSize];
+	byte[] tmpBuffer = new byte[Machine.PageSize];
 	 
 	for(int i = 0; i <sharedPages; i++) {
 	    // Allocate some pages
@@ -482,6 +489,7 @@ public class AddrSpace {
 	    MemoryManager.freePagesLock.release();
 	    newSpace.pageTable[i].physicalPage = freePageAddr;
 	    newSpace.pageTable[i].valid = true;
+	    newSpace.pageTable[i].readOnly = this.pageTable[i].readOnly;
 	    
 	   readVirtualMemory(this.pageTable[i].virtualPage, tmpBuffer, 0, Machine.PageSize, true);	//read in a page to tmpBuffer
 	   writeToVirtualMem(newSpace.pageTable[i].virtualPage, tmpBuffer, 0, true, newSpace.pageTable);			//write tmpBuffer's data to mem

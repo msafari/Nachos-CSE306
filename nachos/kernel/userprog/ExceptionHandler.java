@@ -179,8 +179,10 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	    int ptr = CPU.readRegister(reg); // Get the address this pointer is pointing to.
 	    byte buf[] = new byte[length];
 	    String fileName;
+	    
+	    int pAddr = ((UserThread)NachosThread.currentThread()).space.translate(ptr, length, false);
 
-	    System.arraycopy(Machine.mainMemory, ptr, buf, 0, length);
+	    System.arraycopy(Machine.mainMemory, pAddr, buf, 0, length);
 	    fileName = bytesToString(buf);
 	    Debug.println('S', "File name is: " + fileName);
 

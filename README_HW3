@@ -1,0 +1,7 @@
+README for HW3
+ 
+@Author Yakov Gaberman 	ygaberman
+@Author Maedeh Safari 	msafari
+
+RoundRobin:
+If only one thread is left on the readylist, it will run to completion.

@@ -39,7 +39,10 @@ public class UserThread extends NachosThread {
     public LinkedList<UserThread> childThreads = new LinkedList<UserThread>();
     public Semaphore joinSem;
     public Runnable runnable;
-
+    public int numOfTicksToSleep;
+    
+    public Semaphore sleepSemaphore;
+    
     /** The context in which this thread will execute. */
     public final AddrSpace space;
 
@@ -63,7 +66,7 @@ public class UserThread extends NachosThread {
      */
     public UserThread(String name, Runnable runObj, AddrSpace addrSpace) {
 	super(name, runObj);
-	
+	numOfTicksToSleep = -1;
 	runnable = runObj;
 	
 	//Lock
@@ -80,6 +83,9 @@ public class UserThread extends NachosThread {
 	
 	//make the join semaphore
 	joinSem = new Semaphore("joinSem", 0);
+	
+	//make the sleep semaphore
+	sleepSemaphore = new Semaphore("sleepSemaphore", 0);
 	
 	//Release lock
 	MemoryManager.processIDLock.release();

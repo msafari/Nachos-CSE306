@@ -113,6 +113,8 @@ int Read(char *buffer, int size, OpenFileId id);
 void Close(OpenFileId id);
 
 
+/** Sleep Syscall*/
+void Sleep(int numOfTicks);
 
 /* User-level thread operations: Fork and Yield.  To allow multiple
  * threads to run within a user program. 

@@ -14,6 +14,7 @@ import nachos.kernel.devices.ConsoleDriver;
 import nachos.kernel.filesys.OpenFile;
 import nachos.kernel.threads.Lock;
 import nachos.kernel.threads.Semaphore;
+import nachos.kernel.threads.SpinLock;
 import nachos.kernel.userprog.test.ProgTest;
 import nachos.machine.CPU;
 import nachos.machine.MIPS;
@@ -72,6 +73,9 @@ public class Syscall {
     /** Integer code identifying the "Remove" system call. */
     public static final byte SC_Remove = 11;
     
+    /** Integer code identifying the "Sleep" system call. */
+    public static final byte SC_Sleep = 12;
+    
     public static Semaphore joinSem = new Semaphore("joinSem", 0);
     
     public static AddrSpace addrSpace;
@@ -86,6 +90,16 @@ public class Syscall {
         	Debug.print('+', "Shutdown, initiated by user program.\n");
         	Simulation.stop();
 	}
+    }
+    
+    public static void sleep(int numOfTicks) {
+	UserThread threadToSleep = ((UserThread)NachosThread.currentThread());
+	
+	Debug.println('r', "Sleeping thread: " + threadToSleep.name + " for: "+ numOfTicks + " ticks.");
+	
+	threadToSleep.numOfTicksToSleep = numOfTicks;
+	Nachos.scheduler.sleepList.offer(threadToSleep);
+	threadToSleep.sleepSemaphore.P();
     }
     
     /* Address space control operations: Exit, Exec, and Join */
@@ -103,7 +117,6 @@ public class Syscall {
     public static void exit(int status) {
 	
 	//Deallocate any physical memory and other resources that are assigned to this thread
-	
 	UserThread currThrd = ((UserThread)NachosThread.currentThread());
 	
 	//Set the exit status of the thread

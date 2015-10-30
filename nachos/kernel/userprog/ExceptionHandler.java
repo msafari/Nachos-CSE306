@@ -121,6 +121,9 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		//Release block
 		ioSemaphore.V();
 		break;
+	    case Syscall.SC_Sleep:
+		Syscall.sleep(CPU.readRegister(4));
+		break;
 	    default:
 		Debug.println('S', "Invalid Syscall: " + type);
 		Debug.ASSERT(false);

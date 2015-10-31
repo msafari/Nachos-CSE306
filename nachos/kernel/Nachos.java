@@ -101,8 +101,8 @@ public class Nachos implements Runnable {
 	if(options.FILESYS_STUB || options.FILESYS_REAL)
 	    fileSystem = FileSystem.init(diskDriver);
 	
-	if(options.MEM_MANAGER)
-	    memManager = new MemoryManager();
+	
+	memManager = new MemoryManager();
 
 	// Do per-CPU initialization:  Before we can run user programs,
 	// we need to set an exception handler on each CPU to handle

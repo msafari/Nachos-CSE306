@@ -157,7 +157,6 @@ public class Options {
     /** Should we format the Nachos disk before using it? */
     public boolean FORMAT_DISK = false;
     
-    public boolean MEM_MANAGER = false;
 
     // Test/demo configuration options.
 
@@ -246,13 +245,7 @@ public class Options {
 				PROG_TEST = true;
 			    }
 			}),
-		new Spec("-mm", //enable memoray manager for translation
-			new Class[] {}, null, new Options.Action() {
-        		    public void processOption(String flag,
-        			    Object[] params) {
-        			MEM_MANAGER = true;
-        		    }
-        		}),
+
 		new Spec("-nt", // enable network test
 			new Class[] {}, null, new Options.Action() {
 			    public void processOption(String flag,

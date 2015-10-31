@@ -95,7 +95,7 @@ public class Syscall {
     public static void sleep(int numOfTicks) {
 	UserThread threadToSleep = ((UserThread)NachosThread.currentThread());
 	
-	Debug.println('r', "Sleeping thread: " + threadToSleep.name + " for: "+ numOfTicks + " ticks.");
+	Debug.println('S', "Sleeping thread: " + threadToSleep.name + " for: "+ numOfTicks + " ticks.");
 	
 	threadToSleep.numOfTicksToSleep = numOfTicks;
 	Nachos.scheduler.sleepList.offer(threadToSleep);

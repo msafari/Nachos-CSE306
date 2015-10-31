@@ -90,11 +90,10 @@ public class RoundRobinScheduler {
 	    CPU cpu = Machine.getCPU(i);
 	    cpuList.offer(cpu);
 	    
-	    if(Nachos.options.CPU_TIMERS) {
-		Timer timer = cpu.timer;
-		timer.setHandler(new TimerInterruptHandler(timer));
-		timer.start();
-	    }
+	    Timer timer = cpu.timer;
+	    timer.setHandler(new TimerInterruptHandler(timer));
+	    timer.start();
+	    
 	}
 
 	// Dispatch firstThread on the first CPU.
@@ -415,8 +414,11 @@ public class RoundRobinScheduler {
 		sleepThread.numOfTicksToSleep -= 100;		//decrement the number of ticks to sleep for each process
 		
 		if(sleepThread.numOfTicksToSleep <= 0) {	//if the number of ticks to sleep is less than or equal to zero
-		    Nachos.scheduler.sleepList.remove(s);	//remove the thread from scheduler's sleepList
+		    Nachos.scheduler.sleepList.remove(s);	//remove the thread from scheduler's sleepList  
 		    sleepThread.sleepSemaphore.V();		//wake up the thread
+		    
+		    Debug.println('S', "Waking up the thread: "+ s.name);
+		   
 		}
 		
 	    }

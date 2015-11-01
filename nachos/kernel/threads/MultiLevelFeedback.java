@@ -199,8 +199,15 @@ public class MultiLevelFeedback extends GenScheduler{
     private NachosThread findNextToRun() {
 	Debug.ASSERT(CPU.getLevel() == CPU.IntOff);
 	mutex.acquire();
+	NachosThread result = null;
 	//TODO figure out how to replace readyList.pull in findNextToRun?
-	NachosThread result = null; //= readyList.poll(); 
+	for(int i=0; i < Nachos.options.NUM_P_LEVELS; i++){
+	    if(!priorityArray[i].isEmpty()) {
+		result = (NachosThread) priorityArray[i].poll();
+		break;
+	    }
+	}
+	
 	mutex.release();
 	return result;
     }
@@ -382,8 +389,9 @@ public class MultiLevelFeedback extends GenScheduler{
     }
     
     /**
+     * Set the thread's sample size in the case that it doesn't use it's full quantum
      * 
-     * @param thread
+     * @param thread: the NachosThread to set its avg sample value
      */
     private void setSampleForICQuantum(NachosThread thread){
 	UserThread curThrd = (UserThread)thread;

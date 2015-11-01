@@ -67,26 +67,6 @@ public abstract class GenScheduler {
     }
 
     /**
-     * Mark a thread as ready, but not running, and put it on the ready list
-     * for later scheduling onto a CPU.
-     * No attempt is made to dispatch threads on idle CPUs.
-     * 
-     * This internal version of readyToRun assumes that interrupts are disabled
-     * and that the scheduler mutex is held.
-     * It is assumed that multiple concurrent calls of this method will not be
-     * made with the same thread as parameter.  Under that assumption, it is not
-     * necessary to lock the thread object itself before changing its status to
-     * READY, because any other changes to the thread status are either made by
-     * the thread itself (which is currently not running), or in the process of
-     * dispatching the thread, which is done with the scheduler mutex held.
-     *
-     * @param thread The thread to be put on the ready list.
-     */
-    private void makeReady(NachosThread thread) {
-    }
-
-
-    /**
      * Relinquish the CPU if any other thread is ready to run.
      * If so, put the thread on the end of the ready list, so that
      * it will eventually be re-scheduled.

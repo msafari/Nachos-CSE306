@@ -108,6 +108,10 @@ public class Options {
      * supports it.
      */
     public int NUM_CPUS = 1;
+    
+    public int NUM_P_LEVELS = 1;
+    
+    public int HIGHEST_QUANTUM = 100;
 
     /**
      * The number of consoles on the system.
@@ -171,6 +175,10 @@ public class Options {
 
     /** Should we run the console test? */
     public boolean CONSOLE_TEST = false;
+    
+    public boolean ORIG_SCHEDULER = false;
+    
+    public boolean MULTI_LEV_SCHEDULER = false;
 
     /** Should we run the filesystem test? */
     public boolean FILESYS_TEST = false;
@@ -315,6 +323,40 @@ public class Options {
 				DISK_FILE_NAME = (String) params[0];
 			    }
 			}),
+		new Spec("-SCH", // use original Scheduler provided by prof
+			new Class[] {}, null, new Options.Action() {
+			    public void processOption(String flag,
+				    Object[] params) {
+				ORIG_SCHEDULER = true;
+			    }
+			}),
+		new Spec("-MLFS", // use Multi level feedback scheduler
+			new Class[] {}, null, new Options.Action() {
+			    public void processOption(String flag,
+				    Object[] params) {
+				MULTI_LEV_SCHEDULER = true;
+			    }
+			}),
+			
+		new Spec(
+			"-numPL", // set the number of priority level to use for multilevel feedback scheduling
+			new Class[] { Integer.class },
+			"Usage: -numPL <nconsoles>", new Options.Action() {
+			    public void processOption(String flag,
+				    Object[] params) {
+				NUM_P_LEVELS = (Integer) params[0];
+			    }
+			}),
+		new Spec(
+			"-highQ", // set the highest quantum to use for multilevel feedback scheduling
+			new Class[] { Integer.class },
+			"Usage: -highQ <nconsoles>", new Options.Action() {
+			    public void processOption(String flag,
+				    Object[] params) {
+				HIGHEST_QUANTUM = (Integer) params[0];
+			    }
+			}),
+		
 		// Custom tests
 		new Spec("-RY", // enable Random Yield
 			new Class[] {}, null, new Options.Action() {
@@ -330,6 +372,7 @@ public class Options {
 				CYCLICBARRIER_TEST_0 = true;
 			    }
 			}),
+		
 		
 		new Spec("-CB1", // enable CyclicBarrier test
 			new Class[] {}, null, new Options.Action() {

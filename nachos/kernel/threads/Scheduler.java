@@ -50,7 +50,7 @@ import nachos.util.Queue;
  * @author Peter Druschel (Rice University), Java translation
  * @author Eugene W. Stark (Stony Brook University)
  */
-public class Scheduler {
+public class Scheduler extends GenScheduler {
 
     /** Queue of threads that are ready to run, but not running. */
     private final Queue<NachosThread> readyList;
@@ -72,10 +72,11 @@ public class Scheduler {
      * @param firstThread  The first NachosThread to run.
      */
     public Scheduler(NachosThread firstThread) {
+	super(firstThread);
 	readyList = new FIFOQueue<NachosThread>();
 	cpuList = new FIFOQueue<CPU>();
 
-	Debug.println('t', "Initializing scheduler");
+	Debug.println('+', "Initializing scheduler");
 
 	// Add all the CPUs to the idle CPU list, and start their time-slice timers,
 	// if we are using them.

@@ -1,68 +1,37 @@
-// Scheduler.java
-//
-//      readyToRun -- place a thread on the ready list and make it runnable.
-//	finish -- called when a thread finishes, to clean up
-//	yield -- relinquish control over the CPU to another ready thread
-//	sleep -- relinquish control over the CPU, but thread is now blocked.
-//		In other words, it will not run again, until explicitly 
-//		put back on the ready queue.
-// Copyright (c) 1992-1993 The Regents of the University of California.
-// Copyright (c) 1998 Rice University.
-// Copyright (c) 2003 State University of New York at Stony Brook.
-// All rights reserved.  See the COPYRIGHT file for copyright notice and
-// limitation of liability and disclaimer of warranty provisions.
-
+/**
+ * 
+ */
 package nachos.kernel.threads;
 
 import java.util.LinkedList;
 
 import nachos.Debug;
+import nachos.Options;
 import nachos.kernel.Nachos;
 import nachos.kernel.userprog.UserThread;
 import nachos.machine.CPU;
+import nachos.machine.InterruptHandler;
 import nachos.machine.Machine;
 import nachos.machine.NachosThread;
 import nachos.machine.Timer;
-import nachos.machine.InterruptHandler;
 import nachos.util.FIFOQueue;
 import nachos.util.Queue;
 
 /**
- * The scheduler is responsible for maintaining a list of threads that
- * are ready to run and for choosing the next thread to run.  It also
- * maintains a list of CPUs that can be used to run threads.
- * Most of the public methods of this class implicitly operate on the
- * currently executing thread, with the exception of readyToRun,
- * which takes the thread to be placed in the ready list as an explicit
- * parameter.
+ * @author maedeh
  *
- * Mutual exclusion on the scheduler state uses two mechanisms:
- * (1) Disabling interrupts on the current CPU to prevent a timer
- * interrupt from re-entering the scheduler code.
- * (2) The current CPU obtains a spin lock in order to prevent concurrent
- * access to the scheduler state by other CPUs.
- * If there is just one CPU, then (1) would be enough.
- * 
- * The scheduling policy implemented here is very simple:
- * threads that are ready to run are maintained in a FIFO queue and are
- * dispatched in order onto the first available CPU.
- * Scheduling may be preemptive or non-preemptive, depending on whether
- * timers are initialized for time-slicing.
- * 
- * @author Thomas Anderson (UC Berkeley), original C++ version
- * @author Peter Druschel (Rice University), Java translation
- * @author Eugene W. Stark (Stony Brook University)
  */
-public class RoundRobinScheduler extends GenScheduler {
+public class MultiLevelFeedback extends GenScheduler{
 
-    /** Queue of threads that are ready to run, but not running. */
-    private final Queue<NachosThread> readyList;
-
+    public Queue[] priorityArray;
+    
     /** Queue of threads that are sleeping. */
     public LinkedList<NachosThread> sleepList;
     
+    
     /** Queue of CPUs that are idle. */
     private final Queue<CPU> cpuList;
+    
     
     /** Terminated thread awaiting reclamation of its stack. */
     private volatile NachosThread threadToBeDestroyed;
@@ -77,13 +46,23 @@ public class RoundRobinScheduler extends GenScheduler {
      * 
      * @param firstThread  The first NachosThread to run.
      */
-    public RoundRobinScheduler(NachosThread firstThread) {
+    public MultiLevelFeedback(NachosThread firstThread) {
 	super(firstThread);
-	readyList = new FIFOQueue<NachosThread>();
+	
+	priorityArray = new Queue[Nachos.options.NUM_P_LEVELS];	//initialize an array size of NUM_P_LEVELS
+	
+	for(int i=0; i<Nachos.options.NUM_P_LEVELS; i++){
+	    Queue<NachosThread> priorityQueue = new FIFOQueue<NachosThread>();
+	    priorityArray[i] = priorityQueue;			//add the priority Queue to the array
+	    
+	    // we will set each queue's quantum in interrupt handler using this formula:
+	    // 2^index * HIGHES_QUANTUM
+	}
+	
 	sleepList = new LinkedList<NachosThread>();
 	cpuList = new FIFOQueue<CPU>();
 	
-	Debug.println('+', "Initializing Round Robin scheduler");
+	Debug.println('+', "Initializing MultiLevel Feedback scheduler");
 
 	// Add all the CPUs to the idle CPU list, and start their time-slice timers,
 	// if we are using them.
@@ -152,12 +131,40 @@ public class RoundRobinScheduler extends GenScheduler {
      */
     private void makeReady(NachosThread thread) {
 	Debug.ASSERT(CPU.getLevel() == CPU.IntOff && mutex.isLocked());
-
+	
 	Debug.println('r', "Putting thread on ready list: " + thread.name);
-
+	
+	((UserThread)thread).currentPLevelIndex = getPriorityIndex(thread);
+	
+	priorityArray[((UserThread)thread).currentPLevelIndex].offer(thread);	//add this thrd to the highest priority queue that has a quantum >= avgCPUBurst for this thrd
 	thread.setStatus(NachosThread.READY);
-	readyList.offer(thread);
+
     }
+    
+    /**
+     * it calculates the avgCPU burst for this thread
+     * it compares this value to the quantum level of the priority queue this thread is in
+     *  
+     * @return the index of the priority queue
+     */
+    private int getPriorityIndex(NachosThread thread) {
+	
+	UserThread uThread = (UserThread)thread;
+	uThread.avgCPUBurst = 0.4 * uThread.sampleVal + 0.6 * uThread.avgCPUBurst;	//new avgCpu burst
+	
+	int i; 	//index to return
+	for(i=0; i < Nachos.options.NUM_P_LEVELS; i++){
+	    double thisQuantum = Math.pow(2, i)* Nachos.options.HIGHEST_QUANTUM;
+	    
+	    //check if thisQuantum is greater or equal to avg
+	    if(thisQuantum >= uThread.avgCPUBurst)
+		break;
+	    
+	}
+
+	return i;
+    }
+
 
     /**
      * If there are idle CPUs and threads ready to run, dispatch threads on CPUs
@@ -167,14 +174,19 @@ public class RoundRobinScheduler extends GenScheduler {
      */
     private void dispatchIdleCPUs() {
 	Debug.ASSERT(CPU.getLevel() == CPU.IntOff && mutex.isLocked());
-	while(!readyList.isEmpty() && !cpuList.isEmpty()) {
-	    NachosThread thread = readyList.poll();
-	    CPU cpu = cpuList.poll();
-	    Debug.println('r', "Dispatching " + thread.name + " on " + cpu.name);
-	    cpu.dispatch(thread);
-	    // The current CPU is not relinquished here -- immediate return.
+	
+	for(int i = 0; i < Nachos.options.NUM_P_LEVELS; i++){
+	    while (!priorityArray[i].isEmpty() && !cpuList.isEmpty()) {
+		NachosThread thread = (NachosThread) priorityArray[i].poll();
+		CPU cpu = cpuList.poll();
+		Debug.println('r', "Dispatching " + thread.name + " on "
+			+ cpu.name);
+		cpu.dispatch(thread);
+		// The current CPU is not relinquished here -- immediate return.
+	    }
 	}
     }
+    
 
     /**
      * Return the next thread to be scheduled onto a CPU.
@@ -187,7 +199,8 @@ public class RoundRobinScheduler extends GenScheduler {
     private NachosThread findNextToRun() {
 	Debug.ASSERT(CPU.getLevel() == CPU.IntOff);
 	mutex.acquire();
-	NachosThread result = readyList.poll();
+	//TODO figure out how to replace readyList.pull in findNextToRun?
+	NachosThread result = null; //= readyList.poll(); 
 	mutex.release();
 	return result;
     }
@@ -218,6 +231,9 @@ public class RoundRobinScheduler extends GenScheduler {
 	CPU currentCPU = CPU.currentCPU();
 	NachosThread currentThread = NachosThread.currentThread();
 	NachosThread nextThread = findNextToRun();
+	
+	//check if currentThread didn't use it's full quantum, then set its sampleVal to numOfTicks it used
+	setSampleForICQuantum(currentThread);	
 
 	
 	// If the current thread wants to keep running and there is no other thread to run,
@@ -246,7 +262,8 @@ public class RoundRobinScheduler extends GenScheduler {
 	    if(status != NachosThread.FINISHED && status != NachosThread.BLOCKED){
 		Debug.println('r', "Putting the current thread: "+ currentThread.name + " back on the ready list");
 		currentThread.setStatus(NachosThread.READY);
-		readyList.offer(currentThread);	//put the thread    
+		((UserThread)currentThread).currentPLevelIndex = getPriorityIndex(currentThread);	//set the thread's index periodically
+		priorityArray[((UserThread)currentThread).currentPLevelIndex].offer(currentThread); 	//offer the thread to the queue that
 	    }
 	    
 	    else if(status == NachosThread.BLOCKED) {
@@ -272,6 +289,8 @@ public class RoundRobinScheduler extends GenScheduler {
 
 	Debug.println('r', "Now in thread: " + currentThread.name);
     }
+    
+    
 
     /**
      * Relinquish the CPU if any other thread is ready to run.
@@ -296,7 +315,6 @@ public class RoundRobinScheduler extends GenScheduler {
 	int oldLevel = CPU.setLevel(CPU.IntOff);
 
 	Debug.println('r', "Yielding thread: " + NachosThread.currentThread().name);
-
 	yieldCPU(NachosThread.RUNNING, null);
 	// Control returns here when currentThread is rescheduled.
 
@@ -322,7 +340,7 @@ public class RoundRobinScheduler extends GenScheduler {
 	Debug.ASSERT(CPU.getLevel() == CPU.IntOff);
 
 	Debug.println('r', "Sleeping thread: " + currentThread.name);
-
+	
 	yieldCPU(NachosThread.BLOCKED, toRelease);
 	// Control returns here when currentThread is rescheduled.
 	// The caller is responsible for re-enabling interrupts.
@@ -362,6 +380,20 @@ public class RoundRobinScheduler extends GenScheduler {
 	// Interrupts will be re-enabled when the next thread runs or the
 	// current CPU goes idle.
     }
+    
+    /**
+     * 
+     * @param thread
+     */
+    private void setSampleForICQuantum(NachosThread thread){
+	UserThread curThrd = (UserThread)thread;
+	int levelQuantum = (int) Math.pow(2, curThrd.currentPLevelIndex) * Nachos.options.HIGHEST_QUANTUM; //the quantum of the level the thread is currently in
+	
+	//if the thread didn't use it's full quantum
+	if(curThrd.numInterrupts != levelQuantum/100){
+	    curThrd.sampleVal = curThrd.numInterrupts * 100; 	//set the thread's avg sample to the time that it used
+	}
+    }
 
     /**
      * Interrupt handler for the time-slice timer.  A timer is set up to
@@ -373,7 +405,6 @@ public class RoundRobinScheduler extends GenScheduler {
 
 	/** The Timer device this is a handler for. */
 	private final Timer timer;
-	private int numInterrupts;
 	
 	/**
 	 * Initialize an interrupt handler for a specified Timer device.
@@ -382,18 +413,19 @@ public class RoundRobinScheduler extends GenScheduler {
 	 */
 	public TimerInterruptHandler(Timer timer) {
 	    this.timer = timer;
-	    numInterrupts = 1;
 	}
 
 	public void handleInterrupt() {
 	    
 	    handleSleep();
-	    if (numInterrupts != 10) {
-		numInterrupts++;
-		
+	    UserThread curThrd = (UserThread)NachosThread.currentThread();
+	    int levelQuantum = (int) Math.pow(2, curThrd.currentPLevelIndex) * Nachos.options.HIGHEST_QUANTUM;
+	    
+	    if (curThrd.numInterrupts != levelQuantum/100) {
+		curThrd.numInterrupts++;
 	    }
 	    else {
-		numInterrupts = 1;
+		curThrd.numInterrupts = 1;
 		
 		Debug.println('i', "Timer interrupt: " + timer.name);
 		// Note that instead of calling yield() directly (which would
@@ -402,9 +434,10 @@ public class RoundRobinScheduler extends GenScheduler {
 		// so that once the interrupt handler is done, it will appear as
 		// if the interrupted thread called yield at the point it is
 		// was interrupted.
+		calcSample();
 		yieldOnReturn();
 	    }
-	    
+   
 	}
 	
 	private void handleSleep() {
@@ -424,6 +457,16 @@ public class RoundRobinScheduler extends GenScheduler {
 		
 	    }
 	    
+	}
+	
+	/**
+	 *  calculates the avg sample for the current thread
+	 */
+	private void calcSample() {
+	    
+	    UserThread currThrd = (UserThread)NachosThread.currentThread();
+	    int currentQuantum = (int)Math.pow(2, currThrd.currentPLevelIndex) * Nachos.options.HIGHEST_QUANTUM;
+	    currThrd.sampleVal = 2 * currentQuantum;  
 	}
 
 	/**

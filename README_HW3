@@ -4,4 +4,24 @@ README for HW3
 @Author Maedeh Safari 	msafari
 
 RoundRobin:
-If only one thread is left on the readylist, it will run to completion.
+	Nachos is modified so that by default it uses the round-robin scheduler.
+	The round robin scheduler will keep track of the number of ticks gone by through the TimerInterruptHandler's handleInterrupt routine.
+	By default handleInterrupt is called every 100 ticks, so the handler has a counter which will be incremented until it reaches 10 (1000 ticks).
+	The round robin scheduler has a sleep list which keeps track of the sleeping threads whose sleep time is decreased in the handleSleep() function on each 100 ticks.
+	This gives a rough estimate on when the thread should be woken up since its sleep time will be less than or equal to 0.
+	
+	---- Test programs: ----
+	The test program round-robin.c contains an inner loop which is made up of 9 MIPS instructions. The loop can be increased so the scheduler will interrupt the current thread.
+	Currently, the inner loop is set to 200 and the outer loop is set to 3 so the number of instructions per each inner loop = 1800, 
+	and in total there are 5400 MIPS instructions just for the nested loop.
+	
+	
+
+Note: If only one thread is left on the readylist, it will run to completion. 
+**NOTE: Use -SCH : If you ever want to use the original scheduler that was provided. **
+
+
+Multi Level Feedback Scheduler:
+	use -MLFS to use this scheduler
+	use -numPL <> to specify the number of priority levels for the scheduler
+	use -highQ <> to specify the highest level quantum.

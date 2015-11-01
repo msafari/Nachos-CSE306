@@ -41,6 +41,14 @@ public class UserThread extends NachosThread {
     public Runnable runnable;
     public int numOfTicksToSleep;
     
+    public int currentPLevelIndex;
+    
+    public int sampleVal;
+    
+    public double avgCPUBurst;
+    
+    public int numInterrupts;
+    
     public Semaphore sleepSemaphore;
     
     /** The context in which this thread will execute. */
@@ -69,6 +77,11 @@ public class UserThread extends NachosThread {
 	numOfTicksToSleep = -1;
 	runnable = runObj;
 	
+	currentPLevelIndex = -1;
+	sampleVal = 0;
+	avgCPUBurst = 0;
+	
+	numInterrupts = 1;
 	//Lock
 	MemoryManager.processIDLock.acquire();
 	

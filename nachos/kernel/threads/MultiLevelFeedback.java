@@ -22,8 +22,8 @@ import nachos.util.Queue;
  */
 public class MultiLevelFeedback extends GenScheduler{
 
-    /** Keep track of the dispatched objects */
-    public Queue<QueueObject> dispatchedList;
+    /** Keep track of the dispatched object */
+    public QueueObject justDispatched;
     
     /** Keep track of all the queue objects*/
     public LinkedList<QueueObject> queueObjectList;
@@ -68,7 +68,6 @@ public class MultiLevelFeedback extends GenScheduler{
 	sleepList = new LinkedList<NachosThread>();
 	cpuList = new FIFOQueue<CPU>();
 	queueObjectList = new LinkedList<QueueObject>();
-	dispatchedList = new FIFOQueue<QueueObject>();
 	
 	// Add all the CPUs to the idle CPU list, and start their time-slice timers,
 	// if we are using them.
@@ -85,7 +84,8 @@ public class MultiLevelFeedback extends GenScheduler{
 	//Create a queue object for the thread and add it to list
 	QueueObject object = new QueueObject(firstThread);
 	queueObjectList.offer(object);
-	dispatchedList.offer(object);
+	
+	justDispatched = object;
 	
 	//Add the object to the MLF scheduler
 	int priorityIndex = getPriorityIndex(object);
@@ -196,8 +196,8 @@ public class MultiLevelFeedback extends GenScheduler{
 	    while (!priorityArray[i].isEmpty() && !cpuList.isEmpty()) {
 		QueueObject object = (QueueObject) priorityArray[i].poll();
 		
-		//Add object to dispatched list
-		dispatchedList.offer(object);
+		//Set the dispatched object
+		justDispatched = object;
 		
 		NachosThread thread = (NachosThread) object.thread;
 		CPU cpu = cpuList.poll();
@@ -297,12 +297,12 @@ public class MultiLevelFeedback extends GenScheduler{
 	    else if(status == NachosThread.BLOCKED) {
 		currentThread.setStatus(status);
 	    }
-	    
+	    justDispatched = object;
 	    CPU.switchTo(nextThread, mutex);
 	} else {
 	    // There is nothing for this CPU to do -- send it to the idle list.
 	    Debug.println('r', "Switching " + CPU.getName() + " from " + currentThread.name + " to idle");
-
+	    
 	    cpuList.offer(currentCPU);
 	    if(status != NachosThread.FINISHED)
 		currentThread.setStatus(status);
@@ -456,8 +456,8 @@ public class MultiLevelFeedback extends GenScheduler{
 	    
 	    handleSleep();
 	    
-	    //Remove the first object off the dispatchedList
-	    QueueObject object = ((MultiLevelFeedback)Nachos.scheduler).dispatchedList.poll();
+	    //Get the object that just ran
+	    QueueObject object = ((MultiLevelFeedback)Nachos.scheduler).justDispatched;
 	    
 	    int levelQuantum = (int) Math.pow(2, object.currentPLevelIndex) * Nachos.options.HIGHEST_QUANTUM;
 	    

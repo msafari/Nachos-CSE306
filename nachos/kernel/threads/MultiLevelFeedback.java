@@ -6,7 +6,6 @@ package nachos.kernel.threads;
 import java.util.LinkedList;
 
 import nachos.Debug;
-import nachos.Options;
 import nachos.kernel.Nachos;
 import nachos.kernel.userprog.UserThread;
 import nachos.machine.CPU;
@@ -23,16 +22,21 @@ import nachos.util.Queue;
  */
 public class MultiLevelFeedback extends GenScheduler{
 
+    /** Keep track of the dispatched objects */
+    public Queue<QueueObject> dispatchedList;
+    
+    /** Keep track of all the queue objects*/
+    public LinkedList<QueueObject> queueObjectList;
+    
+    /** Array of priority queues */
     public Queue[] priorityArray;
     
     /** Queue of threads that are sleeping. */
     public LinkedList<NachosThread> sleepList;
     
-    
     /** Queue of CPUs that are idle. */
     private final Queue<CPU> cpuList;
-    
-    
+
     /** Terminated thread awaiting reclamation of its stack. */
     private volatile NachosThread threadToBeDestroyed;
 
@@ -49,6 +53,8 @@ public class MultiLevelFeedback extends GenScheduler{
     public MultiLevelFeedback(NachosThread firstThread) {
 	super(firstThread);
 	
+	Debug.println('+', "Initializing MultiLevel Feedback scheduler");
+	
 	priorityArray = new Queue[Nachos.options.NUM_P_LEVELS];	//initialize an array size of NUM_P_LEVELS
 	
 	for(int i=0; i<Nachos.options.NUM_P_LEVELS; i++){
@@ -61,9 +67,9 @@ public class MultiLevelFeedback extends GenScheduler{
 	
 	sleepList = new LinkedList<NachosThread>();
 	cpuList = new FIFOQueue<CPU>();
+	queueObjectList = new LinkedList<QueueObject>();
+	dispatchedList = new FIFOQueue<QueueObject>();
 	
-	Debug.println('+', "Initializing MultiLevel Feedback scheduler");
-
 	// Add all the CPUs to the idle CPU list, and start their time-slice timers,
 	// if we are using them.
 	for(int i = 0; i < Machine.NUM_CPUS; i++) {
@@ -76,6 +82,15 @@ public class MultiLevelFeedback extends GenScheduler{
 	    
 	}
 
+	//Create a queue object for the thread and add it to list
+	QueueObject object = new QueueObject(firstThread);
+	queueObjectList.offer(object);
+	dispatchedList.offer(object);
+	
+	//Add the object to the MLF scheduler
+	int priorityIndex = getPriorityIndex(object);
+	
+	
 	// Dispatch firstThread on the first CPU.
 	CPU firstCPU = cpuList.poll();
 	firstCPU.dispatch(firstThread);
@@ -132,32 +147,33 @@ public class MultiLevelFeedback extends GenScheduler{
     private void makeReady(NachosThread thread) {
 	Debug.ASSERT(CPU.getLevel() == CPU.IntOff && mutex.isLocked());
 	
-	Debug.println('r', "Putting thread on ready list: " + thread.name);
+	//Create new queue object for thread and add it in.
+	QueueObject object = new QueueObject(thread);
+	object.currentPLevelIndex = getPriorityIndex(object);
+	queueObjectList.offer(object);
 	
-	((UserThread)thread).currentPLevelIndex = getPriorityIndex(thread);
-	
-	priorityArray[((UserThread)thread).currentPLevelIndex].offer(thread);	//add this thrd to the highest priority queue that has a quantum >= avgCPUBurst for this thrd
+	Debug.println('r', "Putting thread " + thread.name + " on MLF queue, priority: " + object.currentPLevelIndex);
+	priorityArray[object.currentPLevelIndex].offer(object);	//add this thrd to the highest priority queue that has a quantum >= avgCPUBurst for this thrd
 	thread.setStatus(NachosThread.READY);
 
     }
     
     /**
-     * it calculates the avgCPU burst for this thread
-     * it compares this value to the quantum level of the priority queue this thread is in
+     * it calculates the avgCPU burst for this queue object
+     * it compares this value to the quantum level of the priority queue this queue object is in
      *  
      * @return the index of the priority queue
      */
-    private int getPriorityIndex(NachosThread thread) {
-	
-	UserThread uThread = (UserThread)thread;
-	uThread.avgCPUBurst = 0.4 * uThread.sampleVal + 0.6 * uThread.avgCPUBurst;	//new avgCpu burst
+    private int getPriorityIndex(QueueObject object) {
+
+	object.avgCPUBurst = 0.4 * object.sampleVal + 0.6 * object.avgCPUBurst;	//new avgCpu burst
 	
 	int i; 	//index to return
 	for(i=0; i < Nachos.options.NUM_P_LEVELS; i++){
 	    double thisQuantum = Math.pow(2, i)* Nachos.options.HIGHEST_QUANTUM;
 	    
 	    //check if thisQuantum is greater or equal to avg
-	    if(thisQuantum >= uThread.avgCPUBurst)
+	    if(thisQuantum >= object.avgCPUBurst)
 		break;
 	    
 	}
@@ -175,12 +191,17 @@ public class MultiLevelFeedback extends GenScheduler{
     private void dispatchIdleCPUs() {
 	Debug.ASSERT(CPU.getLevel() == CPU.IntOff && mutex.isLocked());
 	
+	//For each level starting from the highest, check if there are any threads to run.
 	for(int i = 0; i < Nachos.options.NUM_P_LEVELS; i++){
 	    while (!priorityArray[i].isEmpty() && !cpuList.isEmpty()) {
-		NachosThread thread = (NachosThread) priorityArray[i].poll();
+		QueueObject object = (QueueObject) priorityArray[i].poll();
+		
+		//Add object to dispatched list
+		dispatchedList.offer(object);
+		
+		NachosThread thread = (NachosThread) object.thread;
 		CPU cpu = cpuList.poll();
-		Debug.println('r', "Dispatching " + thread.name + " on "
-			+ cpu.name);
+		Debug.println('r', "Dispatching " + thread.name + " on "+ cpu.name);
 		cpu.dispatch(thread);
 		// The current CPU is not relinquished here -- immediate return.
 	    }
@@ -189,27 +210,27 @@ public class MultiLevelFeedback extends GenScheduler{
     
 
     /**
-     * Return the next thread to be scheduled onto a CPU.
+     * Return the next queue object to be scheduled onto a CPU.
      * If there are no ready threads, return null.
      * Side effect: thread is removed from the ready list.
      * Assumes that interrupts have been disabled.
      *
      * @return the thread to be scheduled onto a CPU.
      */
-    private NachosThread findNextToRun() {
+    private QueueObject findNextToRun() {
 	Debug.ASSERT(CPU.getLevel() == CPU.IntOff);
 	mutex.acquire();
-	NachosThread result = null;
-	//TODO figure out how to replace readyList.pull in findNextToRun?
+	QueueObject object = null;
+	
 	for(int i=0; i < Nachos.options.NUM_P_LEVELS; i++){
 	    if(!priorityArray[i].isEmpty()) {
-		result = (NachosThread) priorityArray[i].poll();
+		object = (QueueObject) priorityArray[i].poll();
 		break;
 	    }
 	}
 	
 	mutex.release();
-	return result;
+	return object;
     }
 
     /**
@@ -237,7 +258,8 @@ public class MultiLevelFeedback extends GenScheduler{
 	Debug.ASSERT(CPU.getLevel() == CPU.IntOff);
 	CPU currentCPU = CPU.currentCPU();
 	NachosThread currentThread = NachosThread.currentThread();
-	NachosThread nextThread = findNextToRun();
+	QueueObject object = findNextToRun();
+	NachosThread nextThread = object.thread;
 	
 	//check if currentThread didn't use it's full quantum, then set its sampleVal to numOfTicks it used
 	setSampleForICQuantum(currentThread);	
@@ -246,12 +268,10 @@ public class MultiLevelFeedback extends GenScheduler{
 	// If the current thread wants to keep running and there is no other thread to run,
 	// do nothing.
 	if(status == NachosThread.RUNNING && nextThread == null) {
-	    Debug.println('r', "No other thread to run -- " + currentThread.name
-		    			+ " continuing");
+	    Debug.println('r', "No other thread to run -- " + currentThread.name + " continuing");
 	    return;
 	}
-	Debug.println('r', "Next thread to run: "
-		+ (nextThread == null ? "(none)" : nextThread.name));
+	Debug.println('r', "Next thread to run: " + (nextThread == null ? "(none)" : nextThread.name));
 
 	// The current thread will be suspending -- save its context.
 	currentThread.saveState();
@@ -261,16 +281,17 @@ public class MultiLevelFeedback extends GenScheduler{
 	    toRelease.release();
 	if(nextThread != null) {
 	    // Switch the CPU from currentThread to nextThread.
-	    Debug.println('r', "Switching " + CPU.getName() +
-		    " from " + currentThread.name +
-		    " to " + nextThread.name);
+	    Debug.println('r', "Switching " + CPU.getName() + " from " + currentThread.name + " to " + nextThread.name);
 	    
 	    //Dont put thread back on readyList if it is done.
 	    if(status != NachosThread.FINISHED && status != NachosThread.BLOCKED){
-		Debug.println('r', "Putting the current thread: "+ currentThread.name + " back on the ready list");
 		currentThread.setStatus(NachosThread.READY);
-		((UserThread)currentThread).currentPLevelIndex = getPriorityIndex(currentThread);	//set the thread's index periodically
-		priorityArray[((UserThread)currentThread).currentPLevelIndex].offer(currentThread); 	//offer the thread to the queue that
+		
+		QueueObject currentObject = findQueueObject(currentThread);
+		currentObject.currentPLevelIndex = getPriorityIndex(currentObject);	//set the object's index periodically
+		priorityArray[currentObject.currentPLevelIndex].offer(currentObject); 	//offer the object to the queue that
+		
+		Debug.println('r', "Putting the current thread: "+ currentThread.name + " back on MLF queue, priority: " + currentObject.currentPLevelIndex);
 	    }
 	    
 	    else if(status == NachosThread.BLOCKED) {
@@ -280,9 +301,7 @@ public class MultiLevelFeedback extends GenScheduler{
 	    CPU.switchTo(nextThread, mutex);
 	} else {
 	    // There is nothing for this CPU to do -- send it to the idle list.
-	    Debug.println('r', "Switching " + CPU.getName() +
-		    " from " + currentThread.name +
-		    " to idle");
+	    Debug.println('r', "Switching " + CPU.getName() + " from " + currentThread.name + " to idle");
 
 	    cpuList.offer(currentCPU);
 	    if(status != NachosThread.FINISHED)
@@ -394,15 +413,25 @@ public class MultiLevelFeedback extends GenScheduler{
      * @param thread: the NachosThread to set its avg sample value
      */
     private void setSampleForICQuantum(NachosThread thread){
-	UserThread curThrd = (UserThread)thread;
-	int levelQuantum = (int) Math.pow(2, curThrd.currentPLevelIndex) * Nachos.options.HIGHEST_QUANTUM; //the quantum of the level the thread is currently in
 	
-	//if the thread didn't use it's full quantum
-	if(curThrd.numInterrupts != levelQuantum/100){
-	    curThrd.sampleVal = curThrd.numInterrupts * 100; 	//set the thread's avg sample to the time that it used
+	//Find the queueObject for this thread
+	QueueObject object = findQueueObject(thread);
+	
+	int levelQuantum = (int) Math.pow(2, object.currentPLevelIndex) * Nachos.options.HIGHEST_QUANTUM; //the quantum of the level the thread is currently in
+	
+	//if the object didn't use it's full quantum
+	if(object.numInterrupts != levelQuantum/100){
+	    object.sampleVal = object.numInterrupts * 100; 	//set the object's avg sample to the time that it used
 	}
     }
 
+    public QueueObject findQueueObject(NachosThread thread){
+	for (QueueObject object : queueObjectList)
+	    if (object.objectName.equals(thread.name))
+		return object;
+	return null;
+    }
+    
     /**
      * Interrupt handler for the time-slice timer.  A timer is set up to
      * interrupt the CPU periodically (once every Timer.DefaultInterval ticks).
@@ -426,14 +455,17 @@ public class MultiLevelFeedback extends GenScheduler{
 	public void handleInterrupt() {
 	    
 	    handleSleep();
-	    UserThread curThrd = (UserThread)NachosThread.currentThread();
-	    int levelQuantum = (int) Math.pow(2, curThrd.currentPLevelIndex) * Nachos.options.HIGHEST_QUANTUM;
 	    
-	    if (curThrd.numInterrupts != levelQuantum/100) {
-		curThrd.numInterrupts++;
+	    //Remove the first object off the dispatchedList
+	    QueueObject object = ((MultiLevelFeedback)Nachos.scheduler).dispatchedList.poll();
+	    
+	    int levelQuantum = (int) Math.pow(2, object.currentPLevelIndex) * Nachos.options.HIGHEST_QUANTUM;
+	    
+	    if (object.numInterrupts != levelQuantum/100) {
+		object.numInterrupts++;
 	    }
 	    else {
-		curThrd.numInterrupts = 1;
+		object.numInterrupts = 1;
 		
 		Debug.println('i', "Timer interrupt: " + timer.name);
 		// Note that instead of calling yield() directly (which would
@@ -472,9 +504,10 @@ public class MultiLevelFeedback extends GenScheduler{
 	 */
 	private void calcSample() {
 	    
-	    UserThread currThrd = (UserThread)NachosThread.currentThread();
-	    int currentQuantum = (int)Math.pow(2, currThrd.currentPLevelIndex) * Nachos.options.HIGHEST_QUANTUM;
-	    currThrd.sampleVal = 2 * currentQuantum;  
+	    NachosThread currThrd = NachosThread.currentThread();
+	    QueueObject object = Nachos.scheduler.findQueueObject(currThrd);
+	    int currentQuantum = (int)Math.pow(2, object.currentPLevelIndex) * Nachos.options.HIGHEST_QUANTUM;
+	    object.sampleVal = 2 * currentQuantum;  
 	}
 
 	/**

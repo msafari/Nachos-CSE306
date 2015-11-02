@@ -17,20 +17,17 @@ import nachos.util.FIFOQueue;
 import nachos.util.Queue;
 
 /**
+ * Abstract class for the different schedulers
  * @author maedeh
  *
  */
 public abstract class GenScheduler {
-    
     
     /** Queue of threads that are ready to run, but not running. */
     private final Queue<NachosThread> readyList;
 
     /** Queue of threads that are sleeping. */
     public LinkedList<NachosThread> sleepList;
-    
-    public Queue[] priorityArray;
-
 
     /**
      * Initialize the scheduler.
@@ -115,6 +112,13 @@ public abstract class GenScheduler {
 
     }
 
+    /**
+     * Returns a queue object for a given thread. To be used in the MLF scheduler.
+     * @return
+     */
+    public QueueObject findQueueObject(NachosThread thread){
+	return null;
+    }
 
     
 

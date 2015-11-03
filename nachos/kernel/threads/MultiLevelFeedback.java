@@ -259,7 +259,9 @@ public class MultiLevelFeedback extends GenScheduler{
 	CPU currentCPU = CPU.currentCPU();
 	NachosThread currentThread = NachosThread.currentThread();
 	QueueObject object = findNextToRun();
-	NachosThread nextThread = object.thread;
+	NachosThread nextThread = null;
+	if(object!=null)
+	    nextThread = object.thread;
 	
 	//check if currentThread didn't use it's full quantum, then set its sampleVal to numOfTicks it used
 	setSampleForICQuantum(currentThread);	
@@ -426,8 +428,9 @@ public class MultiLevelFeedback extends GenScheduler{
     }
 
     public QueueObject findQueueObject(NachosThread thread){
+	    
 	for (QueueObject object : queueObjectList)
-	    if (object.objectName.equals(thread.name))
+	    if (object.thread == thread)
 		return object;
 	return null;
     }
@@ -458,7 +461,10 @@ public class MultiLevelFeedback extends GenScheduler{
 	    
 	    //Get the object that just ran
 	    QueueObject object = ((MultiLevelFeedback)Nachos.scheduler).justDispatched;
+	    Debug.println('C', "Avg CPU Usage for thread: "+ object.objectName + ((UserThread)object.thread).processID + " is ====== " + object.avgCPUBurst);
 	    
+	    
+	    //object.currentPLevelIndex
 	    int levelQuantum = (int) Math.pow(2, object.currentPLevelIndex) * Nachos.options.HIGHEST_QUANTUM;
 	    
 	    if (object.numInterrupts != levelQuantum/100) {
@@ -504,8 +510,9 @@ public class MultiLevelFeedback extends GenScheduler{
 	 */
 	private void calcSample() {
 	    
-	    NachosThread currThrd = NachosThread.currentThread();
-	    QueueObject object = Nachos.scheduler.findQueueObject(currThrd);
+	  //Get the object that just ran
+	    QueueObject object = ((MultiLevelFeedback)Nachos.scheduler).justDispatched;
+	    
 	    int currentQuantum = (int)Math.pow(2, object.currentPLevelIndex) * Nachos.options.HIGHEST_QUANTUM;
 	    object.sampleVal = 2 * currentQuantum;  
 	}

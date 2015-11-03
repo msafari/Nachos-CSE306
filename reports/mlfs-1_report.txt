@@ -1,0 +1,159 @@
+0       [+] Entering main
+0       [+] Initializing MultiLevel Feedback scheduler
+1 CPU0  system  on  [+] Entering ThreadTest
+3 CPU0  system  on  [+] starting ProgTest: ProgTest (test/mlfs-1)
+8 CPU0  system  on  [+] *** thread 1 looped 0 times
+10  CPU0  system  on  [+] *** thread 2 looped 0 times
+48  CPU0  system  on  [+] starting UserProcess: UserProcess (test/round-robin)
+58  CPU0  system  on  [+] starting UserProcess: UserProcess (test/round-robin)
+72  CPU0  system  on  [+] freeing all resources for thread: ProgTest (test/mlfs-1)
+96  CPU0  system  on  [+] *** thread 1 looped 1 times
+97  CPU0  system  on  [+] *** thread 2 looped 1 times
+101 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 0.0
+104 CPU0  system  on  [+] *** thread 1 looped 2 times
+105 CPU0  system  on  [+] *** thread 2 looped 2 times
+202 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 80.0
+203 CPU0  system  on  [+] *** thread 1 looped 3 times
+204 CPU0  system  on  [+] *** thread 2 looped 3 times
+303 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 0.0
+304 CPU0  system  on  [+] *** thread 1 looped 4 times
+305 CPU0  system  on  [+] *** thread 2 looped 4 times
+404 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 0.0
+505 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 80.0
+606 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 128.0
+707 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 128.0
+808 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 128.0
+909 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 128.0
+1010  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 116.8
+1111  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 116.8
+1212  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 116.8
+1313  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 116.8
+1414  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 110.08
+1515  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 110.08
+1616  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 110.08
+1717  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 110.08
+1818  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 106.048
+1919  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 106.048
+2020  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 106.048
+2121  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 106.048
+2222  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 103.6288
+2323  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 103.6288
+2424  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 103.6288
+2525  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 103.6288
+2626  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 102.17728
+2727  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 102.17728
+2828  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 102.17728
+2929  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 102.17728
+3030  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 101.30636799999999
+3131  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 101.30636799999999
+3232  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 101.30636799999999
+3333  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 101.30636799999999
+3434  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.7838208
+3535  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.7838208
+3636  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.7838208
+3737  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.7838208
+3838  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.47029248
+3939  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.47029248
+4040  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.47029248
+4141  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.282175488
+4242  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.282175488
+4343  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 0.0
+4444  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 0.0
+4545  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 0.0
+4646  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 0.0
+4747  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 0.0
+4848  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.282175488
+4949  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.16930529279999
+5050  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.16930529279999
+5151  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.16930529279999
+5252  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.16930529279999
+5353  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.10158317567999
+5454  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.10158317567999
+5555  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.10158317567999
+5656  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.10158317567999
+5757  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.060949905408
+5858  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.060949905408
+5959  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.060949905408
+6060  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.060949905408
+6161  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.03656994324479
+6262  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.03656994324479
+6363  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.03656994324479
+6464  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.03656994324479
+6565  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.02194196594687
+6666  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.02194196594687
+6767  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.02194196594687
+6868  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.02194196594687
+6969  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.01316517956812
+7070  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.01316517956812
+7171  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.01316517956812
+7272  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.01316517956812
+7373  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.00789910774087
+7474  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.00789910774087
+7575  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.00789910774087
+7676  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.00789910774087
+7777  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.00473946464452
+7878  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.00473946464452
+7979  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.00473946464452
+8080  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.00473946464452
+8181  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.0028436787867
+8282  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.0028436787867
+8383  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.00170620727202
+8484  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.00170620727202
+8585  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 0.0
+8686  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 0.0
+8787  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 0.0
+8888  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 0.0
+8989  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.00170620727202
+9090  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.00170620727202
+9191  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.00102372436321
+9292  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.00102372436321
+9393  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.00102372436321
+9494  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.00102372436321
+9595  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.00061423461793
+9696  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.00061423461793
+9797  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.00061423461793
+9898  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.00061423461793
+9999  CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.00036854077075
+10100 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.00036854077075
+10201 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.00036854077075
+10302 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.00036854077075
+10403 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.00022112446246
+10504 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.00022112446246
+10605 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.00022112446246
+10706 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.00022112446246
+10807 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.00013267467747
+10908 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.00013267467747
+11009 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.00013267467747
+11110 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.00013267467747
+11211 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.00007960480647
+11312 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.00007960480647
+11413 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.00007960480647
+11514 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.00007960480647
+11615 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.00004776288388
+11716 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.00004776288388
+11817 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.00004776288388
+11918 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.00004776288388
+12019 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.00002865773033
+12120 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.00002865773033
+12221 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.00002865773033
+12322 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 100.00002865773033
+12423 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.00001719463819
+12524 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.00001719463819
+12625 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.00001031678292
+12726 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 100.00001031678292
+12827 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 0.0
+12852 CPU0  system  on  [+] freeing all resources for thread: UserProcess (test/round-robin)
+12928 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)2 is ====== 0.0
+13029 CPU0  system  off [C] Avg CPU Usage for thread: UserProcess (test/round-robin)1 is ====== 0.0
+13054 CPU0  system  on  [+] freeing all resources for thread: UserProcess (test/round-robin)
+13079 CPU0  system  on  [+] Exiting last thread. Setting exitStatus to: 0
+Simulation terminating!
+
+Total ticks: 13079
+   CPU 0: user 12228, system 251, interrupt 129, idle 471
+Interrupts: 129
+   CPU 0: 129
+Console I/O: reads 0, writes 0
+Disk I/O: reads 0, writes 0
+Page faults: 0
+   CPU 0: 0

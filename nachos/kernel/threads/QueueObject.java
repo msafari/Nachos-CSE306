@@ -7,7 +7,7 @@ import nachos.machine.NachosThread;
  *
  */
 public class QueueObject {
-
+    
     public NachosThread thread;
     
     public int currentPLevelIndex;

@@ -6,6 +6,7 @@
 
 package nachos.kernel.userprog;
 
+import java.io.UnsupportedEncodingException;
 import java.util.LinkedList;
 
 import nachos.Debug;
@@ -250,13 +251,24 @@ public class Syscall {
      */
     public static void write(byte buffer[], int size, int id) {
 	if (id == ConsoleOutput) {
+	   
+	    byte[] b = new byte[1];
+	    char[] c = new char[1];
+	    
 	    for(int i = 0; i < size; i++) {
-		Nachos.consoleDriver.putChar((char)buffer[i]);
-		Debug.println('S', "Write Console: " + (char)buffer[i]);
+		b[0] = buffer[i];
+		try {
+		    c = Nachos.consoleDriver.translate(b);
+		    Nachos.consoleDriver.putChar(c[0]);
+		} catch (UnsupportedEncodingException e) {
+		    // TODO Auto-generated catch block
+		    e.printStackTrace();
+		}
 	    }
 	}
     }
 
+    
     /**
      * Read "size" bytes from the open file into "buffer".  
      * Return the number of bytes actually read -- if the open file isn't

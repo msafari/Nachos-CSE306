@@ -50,6 +50,7 @@ public class UserThread extends NachosThread {
     public int numInterrupts;
     
     public int writeSize;
+    public int readSize;
     
     public Semaphore sleepSemaphore;
     
@@ -79,6 +80,7 @@ public class UserThread extends NachosThread {
 	numOfTicksToSleep = -1;
 	runnable = runObj;
 	writeSize = 0;
+	readSize = 0;
 	currentPLevelIndex = -1;
 	sampleVal = 0;
 	avgCPUBurst = 0;

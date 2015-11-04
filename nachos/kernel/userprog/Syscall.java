@@ -79,6 +79,8 @@ public class Syscall {
     
     public static Lock writeLock = new Lock("writeLock");
     
+    public static Lock readLock = new Lock("readLock");
+    
     public static Semaphore joinSem = new Semaphore("joinSem", 0);
     
     public static AddrSpace addrSpace;
@@ -298,16 +300,17 @@ public class Syscall {
      * @return The actual number of bytes read.
      */
     public static int read(byte buffer[], int size, int id) {
-
+	readLock.acquire();
 	int i = 0;
 	//Read from Console
 	if (id == ConsoleInput) {
 	    try {
-		
+		UserThread curThrd = (UserThread) NachosThread.currentThread();
+		curThrd.readSize = size; // store the size of read for each userthread
 		Debug.println('S', "Reading: size: " + size + ", id: " + id);
 		for (i = 0; i < size; i++) {
 		    buffer[i] = (byte) Nachos.consoleDriver.getChar();
-		    Debug.println('S', "Read Console: " + (char) buffer[i]);
+		    
 		}
 		
 	    } catch (Exception e) {
@@ -321,9 +324,10 @@ public class Syscall {
 	}
 	//Otherwise read from file
 	else{
+
+		readLock.release();
 		return 0;
 	}
-
     }
 
     

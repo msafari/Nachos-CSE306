@@ -38,9 +38,17 @@ public class ConsoleDriver {
 
     public char[] inputBuf = new char[10];
 
+    /** Echo buffer, size of 80 */
+    public char[] echoBuf = new char[80];
+
+    public int echoCounter = 0;
+
+    private Semaphore echoBufferSem = new Semaphore("Echo Buff Sem", 0);
+
     public int outputCounter = 0;
+
     public int index = 0;
-    
+
     public char[] outputBuf = new char[10];
 
     /** Lock used to ensure at most one thread trying to input at a time. */
@@ -57,6 +65,7 @@ public class ConsoleDriver {
      * character.
      */
     private Semaphore outputDone = new Semaphore("Console output done", 1);
+
     private Semaphore outBufferFull = new Semaphore("Output buffer full", 0);
 
     /** Interrupt handler used for console keyboard interrupts. */
@@ -105,12 +114,42 @@ public class ConsoleDriver {
      * character.
      */
     public char getChar() {
-	inputLock.acquire();
 	ensureInputHandler();
 	charAvail.P();
 	Debug.ASSERT(console.isInputAvail());
+	// Get the character
 	char ch = console.getChar();
-	inputLock.release();
+
+	// Add it to echo buffer
+	if (ch == '\r' || ch == '\n') {
+
+	    echoBuf[echoCounter] = '\r';
+	    echoCounter++;
+
+	    echoBuf[echoCounter] = '\n';
+	    echoCounter++;
+
+	} else if(ch == '\b'){
+	    echoBuf[echoCounter] = '\b';
+	    echoCounter++;
+
+	    echoBuf[echoCounter] = '\0';
+	    echoCounter++;
+	    
+	    echoBuf[echoCounter] = '\b';
+	    echoCounter++;
+	    putChar(echoBuf[echoCounter - 1]);
+	    putChar(echoBuf[echoCounter - 1]);
+	    putChar(echoBuf[echoCounter - 1]);
+	}
+	else {
+
+	    echoBuf[echoCounter] = ch;
+	    echoCounter++;
+	}
+
+	putChar(echoBuf[echoCounter - 1]);
+
 	return ch;
     }
 
@@ -126,56 +165,60 @@ public class ConsoleDriver {
     public void putChar(char ch) {
 
 	ensureOutputHandler();
-	UserThread curThrd = (UserThread)NachosThread.currentThread();
-	
+	UserThread curThrd = (UserThread) NachosThread.currentThread();
+
 	if (!console.isOutputBusy()) {
 	    console.putChar(ch);
 	    curThrd.writeSize--;
-	    
+	    curThrd.readSize--;
+
 	}
-	
+
 	else {
 	    if (outputCounter <= 9) {
 		outputLock.acquire();
 		outputBuf[outputCounter] = ch;
 		outputCounter++;
 		outputLock.release();
-	    } else if (outputCounter == 10 ) {
+	    } else if (outputCounter == 10) {
 		// block
 		outputDone.P();
-		
-		for (int i=0; i< outputCounter; i++){
+
+		for (int i = 0; i < outputCounter; i++) {
 		    outBufferFull.P();
 		    console.putChar(outputBuf[i]);
 		    outputBuf[i] = '\0';
 		}
 		outputCounter = 0;
 		curThrd.writeSize -= 10;
-		
+		curThrd.readSize -= 10;
+
 		// put put charcter in here
 		outputBuf[outputCounter++] = ch;
 	    }
 
-	    if(((UserThread)NachosThread.currentThread()).writeSize == outputCounter) {
-		for (int i=0; i< outputCounter; i++){
+	    if (((UserThread) NachosThread.currentThread()).writeSize == outputCounter) {
+		for (int i = 0; i < outputCounter; i++) {
 		    outBufferFull.P();
 		    console.putChar(outputBuf[i]);
 		    outputBuf[i] = '\0';
 		}
 		outputCounter = 0;
-		((UserThread)NachosThread.currentThread()).writeSize = 0;
-		
+		((UserThread) NachosThread.currentThread()).writeSize = 0;
+		((UserThread) NachosThread.currentThread()).readSize = 0;
+
 	    }
 	}
 
-	
-	//A call to putChar() made when the device is idle (and hence when the buffer is empty)
-	//will require that the driver initiate output by calling Console.putChar(). 
-	
-	//On the other hand, when the buffer is nonempty, the interrupt caused by the completion
-	//of printing of one character should trigger the start of printing of the next character.
+	// A call to putChar() made when the device is idle (and hence when the
+	// buffer is empty)
+	// will require that the driver initiate output by calling
+	// Console.putChar().
 
-
+	// On the other hand, when the buffer is nonempty, the interrupt caused
+	// by the completion
+	// of printing of one character should trigger the start of printing of
+	// the next character.
 
     }
 
@@ -207,6 +250,7 @@ public class ConsoleDriver {
 	public void handleInterrupt() {
 	    Debug.println('S', "Input handler called");
 	    charAvail.V();
+	    echoBufferSem.V();
 	}
 
     }
@@ -217,14 +261,15 @@ public class ConsoleDriver {
     private class OutputHandler implements InterruptHandler {
 
 	Semaphore block = new Semaphore("block", 1);
-	
+
 	@Override
 	public void handleInterrupt() {
 	    Debug.println('S', "Output  handler called");
-	 
+
 	    outBufferFull.V();
 	    outputDone.V();
-	    
+	    // echoBufferSem.V();
+
 	}
 
     }

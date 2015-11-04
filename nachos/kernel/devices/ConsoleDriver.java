@@ -11,9 +11,11 @@ import java.io.UnsupportedEncodingException;
 import nachos.Debug;
 import nachos.machine.Console;
 import nachos.machine.InterruptHandler;
+import nachos.machine.NachosThread;
 import nachos.kernel.Nachos;
 import nachos.kernel.threads.Lock;
 import nachos.kernel.threads.Semaphore;
+import nachos.kernel.userprog.UserThread;
 
 /**
  * This class provides for the initialization of the NACHOS console, and gives
@@ -55,7 +57,6 @@ public class ConsoleDriver {
      * character.
      */
     private Semaphore outputDone = new Semaphore("Console output done", 1);
-
     private Semaphore outBufferFull = new Semaphore("Output buffer full", 0);
 
     /** Interrupt handler used for console keyboard interrupts. */
@@ -125,32 +126,57 @@ public class ConsoleDriver {
     public void putChar(char ch) {
 
 	ensureOutputHandler();
-
-	
-	outputDone.P();
-
-	if (outputCounter <= 8) {
-	    outputLock.acquire();
-	    outputBuf[outputCounter] = ch;
-	    outputCounter++;
-	    outputLock.release();
-	}
-	else if(outputCounter == 9) {
-	    // block
-	    outBufferFull.P();
-	    
-
-	}
+	UserThread curThrd = (UserThread)NachosThread.currentThread();
 	
 	if (!console.isOutputBusy()) {
+	    console.putChar(ch);
+	    curThrd.writeSize--;
 	    
-	    console.putChar(outputBuf[0]);
-	    Debug.println('S', "Write Console: " + outputBuf[0]);
-	    for(int i = 1; i < 10; i++){
-		outputBuf[i - 1] = outputBuf[i];
-	    }
-	    outputCounter--;
 	}
+	
+	else {
+	    if (outputCounter <= 9) {
+		outputLock.acquire();
+		outputBuf[outputCounter] = ch;
+		outputCounter++;
+		outputLock.release();
+	    } else if (outputCounter == 10 ) {
+		// block
+		outputDone.P();
+		
+		for (int i=0; i< outputCounter; i++){
+		    outBufferFull.P();
+		    console.putChar(outputBuf[i]);
+		    outputBuf[i] = '\0';
+		}
+		outputCounter = 0;
+		curThrd.writeSize -= 10;
+		
+		// put put charcter in here
+		outputBuf[outputCounter++] = ch;
+	    }
+
+	    if(((UserThread)NachosThread.currentThread()).writeSize == outputCounter) {
+		for (int i=0; i< outputCounter; i++){
+		    outBufferFull.P();
+		    console.putChar(outputBuf[i]);
+		    outputBuf[i] = '\0';
+		}
+		outputCounter = 0;
+		((UserThread)NachosThread.currentThread()).writeSize = 0;
+		
+	    }
+	}
+
+	
+	//A call to putChar() made when the device is idle (and hence when the buffer is empty)
+	//will require that the driver initiate output by calling Console.putChar(). 
+	
+	//On the other hand, when the buffer is nonempty, the interrupt caused by the completion
+	//of printing of one character should trigger the start of printing of the next character.
+
+
+
     }
 
     /**
@@ -167,7 +193,6 @@ public class ConsoleDriver {
     }
 
     public char[] translate(byte[] b) throws UnsupportedEncodingException {
-
 	String s = new String(b, "UTF-8");
 	char[] c = s.toCharArray();
 	return c;
@@ -191,11 +216,15 @@ public class ConsoleDriver {
      */
     private class OutputHandler implements InterruptHandler {
 
+	Semaphore block = new Semaphore("block", 1);
+	
 	@Override
 	public void handleInterrupt() {
 	    Debug.println('S', "Output  handler called");
+	 
+	    outBufferFull.V();
 	    outputDone.V();
-	    Nachos.consoleDriver.outBufferFull.V();
+	    
 	}
 
     }

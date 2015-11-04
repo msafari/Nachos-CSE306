@@ -77,6 +77,8 @@ public class Syscall {
     /** Integer code identifying the "Sleep" system call. */
     public static final byte SC_Sleep = 12;
     
+    public static Lock writeLock = new Lock("writeLock");
+    
     public static Semaphore joinSem = new Semaphore("joinSem", 0);
     
     public static AddrSpace addrSpace;
@@ -250,22 +252,36 @@ public class Syscall {
      * @param id The OpenFileId of the file to which to write the data.
      */
     public static void write(byte buffer[], int size, int id) {
+	writeLock.acquire();
 	if (id == ConsoleOutput) {
 	   
 	    byte[] b = new byte[1];
 	    char[] c = new char[1];
 	    
+	    UserThread curThrd = (UserThread)NachosThread.currentThread();
+	    curThrd.writeSize = size;		//store the size of write for each userthread
+	    
 	    for(int i = 0; i < size; i++) {
 		b[0] = buffer[i];
 		try {
 		    c = Nachos.consoleDriver.translate(b);
+		    
+		    if(c[0] == '\n'){
+			curThrd.writeSize++;
+			Nachos.consoleDriver.putChar('\r');
+		    }
+		    
 		    Nachos.consoleDriver.putChar(c[0]);
 		} catch (UnsupportedEncodingException e) {
 		    // TODO Auto-generated catch block
 		    e.printStackTrace();
 		}
 	    }
+	    
+	    writeLock.release();
 	}
+	
+	
     }
 
     

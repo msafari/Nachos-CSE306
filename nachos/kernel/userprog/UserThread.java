@@ -49,6 +49,8 @@ public class UserThread extends NachosThread {
     
     public int numInterrupts;
     
+    public int writeSize;
+    
     public Semaphore sleepSemaphore;
     
     /** The context in which this thread will execute. */
@@ -76,7 +78,7 @@ public class UserThread extends NachosThread {
 	super(name, runObj);
 	numOfTicksToSleep = -1;
 	runnable = runObj;
-	
+	writeSize = 0;
 	currentPLevelIndex = -1;
 	sampleVal = 0;
 	avgCPUBurst = 0;

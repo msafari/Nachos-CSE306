@@ -58,7 +58,9 @@ ConsoleDriver:
 					getChar() will decrement the process's writeSize each time a character gets printed on the console. 
 					Clearly, if the writeSize is equal to number of characters in the buffer, it means the Write Syscall is done before the buffer is full
 					So our code checks for this case and prints the remaining characters before the next Write Syscall executes. 
-					
+	getChar(): It gets the character from console and echos it at the same time. It can do backspace and carriage return/newline.
+				Test program to run is readConsole.c. Stores the characters in an echo buffer.
+								
 	------Test Programs: --------
 	We tested putChar() with console1.c and console2.c. 
 	console1.c is a write syscall to console.

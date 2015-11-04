@@ -51,6 +51,22 @@ Sleep:
 	j	$31
 	.end Sleep
 
+	.globl Mkdir
+	.ent	Mkdir
+Mkdir:
+	addiu $2,$0,SC_Mkdir
+	syscall
+	j	$31
+	.end Mkdir
+
+	.globl Rmdir
+	.ent	Rmdir
+Rmdir:
+	addiu $2,$0,SC_Rmdir
+	syscall
+	j	$31
+	.end Rmdir
+
 	.globl Halt
 	.ent	Halt
 Halt:

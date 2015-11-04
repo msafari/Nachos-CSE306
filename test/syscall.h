@@ -47,6 +47,12 @@
 /** Sleep Syscall*/
 void Sleep(int numOfTicks);
 
+/* Create a Nachos directory, with "name" */
+void Mkdir(char *name);
+
+/* Remove a Nachos directory, with "name" */
+void Rmdir(char *name);
+
 /* Stop Nachos, and print out performance stats */
 void Halt();		
  

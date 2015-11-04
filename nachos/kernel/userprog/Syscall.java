@@ -77,6 +77,12 @@ public class Syscall {
     /** Integer code identifying the "Sleep" system call. */
     public static final byte SC_Sleep = 12;
     
+    /** Integer code identifying the "Mkdir" system call. */
+    public static final byte SC_Mkdir = 12;
+    
+    /** Integer code identifying the "Rmdir" system call. */
+    public static final byte SC_Rmdir = 12;
+    
     public static Lock writeLock = new Lock("writeLock");
     
     public static Lock readLock = new Lock("readLock");

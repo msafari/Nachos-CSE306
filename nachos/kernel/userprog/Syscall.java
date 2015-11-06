@@ -239,6 +239,7 @@ public class Syscall {
 	boolean result = Nachos.fileSystem.create(name, 0);
 	if(!result){
 	    Debug.println('S', "Could not create file: " + name);
+	    Debug.ASSERT(false);
 	}
     }
 

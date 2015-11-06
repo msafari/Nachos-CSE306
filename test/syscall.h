@@ -31,6 +31,8 @@
 #define SC_Yield	10
 #define SC_Remove	11
 #define SC_Sleep	12
+#define SC_Mkdir	13
+#define SC_Rmdir	14
 
 #ifndef IN_ASM
 

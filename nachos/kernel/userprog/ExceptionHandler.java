@@ -63,6 +63,8 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		CPU.writeRegister(2, result);
 		break;
 	    case Syscall.SC_Create:
+		String createFile = getFileName(4);
+		Syscall.create(createFile);
 		break;
 	    case Syscall.SC_Open:
 		String openFile = getFileName(4);

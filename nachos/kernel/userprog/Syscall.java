@@ -78,10 +78,10 @@ public class Syscall {
     public static final byte SC_Sleep = 12;
     
     /** Integer code identifying the "Mkdir" system call. */
-    public static final byte SC_Mkdir = 12;
+    public static final byte SC_Mkdir = 13;
     
     /** Integer code identifying the "Rmdir" system call. */
-    public static final byte SC_Rmdir = 12;
+    public static final byte SC_Rmdir = 14;
     
     public static Lock writeLock = new Lock("writeLock");
     
@@ -234,7 +234,13 @@ public class Syscall {
      *
      * @param name  The name of the file to be created.
      */
-    public static void create(String name) { }
+    public static void create(String name) {
+	Debug.println('S', "Syscall Create is called for: " + name + ", size: 0");
+	boolean result = Nachos.fileSystem.create(name, 0);
+	if(!result){
+	    Debug.println('S', "Could not create file: " + name);
+	}
+    }
 
     /**
      * Remove a Nachos file.

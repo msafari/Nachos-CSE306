@@ -248,7 +248,14 @@ public class Syscall {
      *
      * @param name  The name of the file to be removed.
      */
-    public static void remove(String name) { }
+    public static void remove(String name) {
+	Debug.println('S', "Syscall Remove is called for: " + name);
+	boolean result = Nachos.fileSystem.remove(name);
+	if(!result){
+	    Debug.println('S', "Could not remove file: " + name);
+	    Debug.ASSERT(false);
+	}
+    }
 
     /**
      * Open the Nachos file "name", and return an "OpenFileId" that can 

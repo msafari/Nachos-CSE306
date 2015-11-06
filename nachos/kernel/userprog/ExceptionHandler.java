@@ -95,6 +95,8 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		Syscall.yield();
 		break;
 	    case Syscall.SC_Remove:
+		String removeFile = getFileName(4);
+		Syscall.remove(removeFile);
 		break;
 	    case Syscall.SC_Halt:
 		Syscall.halt();

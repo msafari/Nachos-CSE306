@@ -12,7 +12,6 @@ public class MemoryManager {
     public static Lock processIDLock;
     public static Lock freePagesLock;
     public static Console console;
-   
     
     public MemoryManager(){
 	processIDLock = new Lock("processIDLock");

@@ -87,6 +87,7 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		ioSemaphore.V();
 		break;
 	    case Syscall.SC_Close:
+		Syscall.close(CPU.readRegister(4));
 		break;
 	    case Syscall.SC_Fork:
 		Syscall.fork(CPU.readRegister(4));
@@ -108,7 +109,6 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		String fileName = getFileName(4);
 		result = Syscall.exec(fileName);
 		CPU.writeRegister(2, result);
-		
 		break;
 	    case Syscall.SC_Write:
 		//Block on write

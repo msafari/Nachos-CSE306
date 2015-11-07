@@ -3,7 +3,6 @@
 int main()
 {
   OpenFileId fd;
-
-  fd = Open("create-test");
+  fd = Open("test/create1");
   Close(fd);
 }

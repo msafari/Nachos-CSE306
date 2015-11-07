@@ -13,6 +13,7 @@ import nachos.Debug;
 import nachos.kernel.Nachos;
 import nachos.kernel.devices.ConsoleDriver;
 import nachos.kernel.filesys.OpenFile;
+import nachos.kernel.filesys.OpenFileEntry;
 import nachos.kernel.threads.Lock;
 import nachos.kernel.threads.Semaphore;
 import nachos.kernel.threads.SpinLock;
@@ -92,6 +93,12 @@ public class Syscall {
     public static AddrSpace addrSpace;
 
     public static LinkedList<UserThread> runningThreads = new LinkedList<UserThread>();
+    
+    //Keep track of open/closed files
+    public static Lock openFileLock = new Lock("openFileLock");
+    public static LinkedList<OpenFileEntry> openFileList = new LinkedList<OpenFileEntry>();
+    public static int openFileID = 0;
+    
     
     /**
      * Stop Nachos, and print out performance stats.
@@ -242,21 +249,88 @@ public class Syscall {
 	    Debug.ASSERT(false);
 	}
     }
-
+    
     /**
      * Remove a Nachos file.
      *
      * @param name  The name of the file to be removed.
      */
     public static void remove(String name) {
-	Debug.println('S', "Syscall Remove is called for: " + name);
-	boolean result = Nachos.fileSystem.remove(name);
-	if(!result){
-	    Debug.println('S', "Could not remove file: " + name);
-	    Debug.ASSERT(false);
+    }
+    
+    
+    /**
+     * Close the file, we're done reading and writing to it.
+     *
+     * @param id  The OpenFileId of the file to be closed.
+     */
+    public static void close(int id) {
+	
+	Debug.println('S', "Syscall Close is called for: " + id);
+	
+	//Close the file and remove from openFile list
+	OpenFileEntry fe = findOpenFileEntry(id);
+	if(fe != null){
+	    fe.file.close();
+	    removeOpenFileEntry(fe);
+	}
+	else{
+	    Debug.println('S', "File could not be closed");
 	}
     }
+    
+    
+    /**
+     * Returns an entry with the given id
+     */
+    private static OpenFileEntry findOpenFileEntry(int id){
+	openFileLock.acquire();
+	for(OpenFileEntry e: openFileList){
+	    if(e.id == id){
+		openFileLock.release();
+		return e;
+	    }
+	}
+	openFileLock.release();
+	return null;
+    }
+    
+    /**
+     * Removes an entry from the open file list
+     * @param name
+     * @return
+     */
+    private static boolean removeOpenFileEntry(OpenFileEntry fe){
+	
+	boolean result = false;
+	openFileLock.acquire();
+	result = openFileList.remove(fe);
+	openFileLock.release();
+	Debug.println('S', "OpenFileEntry removed: " + result);
+	return result;
+	
+    }
 
+    /**
+     * Adds an entry to the open file list
+     * @param fileName
+     * @param file
+     * @return
+     */
+    private static int addOpenFileEntry(OpenFile file, String fileName){
+	openFileLock.acquire();
+	OpenFileEntry fileEntry = new OpenFileEntry(file);
+	fileEntry.id = openFileID;
+	fileEntry.name = fileName;
+	openFileID++;
+	openFileList.offer(fileEntry);
+	openFileLock.release();
+	
+	Debug.println('S', "Added open file entry id: " + fileEntry.id);
+	
+	return fileEntry.id;
+    }
+    
     /**
      * Open the Nachos file "name", and return an "OpenFileId" that can 
      * be used to read and write to the file.
@@ -264,7 +338,22 @@ public class Syscall {
      * @param name  The name of the file to open.
      * @return  An OpenFileId that uniquely identifies the opened file.
      */
-    public static int open(String name) {return 0;}
+    public static int open(String name) {
+	
+	//Open the file
+	OpenFile file = Nachos.fileSystem.open(name);
+	
+	//If file is null, fs was not able to open it
+	if(file == null){
+	    Debug.println('S', "Unable to open file: " + name);
+	    Debug.ASSERT(false);
+	}
+	
+	//Otherwise add it to the openFile list
+	int fileEntryId = addOpenFileEntry(file, name);
+	
+	return fileEntryId;
+	}
 
     /**
      * Write "size" bytes from "buffer" to the open file.
@@ -349,15 +438,6 @@ public class Syscall {
 		return 0;
 	}
     }
-
-    
-    /**
-     * Close the file, we're done reading and writing to it.
-     *
-     * @param id  The OpenFileId of the file to be closed.
-     */
-    public static void close(int id) {}
-
 
     /*
      * User-level thread operations: Fork and Yield.  To allow multiple

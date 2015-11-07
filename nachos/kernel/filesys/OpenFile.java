@@ -27,6 +27,7 @@ package nachos.kernel.filesys;
  * @author Eugene W. Stark (Stony Brook University)
  */
 public interface OpenFile {
+
     /**
      * Set the position from which to
      * start reading/writing -- UNIX lseek

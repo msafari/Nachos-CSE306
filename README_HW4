@@ -3,3 +3,8 @@ README for HW4
 @Author Yakov Gaberman 	ygaberman
 @Author Maedeh Safari 	msafari
 
+Instructions
+
+The nachos filesystem has been switched from the stub to the real one. 
+To run any of the tests supply the '-f' flag which will "format" the disk.
+Use -d f to see the filesystem debug info.

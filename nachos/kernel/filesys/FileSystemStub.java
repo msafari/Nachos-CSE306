@@ -12,6 +12,8 @@ package nachos.kernel.filesys;
 
 import java.io.*;
 
+import nachos.Debug;
+
 /**
  * This "filesystem stub" class implements a Nachos filesystem by simply
  * passing the filesystem operations through to the native filesystem on
@@ -29,7 +31,8 @@ class FileSystemStub extends FileSystem {
      * the init() factory method of the super class.
      */
     protected FileSystemStub() { 
-	super(); 
+	super();
+	Debug.println('f',"Initializing the stub filesystem");
     }
 
     /**

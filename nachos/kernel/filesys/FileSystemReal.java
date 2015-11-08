@@ -131,7 +131,7 @@ class FileSystemReal extends FileSystem {
    * @param format  Should we initialize the disk?
    */
   protected FileSystemReal(DiskDriver diskDriver, boolean format) { 
-    Debug.print('f', "Initializing the file system.\n");
+    Debug.print('f', "Initializing the real file system.\n");
     this.diskDriver = diskDriver;
     numDiskSectors = diskDriver.getNumSectors();
     diskSectorSize = diskDriver.getSectorSize();

@@ -257,6 +257,20 @@ public class Syscall {
      * @param name  The name of the file to be removed.
      */
     public static void remove(String name) {
+	
+	//If file is open, close it and remove it from the list
+	OpenFileEntry fe = findOpenFileEntry(name);
+	if(fe != null){
+	    close(fe.id);
+	}
+	
+	//Have the file system remove it regardless
+	boolean result = Nachos.fileSystem.remove(name);
+	if(!result){
+	    Debug.println('S', "File: " + name + " was not removed!");
+	    Debug.ASSERT(false);
+	}
+	
     }
     
     
@@ -288,6 +302,21 @@ public class Syscall {
 	openFileLock.acquire();
 	for(OpenFileEntry e: openFileList){
 	    if(e.id == id){
+		openFileLock.release();
+		return e;
+	    }
+	}
+	openFileLock.release();
+	return null;
+    }
+    
+    /**
+     * Returns an entry with the given name
+     */
+    private static OpenFileEntry findOpenFileEntry(String name){
+	openFileLock.acquire();
+	for(OpenFileEntry e: openFileList){
+	    if(e.name.equals(name)){
 		openFileLock.release();
 		return e;
 	    }

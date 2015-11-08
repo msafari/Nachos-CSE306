@@ -97,7 +97,7 @@ public class Syscall {
     //Keep track of open/closed files
     public static Lock openFileLock = new Lock("openFileLock");
     public static LinkedList<OpenFileEntry> openFileList = new LinkedList<OpenFileEntry>();
-    public static int openFileID = 0;
+    public static int openFileID = 2; //Starts at 2 since 0 & 1 are ConsoleInput/Output
     
     
     /**
@@ -364,12 +364,12 @@ public class Syscall {
      */
     public static void write(byte buffer[], int size, int id) {
 	writeLock.acquire();
+	UserThread curThrd = (UserThread)NachosThread.currentThread();
+	byte[] b = new byte[1];
+	char[] c = new char[1];
+	
 	if (id == ConsoleOutput) {
-	   
-	    byte[] b = new byte[1];
-	    char[] c = new char[1];
 	    
-	    UserThread curThrd = (UserThread)NachosThread.currentThread();
 	    curThrd.writeSize = size;		//store the size of write for each userthread
 	    
 	    for(int i = 0; i < size; i++) {
@@ -388,6 +388,23 @@ public class Syscall {
 		    e.printStackTrace();
 		}
 	    }
+	    
+	    writeLock.release();
+	}
+	
+	//Otherwise write to file
+	else{
+	    //Check if file is open
+	    OpenFileEntry e = findOpenFileEntry(id);
+	    if(e != null){
+		// Write to it
+		int result = e.file.write(buffer, 0, size);
+		Debug.println('S', "Wrote " + result + " bytes to file: " + e.name);
+	    }
+	    else{
+		Debug.println('S', "File: " + id + " must be opened first");
+	    }
+	    
 	    
 	    writeLock.release();
 	}

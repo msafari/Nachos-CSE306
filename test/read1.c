@@ -6,7 +6,7 @@ int main()
   char buf[25];
   int num;
 
-  fd = Open("create-test");
+  fd = Open("test/create1");
   num = Read(buf, 25, fd);
   Close(fd);
 }

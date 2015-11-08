@@ -7,6 +7,7 @@
 package nachos.kernel.userprog;
 
 import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
 import java.util.LinkedList;
 
 import nachos.Debug;
@@ -428,12 +429,13 @@ public class Syscall {
     public static int read(byte buffer[], int size, int id) {
 	readLock.acquire();
 	int i = 0;
+	UserThread curThrd = (UserThread) NachosThread.currentThread();
+	curThrd.readSize = size; // store the size of read for each userthread
+	Debug.println('S', "Reading: size: " + size + ", id: " + id);
+	
 	//Read from Console
 	if (id == ConsoleInput) {
 	    try {
-		UserThread curThrd = (UserThread) NachosThread.currentThread();
-		curThrd.readSize = size; // store the size of read for each userthread
-		Debug.println('S', "Reading: size: " + size + ", id: " + id);
 		for (i = 0; i < size; i++) {
 		    buffer[i] = (byte) Nachos.consoleDriver.getChar();
 		    
@@ -445,14 +447,25 @@ public class Syscall {
 	    }
 
 	    //Return num of bytes read
+	    readLock.release();
 	    return i;
 	    
 	}
 	//Otherwise read from file
-	else{
+	else {
+	    // Check if file is open
+	    OpenFileEntry e = findOpenFileEntry(id);
+	    int result = -1;
+	    if (e != null) {
+		// Read from it
+		result = e.file.read(buffer, 0, size);
+		Debug.println('S', "Read " + result + " bytes to file: " + e.name);
+	    } else {
+		Debug.println('S', "File: " + id + " must be opened first");
+	    }
 
-		readLock.release();
-		return 0;
+	    readLock.release();
+	    return result;
 	}
     }
 

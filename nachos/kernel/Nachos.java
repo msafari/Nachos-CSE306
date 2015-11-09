@@ -103,6 +103,10 @@ public class Nachos implements Runnable {
 	if(options.FILESYS_STUB || options.FILESYS_REAL)
 	    fileSystem = FileSystem.init(diskDriver);
 	
+	//Transfer the initial executable file to Nachos
+	if(options.FILESYS_REAL && options.UNIX_FILE != null){
+	    fileSystem.copy(options.UNIX_FILE, options.UNIX_FILE);
+	}
 	
 	memManager = new MemoryManager();
 

@@ -10,7 +10,12 @@
 
 package nachos.kernel.filesys;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+
 import nachos.Debug;
+import nachos.kernel.Nachos;
 import nachos.kernel.devices.DiskDriver;
 
 /**
@@ -117,7 +122,7 @@ class FileSystemReal extends FileSystem {
 
   /** "Root" directory -- list of file names, represented as a file. */
   private final OpenFile directoryFile;
-
+  
   /**
    * Initialize the file system.  If format = true, the disk has
    * nothing on it, and we need to initialize the disk to contain
@@ -185,7 +190,6 @@ class FileSystemReal extends FileSystem {
 
       if (Debug.isEnabled('f')) {
 	freeMap.print();
-	directory.print();
       }
       
     } else {
@@ -346,6 +350,70 @@ class FileSystemReal extends FileSystem {
     return true;
   } 
 
+  /**
+   * Copy the contents of the host file "from" to the Nachos file "to"
+   *
+   * @param from The name of the file to be copied from the host filesystem.
+   * @param to The name of the file to create on the Nachos filesystem.
+   */
+  public void copy(String from, String to) {
+      	Debug.println('f', "Copying " + from + " into Nachos file " + to);
+	File fp;
+	FileInputStream fs;
+	OpenFile openFile;
+	int amountRead;
+	long fileLength;
+	byte buffer[];
+
+	// Open UNIX file
+	fp = new File(from);
+	if (!fp.exists()) {
+	    Debug.printf('+', "Copy: couldn't open input file %s\n", from);
+	    return;
+	}
+
+	// Figure out length of UNIX file
+	fileLength = fp.length();
+
+	// Create a Nachos file of the same length
+	Debug.printf('f', "Copying file %s, size %d, to file %s\n", from, new Long(fileLength), to);
+	if (!Nachos.fileSystem.create(to, (int)fileLength)) {	 
+	    // Create Nachos file
+	    Debug.printf('+', "Copy: couldn't create output file %s\n", to);
+	    return;
+	}
+
+	openFile = Nachos.fileSystem.open(to);
+	Debug.ASSERT(openFile != null);
+
+//	// Copy the data in TransferSize chunks
+//	buffer = new byte[TransferSize];
+//	try {
+//	    fs = new FileInputStream(fp);
+//	    while ((amountRead = fs.read(buffer)) > 0)
+//		openFile.write(buffer, 0, amountRead);	
+//	} catch (IOException e) {
+//	    Debug.print('+', "Copy: data copy failed\n");      
+//	    return;
+//	}
+//	// Close the UNIX and the Nachos files
+//	//delete openFile;
+//	try {fs.close();} catch (IOException e) {}
+	// Copy the data in TransferSize chunks
+	buffer = new byte[(int) fileLength];
+	try {
+	    fs = new FileInputStream(fp);
+	    fs.read(buffer);
+	    openFile.write(buffer, 0, buffer.length);	
+	} catch (IOException e) {
+	    Debug.print('+', "Copy: data copy failed\n");      
+	    return;
+	}
+	// Close the UNIX and the Nachos files
+	//delete openFile;
+	try {fs.close();} catch (IOException e) {}
+  }
+  
   /**
    * List all the files in the file system directory (for debugging).
    */

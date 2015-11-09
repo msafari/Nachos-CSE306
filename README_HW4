@@ -8,3 +8,7 @@ Instructions
 The nachos filesystem has been switched from the stub to the real one. 
 To run any of the tests supply the '-f' flag which will "format" the disk.
 Use -d f to see the filesystem debug info.
+
+Since the real file system uses a RandomAccessFile DISK0, 
+use -f -cp <first executable> to copy over the first executable onto the disk.
+Otherwise, it will complain about not being able to open the first file: ./run -f -cp /test/write1 -x test/write1

@@ -161,7 +161,8 @@ public class Options {
     /** Should we format the Nachos disk before using it? */
     public boolean FORMAT_DISK = false;
     
-
+    public String UNIX_FILE;
+    
     // Test/demo configuration options.
 
     /** Should we run the thread test? */
@@ -218,6 +219,16 @@ public class Options {
      */
     private void parseArgList() {
 	processOptions(new Spec[] {
+		new Spec(
+			"-cp", // Copy the initial file from Unix to Nachos
+			new Class[] { String.class }, "Usage: -cp <filename>",
+			new Options.Action() {
+			    public void processOption(String flag,
+				    Object[] params) {
+				UNIX_FILE = (String) params[0];
+			    }
+			}),
+		
 		new Spec("-z", // print copyright message
 			new Class[] {}, null, new Options.Action() {
 			    public void processOption(String flag,

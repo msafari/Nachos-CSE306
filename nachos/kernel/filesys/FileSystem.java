@@ -35,6 +35,14 @@ import nachos.kernel.devices.DiskDriver;
  * @author Eugene W. Stark (Stony Brook University)
  */
 public abstract class FileSystem {
+    
+    /**
+     * Copy initial Unix file to Nachos file. Used in real file system not the stub.
+     * @param from
+     * @param to
+     */
+    public abstract void copy(String from, String to);
+    
     /**
      * Create a new file with a specified name and size.
      *

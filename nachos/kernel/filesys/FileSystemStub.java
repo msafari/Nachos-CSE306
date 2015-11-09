@@ -92,4 +92,11 @@ class FileSystemStub extends FileSystem {
 	return file.delete();
     }
 
+    /**
+     * Only used in real filesystem not the stub
+     */
+    public void copy(String from, String to) {
+	
+    }
+
 }

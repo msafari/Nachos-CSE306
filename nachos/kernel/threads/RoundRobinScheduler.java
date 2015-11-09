@@ -22,6 +22,7 @@ import nachos.kernel.userprog.UserThread;
 import nachos.machine.CPU;
 import nachos.machine.Machine;
 import nachos.machine.NachosThread;
+import nachos.machine.Simulation;
 import nachos.machine.Timer;
 import nachos.machine.InterruptHandler;
 import nachos.util.FIFOQueue;
@@ -362,7 +363,7 @@ public class RoundRobinScheduler extends GenScheduler {
 	// Interrupts will be re-enabled when the next thread runs or the
 	// current CPU goes idle.
     }
-
+    
     /**
      * Interrupt handler for the time-slice timer.  A timer is set up to
      * interrupt the CPU periodically (once every Timer.DefaultInterval ticks).
@@ -386,7 +387,7 @@ public class RoundRobinScheduler extends GenScheduler {
 	}
 
 	public void handleInterrupt() {
-	    
+
 	    handleSleep();
 	    if (numInterrupts != 10) {
 		numInterrupts++;
@@ -394,7 +395,6 @@ public class RoundRobinScheduler extends GenScheduler {
 	    }
 	    else {
 		numInterrupts = 1;
-		
 		Debug.println('i', "Timer interrupt: " + timer.name);
 		// Note that instead of calling yield() directly (which would
 		// suspend the interrupt handler, not the interrupted thread

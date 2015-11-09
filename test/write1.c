@@ -6,8 +6,8 @@ int main()
 {
   OpenFileId fd;
   char *buf = "A buffer.";
-
-  fd = Open("test/create1");
+  Create("test/write-test");
+  fd = Open("test/write-test");
   Write(buf, 5, fd);
   Write(buf, 9, fd);
   Close(fd);

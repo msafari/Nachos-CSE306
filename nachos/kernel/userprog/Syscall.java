@@ -544,5 +544,36 @@ public class Syscall {
 	Nachos.scheduler.yieldThread();
 	
     }
+    
+    /**
+     * Create a Nachos directory with a specified name.
+     *
+     * @param name  The name of the directory to be created.
+     */
+    public static void makeDirectory(String name) {
+	Debug.println('S', "Syscall Mkdir is called for: " + name + ", size: 0");
+	//boolean result = Nachos.fileSystem.create(name, 0);
+//	if(!result){
+//	    Debug.println('S', "Could not create directory: " + name);
+//	    Debug.ASSERT(false);
+//	}
+    }
+    
+    /**
+     * Remove a Nachos directory.
+     *
+     * @param name  The name of the directory to be removed.
+     */
+    public static void removeDirectory(String name) {
+	
+	//Remove any files in the directory
+	//Have the file system remove the directory
+	boolean result = Nachos.fileSystem.remove(name);
+	if(!result){
+	    Debug.println('S', "File: " + name + " was not removed!");
+	    Debug.ASSERT(false);
+	}
+	
+    }
 
 }

@@ -128,6 +128,15 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	    case Syscall.SC_Sleep:
 		Syscall.sleep(CPU.readRegister(4));
 		break;
+	    case Syscall.SC_Mkdir:
+		String makedirName = getFileName(4);
+		Syscall.makeDirectory(makedirName);
+		break;
+	    case Syscall.SC_Rmdir:
+		String removedirName = getFileName(4);
+		Syscall.removeDirectory(removedirName);
+		break;
+		
 	    default:
 		Debug.println('S', "Invalid Syscall: " + type);
 		Debug.ASSERT(false);

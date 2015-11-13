@@ -3,8 +3,6 @@
  */
 package nachos.kernel.filesys;
 
-import com.sun.org.apache.bcel.internal.generic.NEWARRAY;
-
 import nachos.Debug;
 
 /**
@@ -12,14 +10,11 @@ import nachos.Debug;
  *
  */
 public class DoublyIndirectBlock {
-    /** Number of pointers to data blocks stored in a file header. */
-    private final int NumDirect;
+    /** Number of pointers to indirect data blocks stored on disk. */
+    private final int NumIndirect;
 
     /** Maximum file size that can be represented in the baseline system. */
     private final int MaxFileSize;
-
-    /** Number of bytes in the file. */
-    private int numBytes;
 
     /** Number of data sectors in the file. */
     private int numSectors;
@@ -29,12 +24,13 @@ public class DoublyIndirectBlock {
 
     /** The underlying filesystem in which the file header resides. */
     private final FileSystemReal filesystem;
-    
-    private IndirectBlock iBlock;
 
     /** Disk sector size for the underlying filesystem. */
     private final int diskSectorSize;
 
+    /** Indirect block stored in each dataSector entry*/
+    private IndirectBlock iBlock;
+    
     /**
      * Allocate a new "in-core" file header.
      * 
@@ -43,13 +39,14 @@ public class DoublyIndirectBlock {
     public DoublyIndirectBlock(FileSystemReal filesystem) {
 	this.filesystem = filesystem;
 	diskSectorSize = filesystem.diskSectorSize;
-	NumDirect = ((diskSectorSize - 2 * 4) / 4);
-	MaxFileSize = (NumDirect * diskSectorSize);
+	NumIndirect = ((diskSectorSize) / 4);
+	
+	MaxFileSize = (NumIndirect * diskSectorSize);
 
-	dataSectors = new int[NumDirect + 2];
+	dataSectors = new int[NumIndirect];
 	// Safest to fill the table with garbage sector numbers,
 	// so that we error out quickly if we forget to initialize it properly.
-	for(int i = 0; i < NumDirect; i++)
+	for(int i = 0; i < NumIndirect; i++)
 	    dataSectors[i] = -1;
 	
     }
@@ -67,10 +64,8 @@ public class DoublyIndirectBlock {
      * @param pos Position in the buffer at which to start.
      */
     private void internalize(byte[] buffer, int pos) {
-	numBytes = FileSystem.bytesToInt(buffer, pos);
-	numSectors = FileSystem.bytesToInt(buffer, pos+4);
-	for (int i = 0; i < NumDirect; i++)
-	    dataSectors[i] = FileSystem.bytesToInt(buffer, pos+8+i*4);
+	for (int i = 0; i < NumIndirect; i++)
+	    dataSectors[i] = FileSystem.bytesToInt(buffer, pos+i*4);
     }
 
     /**
@@ -81,10 +76,8 @@ public class DoublyIndirectBlock {
      * @param pos Position in the buffer at which to start.
      */
     private void externalize(byte[] buffer, int pos) {
-	FileSystem.intToBytes(numBytes, buffer, pos);
-	FileSystem.intToBytes(numSectors, buffer, pos+4);
-	for (int i = 0; i < NumDirect; i++)
-	    FileSystem.intToBytes(dataSectors[i], buffer, pos+8+i*4);
+	for (int i = 0; i < NumIndirect; i++)
+	    FileSystem.intToBytes(dataSectors[i], buffer, pos+i*4);
     }
 
     /**
@@ -94,41 +87,52 @@ public class DoublyIndirectBlock {
      *	the new file.
      *
      * @param freeMap is the bit map of free disk sectors.
-     * @param fileSize is size of the new file.
+     * @param numSectors is the number of sectors to allocate
      */
-    boolean allocate(BitMap freeMap, int numSectors) {
+   int allocate(BitMap freeMap, int numSectors) {
 	if(numSectors * diskSectorSize > MaxFileSize)
-	    return false;		// file too large
+	    return -1;		// file too large
 
-	if (freeMap.numClear() < numSectors || NumDirect + 2 < numSectors)
-	    return false;		// not enough space
+	if (freeMap.numClear() < numSectors || NumIndirect + 2 < numSectors)
+	    return -1;		// not enough space
 
+	Debug.println('f', "Allocating memory for doubly indirect block");
+	int allocated = 0;
 	for (int i = 0; i < numSectors; i++){	    
 	   
+	    //Create a new indirect block
+	    iBlock = new IndirectBlock(filesystem); 
 	    if( dataSectors[i] != -1 ) {	
-		iBlock = new IndirectBlock(filesystem);
 		iBlock.fetchFrom(dataSectors[i]);	
 	    }
 	    else {
 		dataSectors[i] = freeMap.find(); 
 	    }
 	    
-	    boolean res = iBlock.allocate(freeMap, numSectors * );
-	    
+	    //Allocate memory for the indirect block
+	    int res = iBlock.allocate(freeMap, numSectors - allocated);
+	    iBlock.writeBack(dataSectors[i]);
+	    allocated += res;
 	}
 	    
-	return true;
+	return allocated;
     }
     
 
     /**
-     * De-allocate all the space allocated for data blocks for this file.
+     * De-allocate all the indirect sectors stored by the doublyIndirect object
      *
      * @param freeMap is the bit map of free disk sectors.
      */
     void deallocate(BitMap freeMap) {
-	for (int i = 0; i < numSectors; i++) {
+	IndirectBlock iblock;
+	
+	for (int i = 0; i < dataSectors.length; i++) {
+	    
 	    Debug.ASSERT(freeMap.test(dataSectors[i]));  // ought to be marked!
+	    iblock = new IndirectBlock(filesystem);
+	    iblock.fetchFrom(dataSectors[i]); 	//Fetch the indirect block if it exists
+	    iblock.deallocate(freeMap);		//Deallocate the indirect block
 	    freeMap.clear(dataSectors[i]);
 	}
     }

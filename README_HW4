@@ -12,3 +12,9 @@ Use -d f to see the filesystem debug info.
 Since the real file system uses a RandomAccessFile DISK0, 
 use -f -cp <first executable> to copy over the first executable onto the disk.
 Otherwise, it will complain about not being able to open the first file: ./run -f -cp /test/write1 -x test/write1
+
+General Notes For Developers:
+- All blocks are 128 bytes
+- dataSectors array is different for each type of inode:
+	-FileHeader is 30 (28 for direct, 1 for indirect, 1 for doubly indirect ). 30 because two integers are saved already: numBytes and numSectors
+	-Indirect and Doubly Blocks have size 32

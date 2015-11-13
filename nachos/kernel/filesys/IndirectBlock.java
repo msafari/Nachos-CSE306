@@ -39,10 +39,11 @@ public class IndirectBlock {
     public IndirectBlock(FileSystemReal filesystem) {
 	this.filesystem = filesystem;
 	diskSectorSize = filesystem.diskSectorSize;
-	NumDirect = ((diskSectorSize - 2 * 4) / 4);
+	NumDirect = (diskSectorSize / 4); // We are using the full 32 entries of this sector
 	MaxFileSize = (NumDirect * diskSectorSize);
 
-	dataSectors = new int[NumDirect + 2];
+	dataSectors = new int[NumDirect];
+	
 	// Safest to fill the table with garbage sector numbers,
 	// so that we error out quickly if we forget to initialize it properly.
 	for(int i = 0; i < NumDirect; i++)
@@ -63,10 +64,8 @@ public class IndirectBlock {
      * @param pos Position in the buffer at which to start.
      */
     private void internalize(byte[] buffer, int pos) {
-	numBytes = FileSystem.bytesToInt(buffer, pos);
-	numSectors = FileSystem.bytesToInt(buffer, pos+4);
 	for (int i = 0; i < NumDirect; i++)
-	    dataSectors[i] = FileSystem.bytesToInt(buffer, pos+8+i*4);
+	    dataSectors[i] = FileSystem.bytesToInt(buffer, pos+i*4);
     }
 
     /**
@@ -77,10 +76,8 @@ public class IndirectBlock {
      * @param pos Position in the buffer at which to start.
      */
     private void externalize(byte[] buffer, int pos) {
-	FileSystem.intToBytes(numBytes, buffer, pos);
-	FileSystem.intToBytes(numSectors, buffer, pos+4);
 	for (int i = 0; i < NumDirect; i++)
-	    FileSystem.intToBytes(dataSectors[i], buffer, pos+8+i*4);
+	    FileSystem.intToBytes(dataSectors[i], buffer, pos+i*4);
     }
 
     /**
@@ -90,20 +87,24 @@ public class IndirectBlock {
      *	the new file.
      *
      * @param freeMap is the bit map of free disk sectors.
-     * @param fileSize is size of the new file.
+     * @param numSectors is the number of sectors to allocate
      */
-    boolean allocate(BitMap freeMap, int numSectors) {
+    int allocate(BitMap freeMap, int numSectors) {
 	if(numSectors * diskSectorSize > MaxFileSize)
-	    return false;		// file too large
+	    return -1;		// file too large
 
 	if (freeMap.numClear() < numSectors || NumDirect < numSectors)
-	    return false;		// not enough space
+	    return -1;		// not enough space
 	
+	int allocated = 0;
 	for (int i = 0; i < numSectors; i++){
-	    dataSectors[i] = freeMap.find(); 
+	    if(dataSectors[i] == -1){
+		dataSectors[i] = freeMap.find();
+		allocated++;
+	    }
 	}
 	    
-	return true;
+	return allocated;
     }
     
 
@@ -113,7 +114,7 @@ public class IndirectBlock {
      * @param freeMap is the bit map of free disk sectors.
      */
     void deallocate(BitMap freeMap) {
-	for (int i = 0; i < numSectors; i++) {
+	for (int i = 0; i < dataSectors.length; i++) {
 	    Debug.ASSERT(freeMap.test(dataSectors[i]));  // ought to be marked!
 	    freeMap.clear(dataSectors[i]);
 	}

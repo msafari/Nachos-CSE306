@@ -227,6 +227,10 @@ class OpenFileReal implements OpenFile {
 
 	// write modified sectors back
 	for (i = firstSector; i <= lastSector; i++){
+	    
+	    if(i == 60){
+		System.out.println("Reached here");
+	    }
 	    int sectorNum = hdr.byteToSector(i * diskSectorSize);
 	    int offset = (i - firstSector) * diskSectorSize;
 	    filesystem.writeSector(sectorNum, buf, offset);

@@ -150,7 +150,7 @@ class FileHeader {
 	if (fileSize % diskSectorSize != 0)
 	    numSectors++;
 
-	if (freeMap.numClear() < numSectors || NumDirect < numSectors)
+	if (freeMap.numClear() < numSectors)
 	    return false; // not enough space
 	
 	// Allocate memory for the direct blocks
@@ -341,7 +341,8 @@ class FileHeader {
 	int indirectMax = ((NumDirect + 2) * 2) - 4;// Indirect block can hold 32 sectors
 	int indirectMin = NumDirect - 2;
 	int doublyMax = ((NumDirect + 2) * (NumDirect + 2)) - 4; //Doubly Indirect block can hold 32 * 32 sectors
-	int doublyMin = NumDirect - 1;
+	int doublyIndex = NumDirect - 1;
+	int doublyMin = indirectMax;
 	int sectorNumber;
 	IndirectBlock iblock;
 	DoublyIndirectBlock dblock;
@@ -363,9 +364,9 @@ class FileHeader {
 	else if(index >= doublyMin && index < doublyMax ){
 
 	 // It should already be allocated, just load the sector
-	    Debug.ASSERT(dataSectors[doublyMin] != -1);
+	    Debug.ASSERT(dataSectors[doublyIndex] != -1);
 	    dblock = new DoublyIndirectBlock(filesystem);
-	    dblock.fetchFrom(dataSectors[doublyMin]);
+	    dblock.fetchFrom(dataSectors[doublyIndex]);
 	    
 	    //Get the sector number
 	    sectorNumber = dblock.byteToSector(index - doublyMin);

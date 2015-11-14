@@ -50,6 +50,9 @@ class OpenFileReal implements OpenFile {
     /** Current position within the file. */
     private int seekPosition;
 
+    /** Location of the file header*/
+    private int headerSector;
+    
     /**
      * Open a Nachos file for reading and writing.  Bring the file header
      * into memory while the file is open.  This constructor is not public,
@@ -62,6 +65,7 @@ class OpenFileReal implements OpenFile {
     OpenFileReal(int sector, FileSystemReal filesystem) { 
 	hdr = new FileHeader(filesystem);
 	hdr.fetchFrom(sector);
+	this.headerSector = sector;
 	seekPosition = 0;
 	this.filesystem = filesystem;
 	diskSectorSize = filesystem.diskSectorSize;
@@ -133,24 +137,26 @@ class OpenFileReal implements OpenFile {
      * @return The number of bytes actually read (0 if error).
      */
     public int readAt(byte[] into, int index, int numBytes, long position) {
+
 	int fileLength = hdr.fileLength();
 	int i, firstSector, lastSector, numSectors;
 	byte buf[];
 
-	if ((numBytes <= 0) || (position >= fileLength))
-	    return 0; 				// check request
-	if ((position + numBytes) > fileLength)		
-	    numBytes = fileLength - (int)position;
-	Debug.printf('f', "Reading %d bytes at %d, from file of length %d.\n",
-		new Integer(numBytes), new Long(position), 
-		new Integer(fileLength));
-
+	//numBytes must be positive
+	if ((numBytes <= 0))
+	    return 0;
+	
 	firstSector = (int)position / diskSectorSize;
 	lastSector = ((int)position + numBytes - 1) / diskSectorSize;
 	numSectors = 1 + lastSector - firstSector;
 
-	// read in all the full and partial sectors that we need
+	//Read in all the full and partial sectors that we need
 	buf = new byte[numSectors * diskSectorSize];
+	
+	Debug.printf('f', "Reading %d bytes at %d, from file of length %d.\n",
+		new Integer(numBytes), new Long(position), 
+		new Integer(fileLength));
+
 	for (i = firstSector; i <= lastSector; i++)	
 	    filesystem.readSector(hdr.byteToSector(i * diskSectorSize), 
 		    buf, (i - firstSector) * diskSectorSize);
@@ -158,7 +164,9 @@ class OpenFileReal implements OpenFile {
 	// copy the part we want
 	System.arraycopy(buf, (int)position - (firstSector * diskSectorSize),
 		into, index, numBytes);
+	
 	return numBytes;
+	
     }
 
     /**
@@ -188,11 +196,6 @@ class OpenFileReal implements OpenFile {
 	boolean firstAligned, lastAligned;
 	byte buf[];
 
-
-//	if ((numBytes <= 0) || (position >= fileLength))
-//	    return 0;				// check request
-//	if ((position + numBytes) > fileLength)
-//	    numBytes = fileLength - (int)position;
 	//numBytes must be positive
 	if(numBytes <= 0)
 	    return 0;
@@ -229,8 +232,9 @@ class OpenFileReal implements OpenFile {
 	    filesystem.writeSector(sectorNum, buf, offset);
 	}
 
-	//Update total number of bytes in file
+	//Update total number of bytes in file and write back the changes
 	hdr.updateNumBytes(numBytes);
+	hdr.writeBack(headerSector);
 	
 	return numBytes;
     }

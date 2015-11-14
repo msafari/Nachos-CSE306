@@ -7,21 +7,16 @@
 package nachos.kernel.userprog;
 
 import java.io.UnsupportedEncodingException;
-import java.util.Arrays;
 import java.util.LinkedList;
 
 import nachos.Debug;
 import nachos.kernel.Nachos;
-import nachos.kernel.devices.ConsoleDriver;
 import nachos.kernel.filesys.OpenFile;
 import nachos.kernel.filesys.OpenFileEntry;
 import nachos.kernel.threads.Lock;
 import nachos.kernel.threads.Semaphore;
-import nachos.kernel.threads.SpinLock;
-import nachos.kernel.userprog.test.ProgTest;
 import nachos.machine.CPU;
 import nachos.machine.MIPS;
-import nachos.machine.Machine;
 import nachos.machine.NachosThread;
 import nachos.machine.Simulation;
 

@@ -377,28 +377,22 @@ class FileSystemReal extends FileSystem {
 
 	// Create a Nachos file of the same length
 	Debug.printf('f', "Copying file %s, size %d, to file %s\n", from, new Long(fileLength), to);
-	if (!Nachos.fileSystem.create(to, (int)fileLength)) {	 
-	    // Create Nachos file
-	    Debug.printf('+', "Copy: couldn't create output file %s\n", to);
-	    return;
-	}
+	
+	//If it doesn't exist already, create it.
+	if(Nachos.fileSystem.open(to) == null){
 
+	    if (!Nachos.fileSystem.create(to, (int) fileLength)) {
+		// Create Nachos file
+		Debug.printf('+',"Copy: couldn't create output file %s.\n",to);
+		return;
+	    }
+	}
+	
+	//Otherwise just open it
+	Debug.println('f', "File already exists, opening it instead.");
 	openFile = Nachos.fileSystem.open(to);
 	Debug.ASSERT(openFile != null);
 
-//	// Copy the data in TransferSize chunks
-//	buffer = new byte[TransferSize];
-//	try {
-//	    fs = new FileInputStream(fp);
-//	    while ((amountRead = fs.read(buffer)) > 0)
-//		openFile.write(buffer, 0, amountRead);	
-//	} catch (IOException e) {
-//	    Debug.print('+', "Copy: data copy failed\n");      
-//	    return;
-//	}
-//	// Close the UNIX and the Nachos files
-//	//delete openFile;
-//	try {fs.close();} catch (IOException e) {}
 	// Copy the data in TransferSize chunks
 	buffer = new byte[(int) fileLength];
 	try {

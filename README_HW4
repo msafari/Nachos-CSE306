@@ -10,8 +10,10 @@ To run any of the tests supply the '-f' flag which will "format" the disk.
 Use -d f to see the filesystem debug info.
 
 Since the real file system uses a RandomAccessFile DISK0, 
-use -f -cp <first executable> to copy over the first executable onto the disk.
+use -f -cp <first executable> to copy over the compiled executable onto the disk.
 Otherwise, it will complain about not being able to open the first file: ./run -f -cp /test/write1 -x test/write1
+Make sure that the executable has been succesfully copied over.
+Note: When running the program from DISK0, make sure to remove -f and -cp flags.
 
 General Notes For Developers:
 - All blocks are 128 bytes
@@ -19,4 +21,5 @@ General Notes For Developers:
 	-FileHeader is 30 (28 for direct, 1 for indirect, 1 for doubly indirect ). 30 because two integers are saved already: numBytes and numSectors
 	-Indirect and Doubly Blocks have size 32
 - To extend a file to a given number of bytes use: dd if=/dev/zero bs=1 count=NUMBER >> <fileName>
-This is useful when testing the indirect/doubly indirect block allocation.
+  This is useful when testing the indirect/doubly indirect block allocation.
+- To view the disk as an array of characters use: od -c DISK0

@@ -16,9 +16,6 @@ public class DoublyIndirectBlock {
     /** Maximum file size that can be represented in the baseline system. */
     private final int MaxFileSize;
 
-    /** Number of data sectors in the file. */
-    private int numSectors;
-
     /** Disk sector numbers for each data block in the file. */
     private int dataSectors[];
 
@@ -169,7 +166,7 @@ public class DoublyIndirectBlock {
      * @return the disk sector number storing the specified byte.
      */
     int byteToSector(int offset) {
-	return(dataSectors[offset / diskSectorSize]);
+	return(dataSectors[offset]);
     }
 
 }

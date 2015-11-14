@@ -188,10 +188,15 @@ class OpenFileReal implements OpenFile {
 	boolean firstAligned, lastAligned;
 	byte buf[];
 
-	if ((numBytes <= 0) || (position >= fileLength))
-	    return 0;				// check request
-	if ((position + numBytes) > fileLength)
-	    numBytes = fileLength - (int)position;
+
+//	if ((numBytes <= 0) || (position >= fileLength))
+//	    return 0;				// check request
+//	if ((position + numBytes) > fileLength)
+//	    numBytes = fileLength - (int)position;
+	//numBytes must be positive
+	if(numBytes <= 0)
+	    return 0;
+	
 	Debug.printf('f', "Writing %d bytes at %d, from file of length %d.\n",
 		new Integer(numBytes), new Long(position), 
 		new Integer(fileLength));
@@ -218,10 +223,15 @@ class OpenFileReal implements OpenFile {
 		numBytes);
 
 	// write modified sectors back
-	for (i = firstSector; i <= lastSector; i++)	
-	    filesystem.writeSector(hdr.byteToSector(i * diskSectorSize), 
-		    buf, (i - firstSector) * diskSectorSize);
+	for (i = firstSector; i <= lastSector; i++){
+	    int sectorNum = hdr.byteToSector(i * diskSectorSize);
+	    int offset = (i - firstSector) * diskSectorSize;
+	    filesystem.writeSector(sectorNum, buf, offset);
+	}
 
+	//Update total number of bytes in file
+	hdr.updateNumBytes(numBytes);
+	
 	return numBytes;
     }
 

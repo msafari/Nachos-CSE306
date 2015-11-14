@@ -23,9 +23,9 @@ package nachos.kernel.filesys;
 class DirectoryEntry {
     /**
      * Maximum length of a file name.
-     * For simplicity, we assume file names are <= 9 characters long.
+     * For simplicity, we assume file names are <= 20 characters long.
      */
-    static final int FileNameMaxLen = 9;
+    static final int FileNameMaxLen = 20;
 
     /** Is this directory entry in use? */
     private boolean inUse;

@@ -153,7 +153,7 @@ class FileHeader {
 	}
 	
 	//Calculate the number of sectors exceeding the 28 direct blocks we have
-	int sectorsLeft = numSectors - NumDirect - 2;
+	int sectorsLeft = numSectors - (NumDirect - 2);
 	
 	//We did not need to allocate more memory. Done allocating
 	if(sectorsLeft <= 0){
@@ -165,10 +165,20 @@ class FileHeader {
 	    Debug.println('f', "File did not fit in direct blocks. Sectors left: " + sectorsLeft);
 	    
 	    //First allocate the indirect block
-	    sectorsLeft = allocateIndirectBlock(freeMap, sectorsLeft);
+	    int allocated = allocateIndirectBlock(freeMap, sectorsLeft);
 	   
-	    //Then allocate the remaining blocks 
-	    sectorsLeft = allocateDoublyIndirectBlock(freeMap, sectorsLeft);
+	    sectorsLeft -= allocated;
+	    
+	    //All the data fit inside the indirect block
+	    if(sectorsLeft == 0){
+		return true;
+	    }
+	    //Else allocate the remaining blocks in the doubly indirect block
+	    else{
+		allocated = allocateDoublyIndirectBlock(freeMap, sectorsLeft);
+		sectorsLeft -= allocated;
+		Debug.ASSERT(sectorsLeft == 0); //File should fit inside the allocated space
+	    }
 
 	}
 
@@ -321,6 +331,43 @@ class FileHeader {
      * @return the disk sector number storing the specified byte.
      */
     int byteToSector(int offset) {
+	int index = offset / diskSectorSize;
+	int indirectMax = ((NumDirect + 2) * 2) - 4;// Indirect block can hold 32 sectors
+	int indirectMin = NumDirect - 2;
+	int doublyMax = ((NumDirect + 2) * (NumDirect + 2)) - 4; //Doubly Indirect block can hold 32 * 32 sectors
+	int doublyMin = NumDirect - 1;
+	int sectorNumber;
+	IndirectBlock iblock;
+	DoublyIndirectBlock dblock;
+	
+	//Check if position falls in indirect block
+	if(index >= indirectMin && index < indirectMax){
+
+	    // It should already be allocated, just load the sector
+	    Debug.ASSERT(dataSectors[indirectMin] != -1);
+	    iblock = new IndirectBlock(filesystem);
+	    iblock.fetchFrom(dataSectors[indirectMin]);
+	    
+	    //Get the sector number
+	    sectorNumber = iblock.byteToSector(index - indirectMin);
+	    
+	    return sectorNumber;
+	}
+	//Check if position falls in doubly indirect block
+	else if(index >= doublyMin && index < doublyMax ){
+
+	 // It should already be allocated, just load the sector
+	    Debug.ASSERT(dataSectors[doublyMin] != -1);
+	    dblock = new DoublyIndirectBlock(filesystem);
+	    dblock.fetchFrom(dataSectors[doublyMin]);
+	    
+	    //Get the sector number
+	    sectorNumber = dblock.byteToSector(index - doublyMin);
+	    
+	    return sectorNumber;
+	}
+
+	//Otherwise it must be a direct block
 	return (dataSectors[offset / diskSectorSize]);
     }
 
@@ -331,6 +378,14 @@ class FileHeader {
      */
     int fileLength() {
 	return numBytes;
+    }
+    
+    /**
+     * Update the number of bytes, but don't write back yet
+     * @param bytes
+     */
+    public void updateNumBytes(int bytes){
+	numBytes += bytes;
     }
 
     /**

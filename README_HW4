@@ -18,3 +18,5 @@ General Notes For Developers:
 - dataSectors array is different for each type of inode:
 	-FileHeader is 30 (28 for direct, 1 for indirect, 1 for doubly indirect ). 30 because two integers are saved already: numBytes and numSectors
 	-Indirect and Doubly Blocks have size 32
+- To extend a file to a given number of bytes use: dd if=/dev/zero bs=1 count=NUMBER >> <fileName>
+This is useful when testing the indirect/doubly indirect block allocation.

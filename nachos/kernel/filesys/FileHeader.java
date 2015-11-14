@@ -74,7 +74,11 @@ class FileHeader {
 	this.filesystem = filesystem;
 	diskSectorSize = filesystem.diskSectorSize;
 	NumDirect = ((diskSectorSize - 2 * 4) / 4);
-	MaxFileSize = (NumDirect * diskSectorSize);
+	int directBlocks = NumDirect - 2;
+	int indirectBlock = NumDirect + 2;
+	int doublyIndirectBlock = indirectBlock * indirectBlock;
+	
+	MaxFileSize = (directBlocks + indirectBlock + doublyIndirectBlock ) * diskSectorSize; //Max file size is (28 + 32 + 32*32)*128 = 138752 bytes
 
 	// Number of dataSectors for FileHeader
 	dataSectors = new int[NumDirect];
@@ -135,8 +139,10 @@ class FileHeader {
      */
     boolean allocate(BitMap freeMap, int fileSize) {
 
-	if (fileSize > MaxFileSize)
+	if (fileSize > MaxFileSize){
+	    Debug.println('f', "File size: " + fileSize + " is too large. Not allocating memory.");
 	    return false; // file too large
+	}
 	
 	numBytes = fileSize;
 	numSectors = fileSize / diskSectorSize;

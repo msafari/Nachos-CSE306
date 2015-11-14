@@ -15,6 +15,8 @@ Otherwise, it will complain about not being able to open the first file: ./run -
 Make sure that the executable has been succesfully copied over.
 Note: When running the program from DISK0, make sure to remove -f and -cp flags.
 
+If file is greater than the max file size, the filesystem will not allocate memory for the file.
+
 General Notes For Developers:
 - All blocks are 128 bytes
 - dataSectors array is different for each type of inode:

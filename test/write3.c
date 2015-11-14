@@ -11,8 +11,8 @@ int main()
   fd = Open("write-test");
   int i;
   //Write to however many sectors you want
-  for(i = 0; i < 1; i++){
-  	Write(buf, 130, fd);
+  for(i = 0; i < 30; i++){
+  	Write(buf, 128, fd);
   }
   Close(fd);
 }

@@ -361,7 +361,6 @@ class FileSystemReal extends FileSystem {
 	File fp;
 	FileInputStream fs;
 	OpenFile openFile;
-	int amountRead;
 	long fileLength;
 	byte buffer[];
 

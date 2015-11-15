@@ -115,6 +115,35 @@ public class DoublyIndirectBlock {
 	return allocated;
     }
     
+   /**
+    * 
+    * @param freeMap
+    * @return
+    */
+   int allocateIndirectBlock(BitMap freeMap) {
+
+	Debug.println('f', "Allocating memory for doubly indirect block");
+	int allocated = 0;
+	for (int i = 0; i < dataSectors.length; i++){	    
+	   
+	    //Create a new indirect block
+	    iBlock = new IndirectBlock(filesystem); 
+	    if( dataSectors[i] == -1 ) {	
+
+		dataSectors[i] = freeMap.find(); 
+		freeMap.writeBack(filesystem.freeMapFile);
+		//Allocate memory for the indirect block
+		int res = iBlock.allocateSector(freeMap);
+		iBlock.writeBack(dataSectors[i]);
+		allocated += res;
+		break;
+	    }
+	    
+	    
+	}
+	    
+	return allocated;
+    }
 
     /**
      * De-allocate all the indirect sectors stored by the doublyIndirect object

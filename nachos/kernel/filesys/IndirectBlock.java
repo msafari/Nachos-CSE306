@@ -101,6 +101,21 @@ public class IndirectBlock {
 	return allocated;
     }
     
+    int allocateSector (BitMap freeMap) {
+	
+	int allocated = 0;
+	for (int i = 0; i < dataSectors.length; i++){
+	    if(dataSectors[i] == -1){
+		dataSectors[i] = freeMap.find();
+		freeMap.writeBack(filesystem.freeMapFile);
+		allocated++;
+		break;
+	    }
+	}
+	    
+	return allocated;
+    }
+    
 
     /**
      * De-allocate all the space allocated for data blocks for this file.

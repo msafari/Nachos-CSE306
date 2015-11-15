@@ -100,9 +100,7 @@ class FileSystemReal extends FileSystem {
 
   /** Access to the disk on which the filesystem resides. */
   private final DiskDriver diskDriver;
-  
-  /** Number of sectors on the disk. */
-  public final int numDiskSectors;
+ 
   
   /** Sector size of the disk. */
   public final int diskSectorSize;
@@ -117,8 +115,6 @@ class FileSystemReal extends FileSystem {
   /** The initial size of a directory file. */
   private final int DirectoryFileSize;
 
-  /** Bit map of free disk blocks, represented as a file. */
-  private final OpenFile freeMapFile;
 
   /** "Root" directory -- list of file names, represented as a file. */
   private final OpenFile directoryFile;

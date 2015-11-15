@@ -36,6 +36,12 @@ import nachos.kernel.devices.DiskDriver;
  */
 public abstract class FileSystem {
     
+    /** Bit map of free disk blocks, represented as a file. */
+    public OpenFile freeMapFile;
+    
+    /** Number of sectors on the disk. */
+    public int numDiskSectors;
+    
     /**
      * Copy initial Unix file to Nachos file. Used in real file system not the stub.
      * @param from
@@ -74,7 +80,11 @@ public abstract class FileSystem {
      * Protected constructor to force creation of a filesystem using
      * the init() factory method.
      */
-    protected FileSystem() { }
+    protected FileSystem() {
+	//will be overwritten in fileSystemReal
+	freeMapFile = null;
+	numDiskSectors = -1;
+    }
 
     /**
      * Factory method to create the proper type of filesystem and

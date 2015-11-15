@@ -159,7 +159,7 @@ class FileHeader {
 	}
 	
 	//Calculate the number of sectors exceeding the 28 direct blocks we have
-	int sectorsLeft = numSectors - (NumDirect - 2);
+	int sectorsLeft = numSectors - (NumDirect - 2) + 1;
 	
 	//We did not need to allocate more memory. Done allocating
 	if(sectorsLeft <= 0){
@@ -171,7 +171,7 @@ class FileHeader {
 	    Debug.println('f', "File did not fit in direct blocks. Sectors left: " + sectorsLeft);
 	    
 	    //First allocate the indirect block
-	    int allocated = allocateIndirectBlock(freeMap, sectorsLeft);
+	    int allocated = allocateIndirectBlock(freeMap, sectorsLeft, false);
 	   
 	    sectorsLeft -= allocated;
 	    
@@ -181,7 +181,7 @@ class FileHeader {
 	    }
 	    //Else allocate the remaining blocks in the doubly indirect block
 	    else{
-		allocated = allocateDoublyIndirectBlock(freeMap, sectorsLeft);
+		allocated = allocateDoublyIndirectBlock(freeMap, sectorsLeft, false);
 		sectorsLeft -= allocated;
 		Debug.ASSERT(sectorsLeft == 0); //File should fit inside the allocated space
 	    }
@@ -190,13 +190,49 @@ class FileHeader {
 
 	return true;
     }
+    
+    public void extend(BitMap freeMap, int offset) {
+	Debug.println('f', "Extending file");
+	
+	int index = offset / diskSectorSize;
+	int indirectMax = ((NumDirect + 2) * 2) - 4;// Indirect block can hold 32 sectors
+	int indirectMin = NumDirect - 2;
+	int doublyMax = ((NumDirect + 2) * (NumDirect + 2)) - 4; //Doubly Indirect block can hold 32 * 32 sectors
+	int doublyMin = indirectMax;
+	int secLeft;
+	
+	//Check if position falls in indirect block
+	if (index >= indirectMin && index < indirectMax) {
+	    // It should already be allocated, just load the sector
+	    secLeft = index - indirectMin + 1;
+	    allocateIndirectBlock(freeMap, 1, true);
+	
+	}
+	// Check if position falls in doubly indirect block
+	else if (index >= doublyMin && index < doublyMax) {
+	    
+	    secLeft = index - doublyMin + 1;
+	    // It should already be allocated, just load the sector
+	    allocateDoublyIndirectBlock(freeMap, 1, true);
+
+	}
+	
+	else {
+	    if(dataSectors[index] == -1){
+		dataSectors[index] = freeMap.find();
+		freeMap.writeBack(filesystem.freeMapFile);
+	    }
+		
+	}
+	
+    }
     /**
      * Function to allocate the doubly indirect block
      * @param freeMap
      * @param sectorsLeft
      * @return number of sectors allocated
      */
-    private int allocateDoublyIndirectBlock(BitMap freeMap, int sectorsLeft){
+    private int allocateDoublyIndirectBlock(BitMap freeMap, int sectorsLeft, boolean isExtend){
 
 	int doublyIndirectSectors = sectorsLeft;
 
@@ -212,13 +248,18 @@ class FileHeader {
 	// If doubly indirect block has not been used before, get a new sector
 	if (dataSectors[NumDirect - 1] == -1) {
 	    dataSectors[NumDirect - 1] = freeMap.find();
+	    freeMap.writeBack(filesystem.freeMapFile);
 	}
 	// If its already used, just load the sector
 	else {
 	    dblock.fetchFrom(dataSectors[NumDirect - 1]);
 	}
 	// Allocate a sector for this block
-	int allocated = dblock.allocate(freeMap, doublyIndirectSectors);
+	int allocated = 0;
+	if(isExtend) 
+	    allocated = dblock.allocateIndirectBlock(freeMap);
+	else
+	    allocated = dblock.allocate(freeMap, doublyIndirectSectors);
 	
 	// Write the dblock back to the disk
 	dblock.writeBack(dataSectors[NumDirect - 1]);
@@ -234,7 +275,7 @@ class FileHeader {
      * @param sectorsLeft
      * @return number of sectors allocated
      */
-    private int allocateIndirectBlock(BitMap freeMap, int sectorsLeft){
+    private int allocateIndirectBlock(BitMap freeMap, int sectorsLeft, boolean isExtend){
 
 	int indirectSectors = sectorsLeft;
 
@@ -250,13 +291,20 @@ class FileHeader {
 	// If indirect block has not been used before, get a new sector
 	if (dataSectors[NumDirect - 2] == -1) {
 	    dataSectors[NumDirect - 2] = freeMap.find();
+	    freeMap.writeBack(filesystem.freeMapFile);
 	}
 	// If its already used, just load the sector
 	else {
 	    iblock.fetchFrom(dataSectors[NumDirect - 2]);
 	}
+	
+	int allocated = 0;
 	// Allocate a sector for this block
-	int allocated = iblock.allocate(freeMap, indirectSectors);
+	if(isExtend) 
+	    allocated = iblock.allocateSector(freeMap);
+	
+	else 
+	    allocated = iblock.allocate(freeMap, indirectSectors);
 	
 	// Write the iblock back to the disk
 	iblock.writeBack(dataSectors[NumDirect - 2]);

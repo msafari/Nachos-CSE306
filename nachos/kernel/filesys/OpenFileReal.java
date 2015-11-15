@@ -195,7 +195,7 @@ class OpenFileReal implements OpenFile {
 	int i, firstSector, lastSector, numSectors;
 	boolean firstAligned, lastAligned;
 	byte buf[];
-
+	BitMap freeMap = new BitMap(filesystem.numDiskSectors);
 	//numBytes must be positive
 	if(numBytes <= 0)
 	    return 0;
@@ -228,9 +228,12 @@ class OpenFileReal implements OpenFile {
 	// write modified sectors back
 	for (i = firstSector; i <= lastSector; i++){
 	    
-	    if(i == 28){
+	    if(i >= 28){
 		System.out.println("Reached here");
 	    }
+	    freeMap.fetchFrom(filesystem.freeMapFile);
+	    //extend will check if file needs to be extended or not
+	    hdr.extend(freeMap, i * diskSectorSize);
 	    int sectorNum = hdr.byteToSector(i * diskSectorSize);
 	    int offset = (i - firstSector) * diskSectorSize;
 	    filesystem.writeSector(sectorNum, buf, offset);

@@ -23,7 +23,7 @@ package nachos.kernel.filesys;
 class DirectoryEntry {
     /**
      * Maximum length of a file name.
-     * For simplicity, we assume file names are <= 20 characters long.
+     * For simplicity, we assume file names are <= 21 characters long.
      */
     static final int FileNameMaxLen = 20;
 

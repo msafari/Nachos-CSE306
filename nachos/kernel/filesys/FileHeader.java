@@ -191,6 +191,11 @@ class FileHeader {
 	return true;
     }
     
+    /**
+     * 
+     * @param freeMap
+     * @param offset
+     */
     public void extend(BitMap freeMap, int offset) {
 	Debug.println('f', "Extending file");
 	

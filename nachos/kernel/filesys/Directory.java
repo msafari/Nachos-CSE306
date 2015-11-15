@@ -9,6 +9,10 @@
 
 package nachos.kernel.filesys;
 
+import javax.swing.text.TabExpander;
+
+import nachos.Debug;
+
 /**
  * This class class defines a UNIX-like "directory".  Each entry in
  * the directory describes a file, and where to find it on disk.
@@ -149,7 +153,18 @@ class Directory {
 		    return(false);
 		return(true);
 	    }
-	return false;	// no space.  Fix when we have extensible files.
+	
+	//extend the directory if full
+	Debug.println('f', "Directory Full! Extending it...");
+	
+	DirectoryEntry[] extendedTable = new DirectoryEntry[tableSize + 1];
+	System.arraycopy(table, 0, extendedTable, 0, tableSize);
+	table = extendedTable;
+	table[tableSize] = new DirectoryEntry();
+	table[tableSize].setUsed(name, newSector);
+	
+	Debug.ASSERT(table[tableSize++].inUse());
+	return true;	// no space.  Fix when we have extensible files.
     }
 
     /**

@@ -191,7 +191,7 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 
 	// Check reg number
 	if (reg >= 2 && reg <= 25) {
-	    int length = 255; // Typically allow only 255 chars for filename.
+	    int length = 20; // Typically allow only 255 chars for filename.
 	    int ptr = CPU.readRegister(reg); // Get the address this pointer is pointing to.
 	    byte buf[] = new byte[length];
 	    String fileName;

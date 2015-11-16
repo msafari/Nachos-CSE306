@@ -47,6 +47,7 @@ class Directory {
 
     /** Table of pairs: file name/file header location. */
     private DirectoryEntry table[];
+    
 
     /** The underlying filesystem in which the directory resides. */
     private final FileSystemReal filesystem;
@@ -131,6 +132,27 @@ class Directory {
 	    return table[i].getSector();
 	return -1;
     }
+    
+    
+
+    /**
+     * Look up file name in directory, and return the disk sector number
+     * where the file's header is stored. Return -1 if the name isn't 
+     * in the directory.
+     *
+     * @param name The file name to look up.
+     * @return The disk sector number where the file's header is stored,
+     * if the entry was found, otherwise -1.
+     */
+    int findDirectory(String name) {
+	int i = 0;
+	for (i = 0; i < tableSize; i++) {
+	    if (table[i].inUse() && name.equals(table[i].getName()) && table[i].isDir())
+		return table[i].getSector();
+	}
+	    
+	return -1;
+    }
 
     /**
      * Add a file into the directory.  Return TRUE if successful;
@@ -166,6 +188,38 @@ class Directory {
 	Debug.ASSERT(table[tableSize++].inUse());
 	return true;	// no space.  Fix when we have extensible files.
     }
+    
+    /**
+     * Add a child directory to this directory
+     * @param name
+     * @param newSector
+     * @return
+     */
+    boolean addDirectory(String name, int newSector) { 
+   	if (findDirectory(name) != -1)
+   	    return false;
+
+   	for (int i = 0; i < tableSize; i++)
+   	    if (!table[i].inUse()) {
+   		if(!table[i].setUsed(name, newSector))
+   		    return(false);
+   		table[i].setIsDir(true);
+   		return(true);
+   	    }
+   	
+   	//extend the directory if full
+   	Debug.println('f', "Directory Full! Extending it...");
+   	
+   	DirectoryEntry[] extendedTable = new DirectoryEntry[tableSize + 1];
+   	System.arraycopy(table, 0, extendedTable, 0, tableSize);
+   	table = extendedTable;
+   	table[tableSize] = new DirectoryEntry();
+   	table[tableSize].setUsed(name, newSector);
+   	table[tableSize].setIsDir(true);
+   	
+   	Debug.ASSERT(table[tableSize++].inUse());
+   	return true;	// no space.  Fix when we have extensible files.
+   }
 
     /**
      * Remove a file name from the directory.  Return TRUE if successful;
@@ -185,10 +239,25 @@ class Directory {
     /**
      * List all the file names in the directory (for debugging).
      */
-    void list() {
+    void list(String indent) {
 	for (int i = 0; i < tableSize; i++)
-	    if (table[i].inUse())
-		System.out.println(table[i].getName());
+	    if (table[i].inUse()) {
+		
+		if(table[i].isDir()) {
+		    System.out.println(indent + ">" + table[i].getName());
+		    OpenFileReal childDirFile = new OpenFileReal(table[i].getSector(), filesystem);
+		    Directory childDir = new Directory(10, filesystem);
+		    childDir.fetchFrom(childDirFile);
+		    indent += "\t";
+		    childDir.list(indent);
+		    indent = indent.substring(0, indent.length() - 1);
+		    
+		}
+		else {
+		    System.out.println(indent + table[i].getName());
+		}
+		
+	    }
     }
 
     /**

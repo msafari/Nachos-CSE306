@@ -146,5 +146,6 @@ public abstract class FileSystem {
 	buffer[pos+2] = (byte)(val >> 8 & 0xff);
 	buffer[pos+3] = (byte)(val & 0xff);
     }
-
+    
+    public abstract boolean makeDirectory (String path, long initialSize);
 }

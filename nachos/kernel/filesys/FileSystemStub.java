@@ -99,4 +99,10 @@ class FileSystemStub extends FileSystem {
 	
     }
 
+    @Override
+    public boolean makeDirectory(String path, long initialSize) {
+	// TODO Auto-generated method stub
+	return false;
+    }
+
 }

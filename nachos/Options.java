@@ -183,6 +183,8 @@ public class Options {
 
     /** Should we run the filesystem test? */
     public boolean FILESYS_TEST = false;
+    
+    public boolean LIST_FILES = false;
 
     /** Should we run the serial port test? */
     public boolean SERIAL_TEST = false;
@@ -420,6 +422,13 @@ public class Options {
 			    public void processOption(String flag,
 				    Object[] params) {
 				TASKMANAGER_TEST_2 = true;
+			    }
+			}),
+		new Spec("-list", // enable TaskManager test
+			new Class[] {}, null, new Options.Action() {
+			    public void processOption(String flag,
+				    Object[] params) {
+				LIST_FILES = true;
 			    }
 			}),
 	});

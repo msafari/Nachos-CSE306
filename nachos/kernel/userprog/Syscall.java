@@ -130,6 +130,11 @@ public class Syscall {
      */
     public static void exit(int status) {
 	
+	if(Nachos.options.LIST_FILES) {
+	    Debug.println('f', "Listing everything in all directories");
+	    Nachos.fileSystem.list();
+	}
+
 	//Deallocate any physical memory and other resources that are assigned to this thread
 	UserThread currThrd = ((UserThread)NachosThread.currentThread());
 	
@@ -547,11 +552,13 @@ public class Syscall {
      */
     public static void makeDirectory(String name) {
 	Debug.println('S', "Syscall Mkdir is called for: " + name + ", size: 0");
-	//boolean result = Nachos.fileSystem.create(name, 0);
-//	if(!result){
-//	    Debug.println('S', "Could not create directory: " + name);
-//	    Debug.ASSERT(false);
-//	}
+	boolean result = Nachos.fileSystem.makeDirectory(name, 0);
+	if(!result){
+	    Debug.println('S', "Could not create directory: " + name);
+	    Debug.ASSERT(false);
+	}
+	
+	
     }
     
     /**

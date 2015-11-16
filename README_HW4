@@ -17,6 +17,13 @@ Note: When running the program from DISK0, make sure to remove -f and -cp flags.
 
 If file is greater than the max file size, the filesystem will not allocate memory for the file.
 
+TO LIST ALL FILES IN FILESYSTEM:
+--------------------------------
+
+	1) Make sure you remove all debug flags so you see a clean list printed.
+	2) Run the program with [-list] flag
+	3) List of all files will be displayed upon exit.
+
 General Notes For Developers:
 - All blocks are 128 bytes
 - dataSectors array is different for each type of inode:

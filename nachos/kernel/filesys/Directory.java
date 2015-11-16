@@ -233,6 +233,7 @@ class Directory {
 	if (i == -1)
 	    return false; 		// name not in directory
 	table[i].setUnused();
+	table[i].setIsDir(false);
 	return true;	
     }
 

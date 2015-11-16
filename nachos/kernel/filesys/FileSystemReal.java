@@ -113,7 +113,7 @@ class FileSystemReal extends FileSystem {
   private final int FreeMapFileSize;
 
   /** The initial size of a directory file. */
-  private final int DirectoryFileSize;
+  public final int DirectoryFileSize;
 
 
   /** "Root" directory -- list of file names, represented as a file. */
@@ -187,7 +187,7 @@ class FileSystemReal extends FileSystem {
       directory.writeBack(directoryFile);
       
       //Create the first directory 'test' for copying in files
-      makeDirectory("test", 0);
+      makeDirectory("test", DirectoryFileSize);
 
       if (Debug.isEnabled('f')) {
 	freeMap.print();

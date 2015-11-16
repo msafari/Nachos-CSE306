@@ -42,6 +42,8 @@ public abstract class FileSystem {
     /** Number of sectors on the disk. */
     public int numDiskSectors;
     
+    public int DirectoryFileSize;
+    
     /**
      * Copy initial Unix file to Nachos file. Used in real file system not the stub.
      * @param from

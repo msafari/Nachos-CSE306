@@ -552,7 +552,7 @@ public class Syscall {
      */
     public static void makeDirectory(String name) {
 	Debug.println('S', "Syscall Mkdir is called for: " + name + ", size: 0");
-	boolean result = Nachos.fileSystem.makeDirectory(name, 0);
+	boolean result = Nachos.fileSystem.makeDirectory(name, Nachos.fileSystem.DirectoryFileSize);
 	if(!result){
 	    Debug.println('S', "Could not create directory: " + name);
 	    Debug.ASSERT(false);
@@ -567,7 +567,7 @@ public class Syscall {
      * @param name  The name of the directory to be removed.
      */
     public static void removeDirectory(String name) {
-	
+	Debug.println('S', "Syscall Rmdir is called for: " + name);
 	//Remove any files in the directory
 	//Have the file system remove the directory
 	boolean result = Nachos.fileSystem.remove(name);

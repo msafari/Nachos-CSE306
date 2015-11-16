@@ -337,7 +337,7 @@ class FileHeader {
 	    freeMap.clear(dataSectors[i]);
 	}
 	// Next free the indirect block if it has been used
-	if (dataSectors[i] != -1) {
+	if (i == NumDirect - 2 && dataSectors[i] != -1) {
 	    iblock = new IndirectBlock(filesystem);
 	    iblock.fetchFrom(dataSectors[i]);
 	    iblock.deallocate(freeMap);
@@ -346,7 +346,7 @@ class FileHeader {
 	}
 	// Finally free the doubly indirect block
 	i += 1;
-	if (dataSectors[i] != -1) {
+	if ( i == NumDirect -1 && dataSectors[i] != -1) {
 	    dblock = new DoublyIndirectBlock(filesystem);
 	    dblock.fetchFrom(dataSectors[i]);
 	    dblock.deallocate(freeMap);

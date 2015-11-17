@@ -184,8 +184,12 @@ class DirectoryEntry {
 	    FileSystem.intToBytes(nameLen, buffer, pos+6);
 	    for(int i = 0; i < nameLen; i++)
 		buffer[pos+10+i] = nameBytes[i];
-	} else 
+	} else {
 	    buffer[pos] = 0;
+	    buffer[pos + 1] = 0;
+	}
+	    
+	
     }
 
 }

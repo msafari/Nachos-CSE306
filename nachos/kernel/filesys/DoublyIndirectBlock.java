@@ -197,5 +197,29 @@ public class DoublyIndirectBlock {
     int byteToSector(int offset) {
 	return(dataSectors[offset]);
     }
+    
+    
+    /**
+     * 
+     */
+    void validate () {
+	BitMap freeMap = new BitMap(filesystem.numDiskSectors);
+	freeMap.fetchFrom(filesystem.freeMapFile);
+	IndirectBlock iBlock;
+	
+	for(int i = 0; i < NumIndirect; i++) {
+	    if(dataSectors[i] != -1 ) {
+		if(!freeMap.test(dataSectors[i])){
+		    Debug.println('V', "Sector " + dataSectors[i] + " is in use but not marked as used in BitMap.");
+		}
+		else {
+		    iBlock = new IndirectBlock(filesystem);
+		    iBlock.fetchFrom(dataSectors[i]);
+		    
+		    iBlock.validate();
+		}
+	    }
+	}
+    }
 
 }

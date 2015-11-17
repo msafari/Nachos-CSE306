@@ -23,6 +23,11 @@ TO LIST ALL FILES IN FILESYSTEM:
 	1) Make sure you remove all debug flags so you see a clean list printed.
 	2) Run the program with [-list] flag
 	3) List of all files will be displayed upon exit.
+	
+	
+Testing Validation:
+
+-V: to print validation debugs
 
 General Notes For Developers:
 - All blocks are 128 bytes

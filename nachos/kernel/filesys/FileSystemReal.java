@@ -96,7 +96,7 @@ class FileSystemReal extends FileSystem {
   private static final int DirectorySector = 1;
   
   /** The maximum number of entries in a directory. */
-  private static final int NumDirEntries = 10;
+  public static final int NumDirEntries = 10;
 
   /** Access to the disk on which the filesystem resides. */
   private final DiskDriver diskDriver;
@@ -294,15 +294,17 @@ class FileSystemReal extends FileSystem {
    * 
    * @return
    */
-  public boolean checkVaild () {
+  public void checkValid () {
+      
+      Debug.println('V', "Validating Disk Sectors.");
+      BitMap freeMap = new BitMap(numDiskSectors);
       Directory root = new Directory(NumDirEntries, this);
       OpenFileReal rootFile = new OpenFileReal(DirectorySector, this);
       root.fetchFrom(rootFile);
       
       
       root.validate();
-      
-      return false;
+     
   }
   
   

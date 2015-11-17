@@ -42,6 +42,8 @@ public abstract class FileSystem {
     /** Number of sectors on the disk. */
     public int numDiskSectors;
     
+    public int NumDirEntries;
+    
     public int DirectoryFileSize;
     
     /**
@@ -87,6 +89,7 @@ public abstract class FileSystem {
 	freeMapFile = null;
 	numDiskSectors = -1;
 	DirectoryFileSize = -1;
+	NumDirEntries = 10;
     }
 
     /**
@@ -155,4 +158,6 @@ public abstract class FileSystem {
     public abstract boolean removeDirectory(String path);
     public abstract int getDirectoryFileSize();
     public abstract void printBitMap();
+    
+    public abstract void checkValid();
 }

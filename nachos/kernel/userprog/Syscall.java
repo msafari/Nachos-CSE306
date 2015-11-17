@@ -134,6 +134,8 @@ public class Syscall {
 	    Debug.println('f', "Listing everything in all directories");
 	    Nachos.fileSystem.list();
 	    Nachos.fileSystem.printBitMap();
+	    
+	    Nachos.fileSystem.checkValid();
 	}
 	Nachos.fileSystem.printBitMap();
 	//Deallocate any physical memory and other resources that are assigned to this thread

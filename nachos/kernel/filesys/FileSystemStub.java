@@ -123,4 +123,10 @@ class FileSystemStub extends FileSystem {
 	return 0;
     }
 
+    @Override
+    public void checkValid() {
+	// TODO Auto-generated method stub
+	
+    }
+
 }

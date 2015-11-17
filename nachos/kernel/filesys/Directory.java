@@ -142,17 +142,17 @@ class Directory {
 	Directory dir;
 	
 	for (int i=0; i<table.length; i++) {
-	    if(table[i].getSector() != -1) {
+	    if(table[i].inUse()) {
 		if(!freeMap.test(table[i].getSector())){
-		    Debug.println('f', "Sector " + table[i].getSector() + " is in use but not marked as used in BitMap.");
+		    Debug.println('V', "Sector " + table[i].getSector() + " is in use but not marked as used in BitMap.");
 		}
 		//Otherwise valid, check subdirectory/file
 		else{
 		    
 		    //check subdirectories if entry is a directory itself
-		    if (table[i].isDir()) {
+		    if (table[i].isDir() ) {
 			OpenFileReal dirFile = new OpenFileReal(table[i].getSector(), filesystem);
-			dir = new Directory(filesystem.DirectoryFileSize, filesystem);
+			dir = new Directory(filesystem.NumDirEntries, filesystem);
 			dir.fetchFrom(dirFile);
 			
 			//now validate this sub directory

@@ -72,7 +72,7 @@ public class IndirectBlock {
 	for(i=0; i< NumDirect; i ++) {
 	    if(dataSectors[i] != -1  && !freeMap.test(dataSectors[i]) ) {
 		
-		Debug.println('f', "Sector " + dataSectors[i] + " is in use but not marked as used in BitMap.");
+		Debug.println('V', "Sector " + dataSectors[i] + " is in use but not marked as used in BitMap.");
 	    }
 	}
     }

@@ -509,7 +509,7 @@ class FileHeader {
 	for(i=0; i< NumDirect; i ++) {
 	    if(dataSectors[i] != -1  && !freeMap.test(dataSectors[i]) ) {
 		
-		Debug.println('f', "Sector " + dataSectors[i] + " is in use but not marked as used in BitMap.");
+		Debug.println('V', "Sector " + dataSectors[i] + " is in use but not marked as used in BitMap.");
 	    }
 	}
 	
@@ -518,6 +518,13 @@ class FileHeader {
 	    IndirectBlock iBlock = new IndirectBlock(filesystem);
 	    iBlock.fetchFrom(dataSectors[NumDirect - 2]);
 	    iBlock.validate();
+	}
+	
+	//validate doubly indirect blocks
+	if(dataSectors[NumDirect -1] != -1) {
+	    DoublyIndirectBlock dBlock = new DoublyIndirectBlock(filesystem);
+	    dBlock.fetchFrom(dataSectors[NumDirect -1]);
+	    dBlock.validate();
 	}
     }
 

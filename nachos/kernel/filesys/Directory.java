@@ -131,7 +131,45 @@ class Directory {
 	return -1;
     }
     
-    
+    /**
+     * 
+     * @return
+     */
+    void validate() {
+	BitMap freeMap = new BitMap(filesystem.numDiskSectors);
+	FileHeader hdr;
+	freeMap.fetchFrom(filesystem.freeMapFile);
+	Directory dir;
+	
+	for (int i=0; i<table.length; i++) {
+	    if(table[i].getSector() != -1) {
+		if(!freeMap.test(table[i].getSector())){
+		    Debug.println('f', "Sector " + table[i].getSector() + " is in use but not marked as used in BitMap.");
+		}
+		//Otherwise valid, check subdirectory/file
+		else{
+		    
+		    //check subdirectories if entry is a directory itself
+		    if (table[i].isDir()) {
+			OpenFileReal dirFile = new OpenFileReal(table[i].getSector(), filesystem);
+			dir = new Directory(filesystem.DirectoryFileSize, filesystem);
+			dir.fetchFrom(dirFile);
+			
+			//now validate this sub directory
+			dir.validate();
+		    }
+		    else {
+			hdr = new FileHeader(filesystem);
+			hdr.fetchFrom(table[i].getSector());
+			hdr.validate();
+			
+		    }
+		}
+	    }
+	}
+	
+	
+    }
 
     /**
      * Look up file name in directory, and return the disk sector number

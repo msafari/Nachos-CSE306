@@ -61,6 +61,21 @@ public class IndirectBlock {
 	for (int i = 0; i < NumDirect; i++)
 	    dataSectors[i] = FileSystem.bytesToInt(buffer, pos+i*4);
     }
+    
+    /**
+     * 
+     */
+    public void validate () {
+	BitMap freeMap = new BitMap(filesystem.numDiskSectors);
+	freeMap.fetchFrom(filesystem.freeMapFile);
+	int i;
+	for(i=0; i< NumDirect; i ++) {
+	    if(dataSectors[i] != -1  && !freeMap.test(dataSectors[i]) ) {
+		
+		Debug.println('f', "Sector " + dataSectors[i] + " is in use but not marked as used in BitMap.");
+	    }
+	}
+    }
 
     /**
      * Export the fields of this FileHeader object to a buffer

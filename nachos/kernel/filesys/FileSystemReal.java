@@ -289,6 +289,24 @@ class FileSystemReal extends FileSystem {
     }
     return success;
   }
+  
+  /**
+   * 
+   * @return
+   */
+  public boolean checkVaild () {
+      Directory root = new Directory(NumDirEntries, this);
+      OpenFileReal rootFile = new OpenFileReal(DirectorySector, this);
+      root.fetchFrom(rootFile);
+      
+      
+      root.validate();
+      
+      return false;
+  }
+  
+  
+  
 
   /**
    * Open a file for reading and writing.  

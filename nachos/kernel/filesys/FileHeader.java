@@ -497,6 +497,29 @@ class FileHeader {
     public void updateNumBytes(int bytes){
 	numBytes += bytes;
     }
+    
+    /**
+     * 
+     * @return
+     */
+    public void validate () {
+	BitMap freeMap = new BitMap(filesystem.numDiskSectors);
+	freeMap.fetchFrom(filesystem.freeMapFile);
+	int i;
+	for(i=0; i< NumDirect; i ++) {
+	    if(dataSectors[i] != -1  && !freeMap.test(dataSectors[i]) ) {
+		
+		Debug.println('f', "Sector " + dataSectors[i] + " is in use but not marked as used in BitMap.");
+	    }
+	}
+	
+	//check Indirect blocks
+	if(dataSectors[NumDirect - 2] != -1) {
+	    IndirectBlock iBlock = new IndirectBlock(filesystem);
+	    iBlock.fetchFrom(dataSectors[NumDirect - 2]);
+	    iBlock.validate();
+	}
+    }
 
     /**
      * Print the contents of the file header, and the contents of all the data

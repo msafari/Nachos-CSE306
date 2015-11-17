@@ -552,7 +552,7 @@ public class Syscall {
      * @param name  The name of the directory to be created.
      */
     public static void makeDirectory(String name) {
-	Debug.println('S', "Syscall Mkdir is called for: " + name + ", size: 0");
+	Debug.println('S', "Syscall Mkdir is called for: " + name + ", size: "+ Nachos.fileSystem.getDirectoryFileSize() );
 	boolean result = Nachos.fileSystem.makeDirectory(name, Nachos.fileSystem.getDirectoryFileSize());
 	if(!result){
 	    Debug.println('S', "Could not create directory: " + name);

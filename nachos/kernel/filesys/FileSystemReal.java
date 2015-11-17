@@ -90,7 +90,7 @@ class FileSystemReal extends FileSystem {
   // well-known sectors, so that they can be located on boot-up.
 
   /** The disk sector containing the bitmap of free sectors. */
-  private static final int FreeMapSector = 0;
+  public static final int FreeMapSector = 0;
 
   /** The disk sector containing the directory of files. */
   private static final int DirectorySector = 1;
@@ -151,13 +151,11 @@ class FileSystemReal extends FileSystem {
       // (make sure no one else grabs these!)
       freeMap.mark(FreeMapSector);	    
       freeMap.mark(DirectorySector);
-
       // Second, allocate space for the data blocks containing the contents
       // of the directory and bitmap files.  There better be enough space!
 
       Debug.ASSERT(mapHdr.allocate(freeMap, FreeMapFileSize));
       Debug.ASSERT(dirHdr.allocate(freeMap, DirectoryFileSize));
-
       // Flush the bitmap and directory FileHeaders back to disk
       // We need to do this before we can "Open" the file, since open
       // reads the file header off of disk (and currently the disk has 
@@ -180,17 +178,15 @@ class FileSystemReal extends FileSystem {
       // empty; but the bitmap has been changed to reflect the fact that
       // sectors on the disk have been allocated for the file headers and
       // to hold the file data for the directory and bitmap.
-
       Debug.print('f', "Writing bitmap and directory back to disk.\n");
       freeMap.writeBack(freeMapFile);	 // flush changes to disk
-      //directory.fetchFrom(directoryFile);
       directory.writeBack(directoryFile);
-      
+
       //Create the first directory 'test' for copying in files
       makeDirectory("test", DirectoryFileSize);
 
       if (Debug.isEnabled('f')) {
-	freeMap.print();
+	printBitMap();
       }
       
     } else {
@@ -287,6 +283,7 @@ class FileSystemReal extends FileSystem {
 	  OpenFileReal parentFile = new OpenFileReal(directorySector, this);
   	  directory.writeBack(parentFile);
 	  freeMap.writeBack(freeMapFile);
+	  printBitMap();
 	}
       }
     }
@@ -475,7 +472,53 @@ class FileSystemReal extends FileSystem {
   	}
         }
       }
+      
       return success;
+  }
+  
+/**
+   * Frees the directory and all the subdirectories and files inside of it as well.
+   * @return
+   */
+  public boolean removeDirectory(String path){
+      Directory directory = new Directory(NumDirEntries, this);
+      BitMap freeMap;
+      FileHeader fileHdr;
+      int sector;
+      
+      int directorySector = getDirectory(path);
+      OpenFile dirFile = new OpenFileReal(directorySector, this);
+      directory.fetchFrom(dirFile);
+
+      sector = directory.find(getFileName(path));
+      if (sector == -1) {
+         return false;			 // directory not found 
+      }
+      
+      //Load up the directory to be removed
+      Directory removeMe = new Directory(NumDirEntries, this);
+      OpenFile removeMeDirFile = new OpenFileReal(sector, this);
+      removeMe.fetchFrom(removeMeDirFile);
+      
+      //Remove all the subdirectories and files first
+      removeMe.removeAll();
+      
+      //Finally remove the directory itself
+      fileHdr = new FileHeader(this);
+      fileHdr.fetchFrom(sector);
+
+      freeMap = new BitMap(numDiskSectors);
+      freeMap.fetchFrom(freeMapFile);
+
+      fileHdr.deallocate(freeMap);  		// remove data blocks
+      freeMap.clear(sector);			// remove header block
+      directory.remove(getFileName(path));
+
+      freeMap.writeBack(freeMapFile);		// flush to disk
+      OpenFileReal parentFile = new OpenFileReal(directorySector, this);
+      directory.writeBack(parentFile);
+      
+      return true;
   }
   
   /**
@@ -543,7 +586,7 @@ class FileSystemReal extends FileSystem {
 	  }
 	  
 	  OpenFile dirFile = new OpenFileReal(dirSectorNum, this);
-	  
+	  curDirectory = new Directory(NumDirEntries, this);
 	  curDirectory.fetchFrom(dirFile);	  
       }
      
@@ -580,5 +623,17 @@ class FileSystemReal extends FileSystem {
     directory.fetchFrom(directoryFile);
     directory.print();
 
-  } 
+  }
+  
+  public void printBitMap() {
+      BitMap freeMap = new BitMap(numDiskSectors);
+      Debug.print('+', "Free map:\n");
+      freeMap.fetchFrom(freeMapFile);
+      freeMap.print();
+  }
+  
+  public int getDirectoryFileSize(){
+      return DirectoryFileSize;
+  }
+
 }

@@ -86,6 +86,7 @@ public abstract class FileSystem {
 	//will be overwritten in fileSystemReal
 	freeMapFile = null;
 	numDiskSectors = -1;
+	DirectoryFileSize = -1;
     }
 
     /**
@@ -150,4 +151,8 @@ public abstract class FileSystem {
     }
     
     public abstract boolean makeDirectory (String path, long initialSize);
+
+    public abstract boolean removeDirectory(String path);
+    public abstract int getDirectoryFileSize();
+    public abstract void printBitMap();
 }

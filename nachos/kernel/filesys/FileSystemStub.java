@@ -105,4 +105,22 @@ class FileSystemStub extends FileSystem {
 	return false;
     }
 
+    @Override
+    public boolean removeDirectory(String path) {
+	// TODO Auto-generated method stub
+	return false;
+    }
+
+    @Override
+    public void printBitMap() {
+	// TODO Auto-generated method stub
+	
+    }
+
+    @Override
+    public int getDirectoryFileSize() {
+	// TODO Auto-generated method stub
+	return 0;
+    }
+
 }

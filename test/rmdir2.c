@@ -6,10 +6,9 @@ int main()
 {
   Mkdir("test/dummy");
   Create("test/dummy/create1");
-  Mkdir("test/dummy2");
   Create("create0");
+  Mkdir("test/dummy2");
   Create("test/dummy2/create2");
   Rmdir("test/dummy2");
-  //Exit(0);
 }
 

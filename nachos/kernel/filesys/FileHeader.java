@@ -147,48 +147,74 @@ class FileHeader {
 	numBytes = fileSize;
 	numSectors = fileSize / diskSectorSize;
 	
+	//If fileSize is zero (just created) no need to allocate blocks
+	if(fileSize == 0){
+	    Debug.println('f', "File size is 0, not allocating data blocks!");
+	    return true;
+	}
+	
 	if (fileSize % diskSectorSize != 0)
 	    numSectors++;
 
 	if (freeMap.numClear() < numSectors)
 	    return false; // not enough space
 	
-	// Allocate memory for the direct blocks
-	for (int i = 0; i < NumDirect - 2; i++) {
-	    dataSectors[i] = freeMap.find();
-	}
-	
-	//Calculate the number of sectors exceeding the 28 direct blocks we have
-	int sectorsLeft = numSectors - (NumDirect - 2) + 1;
-	
-	//We did not need to allocate more memory. Done allocating
-	if(sectorsLeft <= 0){
-	    Debug.println('f', "File with " + numSectors + " sectors fit in direct blocks! Not allocating indirect/doublyindirect blocks");
+	//If file fits in direct blocks just allocate those blocks
+	if(numSectors < NumDirect - 2){
+	    for (int i = 0; i < numSectors; i++) {
+		dataSectors[i] = freeMap.find();
+	    }
 	    return true;
 	}
-	//Otherwise we need to allocate more memory
 	else{
-	    Debug.println('f', "File did not fit in direct blocks. Sectors left: " + sectorsLeft);
-	    
-	    //First allocate the indirect block
-	    int allocated = allocateIndirectBlock(freeMap, sectorsLeft, false);
-	   
-	    sectorsLeft -= allocated;
-	    
-	    //All the data fit inside the indirect block
-	    if(sectorsLeft == 0){
+	 // Allocate memory for the direct blocks
+	    for (int i = 0; i < NumDirect - 2; i++) {
+		dataSectors[i] = freeMap.find();
+	    }
+
+	    // Calculate the number of sectors exceeding the 28 direct blocks we
+	    // have
+	    int sectorsLeft = numSectors - (NumDirect - 2) + 1;
+
+	    // We did not need to allocate more memory. Done allocating
+	    if (sectorsLeft <= 0) {
+		Debug.println(
+			'f',
+			"File with "
+				+ numSectors
+				+ " sectors fit in direct blocks! Not allocating indirect/doublyindirect blocks");
 		return true;
 	    }
-	    //Else allocate the remaining blocks in the doubly indirect block
-	    else{
-		allocated = allocateDoublyIndirectBlock(freeMap, sectorsLeft, false);
+	    // Otherwise we need to allocate more memory
+	    else {
+		Debug.println('f',
+			"File did not fit in direct blocks. Sectors left: "
+				+ sectorsLeft);
+
+		// First allocate the indirect block
+		int allocated = allocateIndirectBlock(freeMap, sectorsLeft,
+			false);
+
 		sectorsLeft -= allocated;
-		Debug.ASSERT(sectorsLeft == 0); //File should fit inside the allocated space
+
+		// All the data fit inside the indirect block
+		if (sectorsLeft == 0) {
+		    return true;
+		}
+		// Else allocate the remaining blocks in the doubly indirect
+		// block
+		else {
+		    allocated = allocateDoublyIndirectBlock(freeMap,
+			    sectorsLeft, false);
+		    sectorsLeft -= allocated;
+		    Debug.ASSERT(sectorsLeft == 0); // File should fit inside
+						    // the allocated space
+		}
+
 	    }
 
+	    return true;  
 	}
-
-	return true;
     }
     
     /**
@@ -211,6 +237,9 @@ class FileHeader {
 	    // It should already be allocated, just load the sector
 	    secLeft = index - indirectMin + 1;
 	    allocateIndirectBlock(freeMap, 1, true);
+	    
+	    // Increment the number of sectors by 1
+	    numSectors++;
 	
 	}
 	// Check if position falls in doubly indirect block
@@ -220,16 +249,22 @@ class FileHeader {
 	    // It should already be allocated, just load the sector
 	    allocateDoublyIndirectBlock(freeMap, 1, true);
 
+	    // Increment the number of sectors by 1
+	    numSectors++;
+	    
 	}
 	
 	else {
 	    if(dataSectors[index] == -1){
 		dataSectors[index] = freeMap.find();
 		freeMap.writeBack(filesystem.freeMapFile);
+		
+		//Increment the number of sectors by 1
+		numSectors++;
+		
 	    }
 		
 	}
-	
     }
     /**
      * Function to allocate the doubly indirect block
@@ -331,27 +366,42 @@ class FileHeader {
 	IndirectBlock iblock;
 
 	int i;
-	// First free the direct blocks
-	for (i = 0; i < numSectors - 2; i++) {
-	    Debug.ASSERT(freeMap.test(dataSectors[i])); // ought to be marked!
-	    freeMap.clear(dataSectors[i]);
+	
+	//If file fits in direct blocks just free those blocks
+	if(numSectors < NumDirect - 2){
+	    for (i = 0; i < numSectors; i++) {
+		Debug.ASSERT(freeMap.test(dataSectors[i])); // ought to be marked			    // marked!
+		freeMap.clear(dataSectors[i]);
+	    }
 	}
-	// Next free the indirect block if it has been used
-	if (i == NumDirect - 2 && dataSectors[i] != -1) {
-	    iblock = new IndirectBlock(filesystem);
-	    iblock.fetchFrom(dataSectors[i]);
-	    iblock.deallocate(freeMap);
-	    Debug.ASSERT(freeMap.test(dataSectors[i])); // ought to be marked!
-	    freeMap.clear(dataSectors[i]);
-	}
-	// Finally free the doubly indirect block
-	i += 1;
-	if ( i == NumDirect -1 && dataSectors[i] != -1) {
-	    dblock = new DoublyIndirectBlock(filesystem);
-	    dblock.fetchFrom(dataSectors[i]);
-	    dblock.deallocate(freeMap);
-	    Debug.ASSERT(freeMap.test(dataSectors[i])); // ought to be marked!
-	    freeMap.clear(dataSectors[i]);
+	
+	//Otherwise it must be a bigger file
+	else{
+	    // First free the direct blocks
+	    for (i = 0; i < NumDirect - 2; i++) {
+		Debug.ASSERT(freeMap.test(dataSectors[i])); // ought to be
+							    // marked!
+		freeMap.clear(dataSectors[i]);
+	    }
+	    // Next free the indirect block if it has been used
+	    if (i == NumDirect - 2 && dataSectors[i] != -1) {
+		iblock = new IndirectBlock(filesystem);
+		iblock.fetchFrom(dataSectors[i]);
+		iblock.deallocate(freeMap);
+		Debug.ASSERT(freeMap.test(dataSectors[i])); // ought to be
+							    // marked!
+		freeMap.clear(dataSectors[i]);
+	    }
+	    // Finally free the doubly indirect block
+	    i += 1;
+	    if (i == NumDirect - 1 && dataSectors[i] != -1) {
+		dblock = new DoublyIndirectBlock(filesystem);
+		dblock.fetchFrom(dataSectors[i]);
+		dblock.deallocate(freeMap);
+		Debug.ASSERT(freeMap.test(dataSectors[i])); // ought to be
+							    // marked!
+		freeMap.clear(dataSectors[i]);
+	    }
 	}
     }
 

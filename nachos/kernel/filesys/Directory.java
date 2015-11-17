@@ -9,8 +9,6 @@
 
 package nachos.kernel.filesys;
 
-import javax.swing.text.TabExpander;
-
 import nachos.Debug;
 
 /**
@@ -237,6 +235,68 @@ class Directory {
 	return true;	
     }
 
+    /**
+     * Removes all files and subdirectories in this directory, freeing their sectors in the bitmap
+     * @return
+     */
+    boolean removeAll(){
+	
+	BitMap freeMap;
+	FileHeader fileHdr;
+	int fileSector, dirSector;
+	
+	//Loop through table size, set their flags and remove them if 
+	for(int i = 0; i < tableSize; i++){
+	    
+	    //If its a file
+	    if(table[i].inUse() && !table[i].isDir()){
+		//Load the file header
+		fileSector = table[i].getSector();
+		fileHdr = new FileHeader(filesystem);
+		fileHdr.fetchFrom(fileSector);
+		
+		//Load the freemap
+		freeMap = new BitMap(filesystem.numDiskSectors);
+		freeMap.fetchFrom(filesystem.freeMapFile);
+		
+		fileHdr.deallocate(freeMap); // remove data blocks
+		freeMap.clear(fileSector); // remove header block
+		freeMap.writeBack(filesystem.freeMapFile);
+	    }
+	    //Otherwise its a directory
+	    else if(table[i].inUse() && table[i].isDir()){
+		//Fetch the directory from disk
+		dirSector = table[i].getSector();
+		OpenFileReal directoryFile = new OpenFileReal(dirSector, filesystem);
+		Directory directory = new Directory(tableSize, filesystem);
+		directory.fetchFrom(directoryFile);
+		
+		//Remove the subdirectories if any
+		directory.removeAll();
+		
+		//Remove the directory
+		fileHdr = new FileHeader(filesystem);
+		fileHdr.fetchFrom(dirSector);
+		
+		//Load the freemap
+		freeMap = new BitMap(filesystem.numDiskSectors);
+		freeMap.fetchFrom(filesystem.freeMapFile);
+		
+		fileHdr.deallocate(freeMap); // remove data blocks
+		freeMap.clear(dirSector); // remove header block
+		freeMap.writeBack(filesystem.freeMapFile);
+		
+	    }
+	    
+	    //Whether its a file or directory set the flags
+	    table[i].setUnused();
+	    table[i].setIsDir(false);
+	}
+	
+	return true;
+    }
+    
+    
     /**
      * List all the file names in the directory (for debugging).
      */

@@ -13,25 +13,21 @@ package nachos.kernel.filesys;
 import nachos.Debug;
 
 /**
- * This is a class for managing an open Nachos file.  As in UNIX, a
- * file must be open before we can read or write to it.
- * Once we're all done, we can close it (in Nachos, by deleting
- * the OpenFile data structure).
- *
- *	Also as in UNIX, for convenience, we keep the file header in
- *	memory while the file is open.
- *
- *	Supports opening, closing, reading and writing to 
- *	individual files.  The operations supported are similar to
- *	the UNIX ones.
- *
- *	There are two implementations.
- *	This is the "real" implementation, that turns these
- *	operations into read and write disk sector requests. 
- *	In this baseline implementation of the file system, we don't 
- *	worry about concurrent accesses to the file system
- *	by different threads -- this is part of the assignment.
- *
+ * This is a class for managing an open Nachos file. As in UNIX, a file must be
+ * open before we can read or write to it. Once we're all done, we can close it
+ * (in Nachos, by deleting the OpenFile data structure).
+ * 
+ * Also as in UNIX, for convenience, we keep the file header in memory while the
+ * file is open.
+ * 
+ * Supports opening, closing, reading and writing to individual files. The
+ * operations supported are similar to the UNIX ones.
+ * 
+ * There are two implementations. This is the "real" implementation, that turns
+ * these operations into read and write disk sector requests. In this baseline
+ * implementation of the file system, we don't worry about concurrent accesses
+ * to the file system by different threads -- this is part of the assignment.
+ * 
  * @author Thomas Anderson (UC Berkeley), original C++ version
  * @author Peter Druschel (Rice University), Java translation
  * @author Eugene W. Stark (Stony Brook University)
@@ -50,19 +46,21 @@ class OpenFileReal implements OpenFile {
     /** Current position within the file. */
     private int seekPosition;
 
-    /** Location of the file header*/
+    /** Location of the file header */
     private int headerSector;
-    
+
     /**
-     * Open a Nachos file for reading and writing.  Bring the file header
-     * into memory while the file is open.  This constructor is not public,
-     * because users of the filesystem should be using the methods of the
-     * FileSystem class to obtain an OpenFile.
-     *
-     * @param sector The location on disk of the file header for this file.
-     * @param filesystem  The underlying filesystem in which this file exists.
+     * Open a Nachos file for reading and writing. Bring the file header into
+     * memory while the file is open. This constructor is not public, because
+     * users of the filesystem should be using the methods of the FileSystem
+     * class to obtain an OpenFile.
+     * 
+     * @param sector
+     *            The location on disk of the file header for this file.
+     * @param filesystem
+     *            The underlying filesystem in which this file exists.
      */
-    OpenFileReal(int sector, FileSystemReal filesystem) { 
+    OpenFileReal(int sector, FileSystemReal filesystem) {
 	hdr = new FileHeader(filesystem);
 	hdr.fetchFrom(sector);
 	this.headerSector = sector;
@@ -72,25 +70,29 @@ class OpenFileReal implements OpenFile {
     }
 
     /**
-     * Change the current location within the open file -- the point at
-     * which the next Read or Write will start from.
-     *
-     * @param position -- the location within the file for the next Read/Write.
+     * Change the current location within the open file -- the point at which
+     * the next Read or Write will start from.
+     * 
+     * @param position
+     *            -- the location within the file for the next Read/Write.
      */
     public void seek(long position) {
-	seekPosition = (int)position;
-    }	
+	seekPosition = (int) position;
+    }
 
     /**
-     * Read a portion of a file, starting from seekPosition.
-     * Return the number of bytes actually read, and as a
-     * side effect, increment the current position within the file.
-     *
+     * Read a portion of a file, starting from seekPosition. Return the number
+     * of bytes actually read, and as a side effect, increment the current
+     * position within the file.
+     * 
      * Implemented using the more primitive ReadAt.
-     *
-     * @param into The buffer to contain the data to be read from disk .
-     * @param index Position in the buffer at which to begin placing data.
-     * @param numBytes The number of bytes to transfer.
+     * 
+     * @param into
+     *            The buffer to contain the data to be read from disk .
+     * @param index
+     *            Position in the buffer at which to begin placing data.
+     * @param numBytes
+     *            The number of bytes to transfer.
      * @return The number of bytes actually read (0 if error).
      */
     public int read(byte[] into, int index, int numBytes) {
@@ -100,15 +102,18 @@ class OpenFileReal implements OpenFile {
     }
 
     /**
-     * Write a portion of a file, starting from seekPosition.
-     * Return the number of bytes actually written, and as a
-     * side effect, increment the current position within the file.
-     *
+     * Write a portion of a file, starting from seekPosition. Return the number
+     * of bytes actually written, and as a side effect, increment the current
+     * position within the file.
+     * 
      * Implemented using the more primitive WriteAt.
-     *
-     * @param from The buffer containing the data to be written to disk .
-     * @param index Position in the buffer at which to begin taking data.
-     * @param numBytes The number of bytes to transfer.
+     * 
+     * @param from
+     *            The buffer containing the data to be written to disk .
+     * @param index
+     *            Position in the buffer at which to begin taking data.
+     * @param numBytes
+     *            The number of bytes to transfer.
      * @return The number of bytes actually written (0 if error).
      */
     public int write(byte[] from, int index, int numBytes) {
@@ -118,22 +123,25 @@ class OpenFileReal implements OpenFile {
     }
 
     /**
-     * Read a portion of a file, starting at "position".
-     * Return the number of bytes actually read, but has
-     * no side effects.
-     *
+     * Read a portion of a file, starting at "position". Return the number of
+     * bytes actually read, but has no side effects.
+     * 
      * There is no guarantee the request starts or ends on an even disk sector
-     * boundary; however the disk only knows how to read a whole disk
-     * sector at a time.  Thus:
-     *
-     *	   We read in all of the full or partial sectors that are part of the
-     *	   request, but we only copy the part we are interested in.
-     *
-     * @param into The buffer to contain the data to be read from disk.
-     * @param index Position in the buffer at which to begin placing data.
-     * @param numBytes The number of bytes to transfer.
-     * @param position The offset within the file of the first byte to be
-     *			read/written.
+     * boundary; however the disk only knows how to read a whole disk sector at
+     * a time. Thus:
+     * 
+     * We read in all of the full or partial sectors that are part of the
+     * request, but we only copy the part we are interested in.
+     * 
+     * @param into
+     *            The buffer to contain the data to be read from disk.
+     * @param index
+     *            Position in the buffer at which to begin placing data.
+     * @param numBytes
+     *            The number of bytes to transfer.
+     * @param position
+     *            The offset within the file of the first byte to be
+     *            read/written.
      * @return The number of bytes actually read (0 if error).
      */
     public int readAt(byte[] into, int index, int numBytes, long position) {
@@ -142,52 +150,61 @@ class OpenFileReal implements OpenFile {
 	int i, firstSector, lastSector, numSectors;
 	byte buf[];
 
-	//numBytes must be positive
+	// numBytes must be positive
 	if ((numBytes <= 0))
 	    return 0;
-	
-	firstSector = (int)position / diskSectorSize;
-	lastSector = ((int)position + numBytes - 1) / diskSectorSize;
+
+	// If file length is zero, we did not read in any bytes
+	if (fileLength == 0) {
+	    return 0;
+	}
+
+	firstSector = (int) position / diskSectorSize;
+	lastSector = ((int) position + numBytes - 1) / diskSectorSize;
 	numSectors = 1 + lastSector - firstSector;
 
-	//Read in all the full and partial sectors that we need
+	// Read in all the full and partial sectors that we need
 	buf = new byte[numSectors * diskSectorSize];
-	
-	Debug.printf('f', "Reading %d bytes at %d, from file of length %d.\n",
-		new Integer(numBytes), new Long(position), 
-		new Integer(fileLength));
 
-	for (i = firstSector; i <= lastSector; i++)	
-	    filesystem.readSector(hdr.byteToSector(i * diskSectorSize), 
-		    buf, (i - firstSector) * diskSectorSize);
+	Debug.printf('f', "Reading %d bytes at %d, from file of length %d.\n",
+		new Integer(numBytes), new Long(position), new Integer(
+			fileLength));
+
+	for (i = firstSector; i <= lastSector; i++)
+	    filesystem.readSector(hdr.byteToSector(i * diskSectorSize), buf,
+		    (i - firstSector) * diskSectorSize);
 
 	// copy the part we want
-	System.arraycopy(buf, (int)position - (firstSector * diskSectorSize),
+	System.arraycopy(buf, (int) position - (firstSector * diskSectorSize),
 		into, index, numBytes);
 	
 	return numBytes;
-	
+
     }
 
     /**
-     * Write a portion of a file, starting at "position".
-     * Return the number of bytes actually written, but has
-     * no side effects (except that Write modifies the file, of course).
-     *
+     * Write a portion of a file, starting at "position". Return the number of
+     * bytes actually written, but has no side effects (except that Write
+     * modifies the file, of course).
+     * 
      * There is no guarantee the request starts or ends on an even disk sector
-     * boundary; however the disk only knows how to write a whole disk
-     * sector at a time.  Thus:
-     *
-     *	   We must first read in any sectors that will be partially written,
-     *	   so that we don't overwrite the unmodified portion.  We then copy
-     *	   in the data that will be modified, and write back all the full
-     *	   or partial sectors that are part of the request.
-     *
-     * @param from The buffer containing the data to be written to disk.
-     * @param index Position in the buffer at which to begin placing data.
-     * @param numBytes The number of bytes to transfer.
-     * @param position The offset within the file of the first byte to be
-     *			read/written.
+     * boundary; however the disk only knows how to write a whole disk sector at
+     * a time. Thus:
+     * 
+     * We must first read in any sectors that will be partially written, so that
+     * we don't overwrite the unmodified portion. We then copy in the data that
+     * will be modified, and write back all the full or partial sectors that are
+     * part of the request.
+     * 
+     * @param from
+     *            The buffer containing the data to be written to disk.
+     * @param index
+     *            Position in the buffer at which to begin placing data.
+     * @param numBytes
+     *            The number of bytes to transfer.
+     * @param position
+     *            The offset within the file of the first byte to be
+     *            read/written.
      */
     public int writeAt(byte from[], int index, int numBytes, long position) {
 
@@ -196,77 +213,79 @@ class OpenFileReal implements OpenFile {
 	boolean firstAligned, lastAligned;
 	byte buf[];
 	BitMap freeMap = new BitMap(filesystem.numDiskSectors);
-	//numBytes must be positive
-	if(numBytes <= 0)
-	    return 0;
+	OpenFileReal freeMapFile = new OpenFileReal(filesystem.FreeMapSector, filesystem);
+	freeMap.fetchFrom(freeMapFile);
 	
-	Debug.printf('f', "Writing %d bytes at %d, from file of length %d.\n",
-		new Integer(numBytes), new Long(position), 
-		new Integer(fileLength));
+	// numBytes must be positive
+	if (numBytes <= 0)
+	    return 0;
 
-	firstSector = (int)position / diskSectorSize;
-	lastSector = ((int)position + numBytes - 1) / diskSectorSize;
+	Debug.printf('f', "Writing %d bytes at %d, from file of length %d.\n",
+		new Integer(numBytes), new Long(position), new Integer(
+			fileLength));
+
+	firstSector = (int) position / diskSectorSize;
+	lastSector = ((int) position + numBytes - 1) / diskSectorSize;
 	numSectors = 1 + lastSector - firstSector;
 
 	buf = new byte[numSectors * diskSectorSize];
 
-	firstAligned = (position == (firstSector * diskSectorSize));
-	lastAligned = ((position + numBytes) == ((lastSector + 1) * diskSectorSize));
+	// Only read in sectors if they have already been allocated
+	if (fileLength != 0) {
+	    
+	    firstAligned = (position == (firstSector * diskSectorSize));
+	    lastAligned = ((position + numBytes) == ((lastSector + 1) * diskSectorSize));
 
-	// read in first and last sector, if they are to be partially modified
-	if (!firstAligned)
-	    readAt(buf, 0, diskSectorSize, firstSector * diskSectorSize);	
-	if (!lastAligned && ((firstSector != lastSector) || firstAligned))
-	    readAt(buf, (lastSector - firstSector) * diskSectorSize, 
-		    diskSectorSize, lastSector * diskSectorSize);	
-
-	// copy in the bytes we want to change 
-	System.arraycopy(from, index, 
-		buf, (int)position - (firstSector * diskSectorSize), 
-		numBytes);
+	    // read in first and last sector, if they are to be partially
+	    // modified
+	    if (!firstAligned)
+		readAt(buf, 0, diskSectorSize, firstSector * diskSectorSize);
+	    if (!lastAligned && ((firstSector != lastSector) || firstAligned))
+		readAt(buf, (lastSector - firstSector) * diskSectorSize,
+			diskSectorSize, lastSector * diskSectorSize);
+	}
+	// copy in the bytes we want to change
+	System.arraycopy(from, index, buf, (int) position
+		- (firstSector * diskSectorSize), numBytes);
 
 	// write modified sectors back
-	for (i = firstSector; i <= lastSector; i++){
-	    
-	    if(i >= 28){
-		System.out.println("Reached here");
-	    }
+	for (i = firstSector; i <= lastSector; i++) {
+
 	    freeMap.fetchFrom(filesystem.freeMapFile);
-	    //extend will check if file needs to be extended or not
+	    // extend will check if file needs to be extended or not
 	    hdr.extend(freeMap, i * diskSectorSize);
 	    int sectorNum = hdr.byteToSector(i * diskSectorSize);
 	    int offset = (i - firstSector) * diskSectorSize;
 	    filesystem.writeSector(sectorNum, buf, offset);
 	}
 
-	//Update total number of bytes in file and write back the changes
+	// Update total number of bytes in file and write back the changes
 	hdr.updateNumBytes(numBytes);
 	hdr.writeBack(headerSector);
-	
+
 	return numBytes;
     }
 
     /**
      * Determine the number of bytes in the file.
-     *
+     * 
      * @return the length of the file in bytes.
      */
-    public long length() { 
-	return hdr.fileLength(); 
+    public long length() {
+	return hdr.fileLength();
     }
 
     /**
-     * Close the file, releasing any resources held in kernel memory.
-     * Subsequent attempts to access the file will fail.
-     *
-     * @return 0 if an error occurred while closing the file, otherwise
-     * nonzero.
+     * Close the file, releasing any resources held in kernel memory. Subsequent
+     * attempts to access the file will fail.
+     * 
+     * @return 0 if an error occurred while closing the file, otherwise nonzero.
      */
     public int close() {
 	// If it is possible that we made changes to the FileHeader,
 	// it must be written back to the disk at this point.
-	hdr = null;  // Ensure further access fails.
-	return(1);
+	hdr = null; // Ensure further access fails.
+	return (1);
     }
 
 }

@@ -129,12 +129,13 @@ public class Syscall {
      * status = 0 means the program exited normally.
      */
     public static void exit(int status) {
-	
+
 	if(Nachos.options.LIST_FILES) {
 	    Debug.println('f', "Listing everything in all directories");
 	    Nachos.fileSystem.list();
+	    Nachos.fileSystem.printBitMap();
 	}
-
+	Nachos.fileSystem.printBitMap();
 	//Deallocate any physical memory and other resources that are assigned to this thread
 	UserThread currThrd = ((UserThread)NachosThread.currentThread());
 	
@@ -552,7 +553,7 @@ public class Syscall {
      */
     public static void makeDirectory(String name) {
 	Debug.println('S', "Syscall Mkdir is called for: " + name + ", size: 0");
-	boolean result = Nachos.fileSystem.makeDirectory(name, Nachos.fileSystem.DirectoryFileSize);
+	boolean result = Nachos.fileSystem.makeDirectory(name, Nachos.fileSystem.getDirectoryFileSize());
 	if(!result){
 	    Debug.println('S', "Could not create directory: " + name);
 	    Debug.ASSERT(false);
@@ -568,9 +569,9 @@ public class Syscall {
      */
     public static void removeDirectory(String name) {
 	Debug.println('S', "Syscall Rmdir is called for: " + name);
-	//Remove any files in the directory
-	//Have the file system remove the directory
-	boolean result = Nachos.fileSystem.remove(name);
+	
+	//Remove any files and subdirectories in the directory along with actual the directory
+	boolean result = Nachos.fileSystem.removeDirectory(name);
 	if(!result){
 	    Debug.println('S', "File: " + name + " was not removed!");
 	    Debug.ASSERT(false);

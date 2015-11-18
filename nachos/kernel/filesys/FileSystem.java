@@ -46,12 +46,15 @@ public abstract class FileSystem {
     
     public int DirectoryFileSize;
     
+    public BitMap diskSectors;
+    
     /**
      * Copy initial Unix file to Nachos file. Used in real file system not the stub.
      * @param from
      * @param to
      */
     public abstract void copy(String from, String to);
+    
     
     /**
      * Create a new file with a specified name and size.
@@ -158,6 +161,8 @@ public abstract class FileSystem {
     public abstract boolean removeDirectory(String path);
     public abstract int getDirectoryFileSize();
     public abstract void printBitMap();
+    
+    public abstract BitMap getDiskMap ();
     
     public abstract void checkValid();
 }

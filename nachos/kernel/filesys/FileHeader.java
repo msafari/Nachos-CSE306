@@ -506,11 +506,22 @@ class FileHeader {
 	BitMap freeMap = new BitMap(filesystem.numDiskSectors);
 	freeMap.fetchFrom(filesystem.freeMapFile);
 	int i;
+	
 	for(i=0; i< NumDirect; i ++) {
 	    if(dataSectors[i] != -1  && !freeMap.test(dataSectors[i]) ) {
 		
 		Debug.println('V', "Sector " + dataSectors[i] + " is in use but not marked as used in BitMap.");
 	    }
+	    else if (dataSectors[i] != -1) {
+		if(filesystem.diskSectors.test(dataSectors[i])) {
+		    Debug.println('V', "Disk Sector " + dataSectors[i] + " is referenced by more than one header.");
+		}
+		else {
+		    filesystem.diskSectors.mark(dataSectors[i]);
+		}
+	    }
+	    
+	    
 	}
 	
 	//check Indirect blocks

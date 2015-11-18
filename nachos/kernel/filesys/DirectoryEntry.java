@@ -155,10 +155,12 @@ class DirectoryEntry {
 	    if(buffer[pos + 1] != 0)
 		isDir = true;
 	    inUse = true; 
+	    
 	    sector = FileSystem.bytesToInt(buffer, pos+2);
 	    nameLen = FileSystem.bytesToInt(buffer, pos+6);
 	    name = new String(buffer, pos+10, nameLen);
 	    nameBytes = name.getBytes();
+	    
 	} else {
 	    inUse = false;
 	    isDir = false;

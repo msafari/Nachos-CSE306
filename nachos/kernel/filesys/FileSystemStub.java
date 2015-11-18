@@ -129,4 +129,10 @@ class FileSystemStub extends FileSystem {
 	
     }
 
+    @Override
+    public BitMap getDiskMap() {
+	// TODO Auto-generated method stub
+	return null;
+    }
+
 }

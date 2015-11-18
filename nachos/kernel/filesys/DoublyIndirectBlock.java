@@ -216,6 +216,12 @@ public class DoublyIndirectBlock {
 		    iBlock = new IndirectBlock(filesystem);
 		    iBlock.fetchFrom(dataSectors[i]);
 		    
+		    if(filesystem.diskSectors.test(dataSectors[i])) {
+			Debug.println('V', "Disk Sector " + dataSectors[i] + " is referenced by more than one header.");
+		    }
+		    else {
+			filesystem.diskSectors.mark(dataSectors[i]);
+		    }
 		    iBlock.validate();
 		}
 	    }

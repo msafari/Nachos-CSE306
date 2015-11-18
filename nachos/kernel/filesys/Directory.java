@@ -75,8 +75,18 @@ class Directory {
      * @param file The file containing the directory contents.
      */
     void fetchFrom(OpenFile file) {
+//	byte tableBuffer[] = new byte[4];
+//	file.readAt(tableBuffer, 0, 4, 0);
+//	tableSize = filesystem.bytesToInt(tableBuffer, 0);
+//	
+//	table = new DirectoryEntry[tableSize];
+//	for (int i=0; i< tableSize; i++) {
+//	    table[i] = new DirectoryEntry();
+//	}
+	
 	byte buffer[] = new byte[tableSize * DirectoryEntry.sizeOf()];
 	file.readAt(buffer, 0, tableSize * DirectoryEntry.sizeOf(), 0);
+
 	int pos = 0;
 	for (int i = 0; i < tableSize; i++) {
 	    table[i].internalize(buffer, pos);
@@ -91,6 +101,8 @@ class Directory {
      */
     void writeBack(OpenFile file) {
 	byte buffer[] = new byte[tableSize * DirectoryEntry.sizeOf()];
+	
+	//FileSystem.intToBytes(tableSize, buffer, 0);
 	int pos = 0;
 	for (int i = 0; i < tableSize; i++) {
 	    table[i].externalize(buffer, pos);
@@ -143,6 +155,13 @@ class Directory {
 	
 	for (int i=0; i<table.length; i++) {
 	    if(table[i].inUse()) {
+		if(filesystem.diskSectors.test(table[i].getSector())) {
+		    Debug.println('V', "Disk Sector " + table[i].getSector() + " is referenced by more than one header.");
+		}
+		else {
+		    filesystem.diskSectors.mark(table[i].getSector());
+		}
+				
 		if(!freeMap.test(table[i].getSector())){
 		    Debug.println('V', "Sector " + table[i].getSector() + " is in use but not marked as used in BitMap.");
 		}

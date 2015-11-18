@@ -100,6 +100,8 @@ class FileSystemReal extends FileSystem {
 
   /** Access to the disk on which the filesystem resides. */
   private final DiskDriver diskDriver;
+  
+  public BitMap diskSectors;
  
   
   /** Sector size of the disk. */
@@ -307,11 +309,11 @@ class FileSystemReal extends FileSystem {
       Directory root = new Directory(NumDirEntries, this);
       OpenFileReal rootFile = new OpenFileReal(DirectorySector, this);
       root.fetchFrom(rootFile);
-      root.validate();
      
       //Validate disk sectors against fileHeaders;
-      BitMap diskSectors = new BitMap(numDiskSectors);
+      diskSectors = new BitMap(numDiskSectors);
       
+      root.validate();
       
       
       //Disk sectors that are referenced by more than one file header.
@@ -495,6 +497,7 @@ class FileSystemReal extends FileSystem {
   	  hdr.writeBack(sector);
   	  OpenFileReal parentFile = new OpenFileReal(directorySector, this);
   	  directory.writeBack(parentFile);
+  	  directory.fetchFrom(parentFile);
   	  
   	  Directory newDir = new Directory(NumDirEntries, this);
   	  OpenFileReal newDirFile = new OpenFileReal(sector, this);
@@ -666,5 +669,10 @@ class FileSystemReal extends FileSystem {
   public int getDirectoryFileSize(){
       return DirectoryFileSize;
   }
+
+    @Override
+    public BitMap getDiskMap() {
+	return diskSectors;
+    }
 
 }

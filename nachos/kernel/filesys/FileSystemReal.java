@@ -291,20 +291,31 @@ class FileSystemReal extends FileSystem {
   }
   
   /**
-   * 
+   * Checks that all disk sectors are valid, in particular:
+   * -Disk sectors that are used by files (or file headers), but that are also marked as "free" in the bitmap.
+   * -Disk sectors that are not used by any files (or file headers), but that are marked as "in use" in the bitmap.
+   * -Disk sectors that are referenced by more than one file header.
+   * -Multiple directory entries that refer to the same file header.
    * @return
    */
   public void checkValid () {
       
       Debug.println('V', "Validating Disk Sectors.");
+      
+      //Validate disk sectors against bitmap
       BitMap freeMap = new BitMap(numDiskSectors);
       Directory root = new Directory(NumDirEntries, this);
       OpenFileReal rootFile = new OpenFileReal(DirectorySector, this);
       root.fetchFrom(rootFile);
-      
-      
       root.validate();
      
+      //Validate disk sectors against fileHeaders;
+      BitMap diskSectors = new BitMap(numDiskSectors);
+      
+      
+      
+      //Disk sectors that are referenced by more than one file header.
+      Debug.println('V', "Finished Validating Disk Sectors.");
   }
   
   

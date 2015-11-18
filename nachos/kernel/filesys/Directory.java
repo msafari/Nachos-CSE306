@@ -132,7 +132,7 @@ class Directory {
     }
     
     /**
-     * 
+     * Validates the sectors allocated in this directory by comparing them to the freemap sectors.
      * @return
      */
     void validate() {

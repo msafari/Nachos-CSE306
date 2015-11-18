@@ -251,7 +251,7 @@ class FileSystemReal extends FileSystem {
    * @return true if the file was successfully created, otherwise false.
    */
   public boolean create(String path, long initialSize) {
-    Directory directory = new Directory(NumDirEntries, this);
+    //Directory directory = new Directory(NumDirEntries, this);
     BitMap freeMap;
     FileHeader hdr;
     int sector;
@@ -261,6 +261,13 @@ class FileSystemReal extends FileSystem {
 		 new Long(initialSize));
 
     int directorySector = getDirectory(path);
+    FileHeader dirHdr = new FileHeader(this);
+    dirHdr.fetchFrom(directorySector);
+    int numDirEntries = dirHdr.numSectors;
+    if(dirHdr.numSectors < NumDirEntries)
+	numDirEntries = NumDirEntries;
+    Directory directory = new Directory(dirHdr.numSectors, this);
+    
     OpenFile dirFile = new OpenFileReal(directorySector, this);
     directory.fetchFrom(dirFile);
 

@@ -23,11 +23,15 @@ TO LIST ALL FILES IN FILESYSTEM:
 	1) Make sure you remove all debug flags so you see a clean list printed.
 	2) Run the program with [-list] flag
 	3) List of all files will be displayed upon exit.
+	NOTE: List will not print the directories and files correctly if we extend the directory for more than 10 files. 
+	However, you can check the functionality of our directpry extension by looking through the disk file. It is just an error in the list function.
 	
 	
 Testing Validation:
+--------------------
 
--V: to print validation debugs
+	-V: set this flag to print validation debug statements
+	
 
 General Notes For Developers:
 - All blocks are 128 bytes

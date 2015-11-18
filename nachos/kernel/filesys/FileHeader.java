@@ -50,10 +50,10 @@ class FileHeader {
     private final int MaxFileSize;
 
     /** Number of bytes in the file. */
-    private int numBytes;
+    public int numBytes;
 
     /** Number of data sectors in the file. */
-    private int numSectors;
+    public int numSectors;
 
     /** Disk sector numbers for each data block in the file. */
     private int dataSectors[];

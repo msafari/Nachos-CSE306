@@ -145,7 +145,6 @@ class OpenFileReal implements OpenFile {
      * @return The number of bytes actually read (0 if error).
      */
     public int readAt(byte[] into, int index, int numBytes, long position) {
-
 	int fileLength = hdr.fileLength();
 	int i, firstSector, lastSector, numSectors;
 	byte buf[];
@@ -231,19 +230,19 @@ class OpenFileReal implements OpenFile {
 	buf = new byte[numSectors * diskSectorSize];
 
 	// Only read in sectors if they have already been allocated
-	if (fileLength != 0) {
-	    
-	    firstAligned = (position == (firstSector * diskSectorSize));
-	    lastAligned = ((position + numBytes) == ((lastSector + 1) * diskSectorSize));
-
-	    // read in first and last sector, if they are to be partially
-	    // modified
-	    if (!firstAligned)
-		readAt(buf, 0, diskSectorSize, firstSector * diskSectorSize);
-	    if (!lastAligned && ((firstSector != lastSector) || firstAligned))
-		readAt(buf, (lastSector - firstSector) * diskSectorSize,
-			diskSectorSize, lastSector * diskSectorSize);
-	}
+//	if (fileLength != 0) {
+//	    
+//	    firstAligned = (position == (firstSector * diskSectorSize));
+//	    lastAligned = ((position + numBytes) == ((lastSector + 1) * diskSectorSize));
+//
+//	    // read in first and last sector, if they are to be partially
+//	    // modified
+//	    if (!firstAligned)
+//		readAt(buf, 0, diskSectorSize, firstSector * diskSectorSize);
+//	    if (!lastAligned && ((firstSector != lastSector) || firstAligned))
+//		readAt(buf, (lastSector - firstSector) * diskSectorSize,
+//			diskSectorSize, lastSector * diskSectorSize);
+//	}
 	// copy in the bytes we want to change
 	System.arraycopy(from, index, buf, (int) position
 		- (firstSector * diskSectorSize), numBytes);

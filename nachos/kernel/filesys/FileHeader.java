@@ -223,7 +223,6 @@ class FileHeader {
      * @param offset
      */
     public void extend(BitMap freeMap, int offset) {
-	Debug.println('f', "Extending file");
 	
 	int index = offset / diskSectorSize;
 	int indirectMax = ((NumDirect + 2) * 2) - 4;// Indirect block can hold 32 sectors
@@ -256,6 +255,7 @@ class FileHeader {
 	
 	else {
 	    if(dataSectors[index] == -1){
+		Debug.println('f', "Extending one direct block");
 		dataSectors[index] = freeMap.find();
 		freeMap.writeBack(filesystem.freeMapFile);
 		
@@ -491,11 +491,11 @@ class FileHeader {
     }
     
     /**
-     * Update the number of bytes, but don't write back yet
+     * Update the number of bytes, but don't write back yet. numBytes passed are the total number of bytes, so just set the numbytes
      * @param bytes
      */
     public void updateNumBytes(int bytes){
-	numBytes += bytes;
+	numBytes = bytes;
     }
     
     /**

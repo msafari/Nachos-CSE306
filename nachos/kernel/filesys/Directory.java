@@ -75,17 +75,17 @@ class Directory {
      * @param file The file containing the directory contents.
      */
     void fetchFrom(OpenFile file) {
-//	byte tableBuffer[] = new byte[4];
-//	file.readAt(tableBuffer, 0, 4, 0);
-//	tableSize = filesystem.bytesToInt(tableBuffer, 0);
-//	
-//	table = new DirectoryEntry[tableSize];
-//	for (int i=0; i< tableSize; i++) {
-//	    table[i] = new DirectoryEntry();
-//	}
+	byte tableBuffer[] = new byte[4];
+	file.readAt(tableBuffer, 0, 4, 0);
+	tableSize = filesystem.bytesToInt(tableBuffer, 0);
+	
+	table = new DirectoryEntry[tableSize];
+	for (int i=0; i< tableSize; i++) {
+	    table[i] = new DirectoryEntry();
+	}
 	
 	byte buffer[] = new byte[tableSize * DirectoryEntry.sizeOf()];
-	file.readAt(buffer, 0, tableSize * DirectoryEntry.sizeOf(), 0);
+	file.readAt(buffer, 0, tableSize * DirectoryEntry.sizeOf(), 4);
 
 	int pos = 0;
 	for (int i = 0; i < tableSize; i++) {
@@ -100,15 +100,17 @@ class Directory {
      * @param file The file to contain the new directory contents.
      */
     void writeBack(OpenFile file) {
-	byte buffer[] = new byte[tableSize * DirectoryEntry.sizeOf()];
+	int dirSize = (tableSize * DirectoryEntry.sizeOf()) + 4;
+	byte buffer[] = new byte[dirSize];
 	
-	//FileSystem.intToBytes(tableSize, buffer, 0);
-	int pos = 0;
+	FileSystem.intToBytes(tableSize, buffer, 0);
+	int pos = 4;
 	for (int i = 0; i < tableSize; i++) {
 	    table[i].externalize(buffer, pos);
 	    pos += DirectoryEntry.sizeOf();
 	}
-	file.writeAt(buffer, 0, tableSize * DirectoryEntry.sizeOf(), 0);
+	
+	file.writeAt(buffer, 0, dirSize, 0);
     }
 
     /**

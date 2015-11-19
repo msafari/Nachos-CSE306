@@ -13,10 +13,10 @@
 # Change the following to point to where you have the MIPS cross-compiler
 # installed.
 #Specify absolute path or it will complain
-GCCDIR = /home/maedeh/Desktop/CSE306/mips-gcc/
+GCCDIR = /home/zerusski/Downloads/CSE306/mips-gcc/
 
 # Change the following to point to where you have Java executables installed.aesome
-JAVADIR = /usr/lib/jvm/java-7-openjdk-amd64/bin/
+JAVADIR = /usr/lib/jvm/java-7-oracle/bin/
 
 # Uncomment the following when running on Windows.
 #JAVA= $(JAVADIR)java -classpath '..\machine.jar'

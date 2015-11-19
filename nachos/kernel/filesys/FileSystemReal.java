@@ -260,6 +260,9 @@ class FileSystemReal extends FileSystem {
     Debug.printf('f', "Creating file %s, size %d\n", path, 
 		 new Long(initialSize));
 
+    if(path.equals("create12")){
+	System.out.println("Here");
+    }
     int directorySector = getDirectory(path);
     FileHeader dirHdr = new FileHeader(this);
     dirHdr.fetchFrom(directorySector);
@@ -458,7 +461,8 @@ class FileSystemReal extends FileSystem {
    */
   public void list() {
     Directory directory = new Directory(NumDirEntries, this);
-    directory.fetchFrom(directoryFile);
+    OpenFileReal dirFile = new OpenFileReal(DirectorySector, this);
+    directory.fetchFrom(dirFile);
     directory.list("");
     
   }
@@ -610,7 +614,8 @@ class FileSystemReal extends FileSystem {
   public int getDirectory(String path) {
       //fetch the root directory
       Directory curDirectory = new Directory(NumDirEntries, this);
-      curDirectory.fetchFrom(directoryFile);
+      OpenFile dirFile = new OpenFileReal(DirectorySector, this);
+      curDirectory.fetchFrom(dirFile);
       
       String[] subDirs = path.split("/");
       if(subDirs.length == 1) {
@@ -626,7 +631,7 @@ class FileSystemReal extends FileSystem {
 	      return -1;
 	  }
 	  
-	  OpenFile dirFile = new OpenFileReal(dirSectorNum, this);
+	  dirFile = new OpenFileReal(dirSectorNum, this);
 	  curDirectory = new Directory(NumDirEntries, this);
 	  curDirectory.fetchFrom(dirFile);	  
       }

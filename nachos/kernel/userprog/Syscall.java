@@ -135,9 +135,9 @@ public class Syscall {
 	    Nachos.fileSystem.list();
 	    Nachos.fileSystem.printBitMap();
 	    
-	    Nachos.fileSystem.checkValid();
+	    //Nachos.fileSystem.checkValid();
 	}
-	Nachos.fileSystem.printBitMap();
+	
 	//Deallocate any physical memory and other resources that are assigned to this thread
 	UserThread currThrd = ((UserThread)NachosThread.currentThread());
 	

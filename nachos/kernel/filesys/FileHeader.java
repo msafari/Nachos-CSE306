@@ -379,8 +379,7 @@ class FileHeader {
 	else{
 	    // First free the direct blocks
 	    for (i = 0; i < NumDirect - 2; i++) {
-		Debug.ASSERT(freeMap.test(dataSectors[i])); // ought to be
-							    // marked!
+		Debug.ASSERT(freeMap.test(dataSectors[i])); // ought to be marked!
 		freeMap.clear(dataSectors[i]);
 	    }
 	    // Next free the indirect block if it has been used
@@ -491,7 +490,7 @@ class FileHeader {
     }
     
     /**
-     * Update the number of bytes, but don't write back yet. numBytes passed are the total number of bytes, so just set the numbytes
+     * Update the number of bytes, but don't write back yet. numBytes passed are the total number of bytes, so just set the bytes
      * @param bytes
      */
     public void updateNumBytes(int bytes){

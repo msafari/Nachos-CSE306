@@ -9,6 +9,5 @@ int main()
   Mkdir("test/dummy2");
   Create("create0");
   Create("test/dummy2/create2");
-  //Exit(0);
 }
 

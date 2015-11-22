@@ -259,18 +259,10 @@ class FileSystemReal extends FileSystem {
 
     Debug.printf('f', "Creating file %s, size %d\n", path, 
 		 new Long(initialSize));
-
-    if(path.equals("create12")){
-	System.out.println("Here");
-    }
-    int directorySector = getDirectory(path);
-    FileHeader dirHdr = new FileHeader(this);
-    dirHdr.fetchFrom(directorySector);
-    int numDirEntries = dirHdr.numSectors;
-    if(dirHdr.numSectors < NumDirEntries)
-	numDirEntries = NumDirEntries;
-    Directory directory = new Directory(dirHdr.numSectors, this);
     
+    //Get parent directory of the file
+    int directorySector = getDirectory(path);
+    Directory directory = new Directory(NumDirEntries, this);
     OpenFile dirFile = new OpenFileReal(directorySector, this);
     directory.fetchFrom(dirFile);
 
@@ -290,12 +282,11 @@ class FileSystemReal extends FileSystem {
 	  success = false;	// no space on disk for data
 	else {	
 	  success = true;
-	  // everthing worked, flush all changes back to disk
-	  hdr.writeBack(sector); 		
+	  // Everything worked, flush all changes back to disk
 	  OpenFileReal parentFile = new OpenFileReal(directorySector, this);
-  	  directory.writeBack(parentFile);
 	  freeMap.writeBack(freeMapFile);
-	  printBitMap();
+  	  directory.writeBack(parentFile);
+	  hdr.writeBack(sector);
 	}
       }
     }
@@ -315,7 +306,6 @@ class FileSystemReal extends FileSystem {
       Debug.println('V', "Validating Disk Sectors.");
       
       //Validate disk sectors against bitmap
-      BitMap freeMap = new BitMap(numDiskSectors);
       Directory root = new Directory(NumDirEntries, this);
       OpenFileReal rootFile = new OpenFileReal(DirectorySector, this);
       root.fetchFrom(rootFile);
@@ -406,7 +396,6 @@ class FileSystemReal extends FileSystem {
    * @param to The name of the file to create on the Nachos filesystem.
    */
   public void copy(String from, String to) {
-      	Debug.println('f', "Copying " + from + " into Nachos file " + to);
 	File fp;
 	FileInputStream fs;
 	OpenFile openFile;
@@ -526,11 +515,12 @@ class FileSystemReal extends FileSystem {
    * @return
    */
   public boolean removeDirectory(String path){
-      Directory directory = new Directory(NumDirEntries, this);
       BitMap freeMap;
       FileHeader fileHdr;
       int sector;
       
+      //Load up root directory
+      Directory directory = new Directory(NumDirEntries, this);
       int directorySector = getDirectory(path);
       OpenFile dirFile = new OpenFileReal(directorySector, this);
       directory.fetchFrom(dirFile);

@@ -2,22 +2,24 @@
 
 int main()
 {
-  Create("create0");
-  Create("create1");
-  Create("create2");
-  Create("create3");
-  Create("create4");
-  Create("create5");
-  Create("create6");
-  Create("create7");
-  Create("create8");
-  Create("create9");
-  Create("create10");
-  Create("create11");
-  Create("create12");
-  Create("create13");
-  Create("create14");
-  Create("create15");
-  Create("create16");
-  Create("create17");
+  Mkdir("dummy");
+  Create("dummy/create0");
+  Create("dummy/create1");
+  Create("dummy/create2");
+  Create("dummy/create3");
+  Create("dummy/create4");
+  Create("dummy/create5");
+  Create("dummy/create6");
+  Create("dummy/create7");
+  Create("dummy/create8");
+  Create("dummy/create9");
+  Create("dummy/create10");
+  Create("dummy/create11");
+  Create("dummy/create12");
+  Create("dummy/create13");
+  Create("dummy/create14");
+  Create("dummy/create15");
+  Create("dummy/create16");
+  Create("dummy/create17");
+  Rmdir("dummy");
 }

@@ -250,7 +250,7 @@ class OpenFileReal implements OpenFile {
 	// write modified sectors back
 	for (i = firstSector; i <= lastSector; i++) {
 
-	    freeMap.fetchFrom(filesystem.freeMapFile);
+	    //freeMap.fetchFrom(filesystem.freeMapFile);
 	    // extend will check if file needs to be extended or not
 	    hdr.extend(freeMap, i * diskSectorSize);
 	    int sectorNum = hdr.byteToSector(i * diskSectorSize);

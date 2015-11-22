@@ -24,14 +24,19 @@ TO LIST ALL FILES IN FILESYSTEM:
 	2) Run the program with [-list] flag
 	3) List of all files will be displayed upon exit.
 	NOTE: List will not print the directories and files correctly if we extend the directory for more than 10 files. 
-	However, you can check the functionality of our directpry extension by looking through the disk file. It is just an error in the list function.
+	However, you can check the functionality of our directory extension by looking through the disk file. It is just an error in the list function.
 	
 	
 Testing Validation:
 --------------------
 
-	-V: set this flag to print validation debug statements
-	
+	-list: set this flag to print validation debug statements. This will list all the files and directories before exiting the last program.
+	-chkfs: set this flag to verify the integrity of the filesystem upon exit of the last program. Nachos will check for:
+		- Disk sectors that are used by files (or file headers), but that are also marked as "free" in the bitmap.
+		- Disk sectors that are not used by any files (or file headers), but that are marked as "in use" in the bitmap.
+		- Disk sectors that are referenced by more than one file header.
+		- Multiple directory entries that refer to the same file header.
+		Sectors which fail these checks will be printed out.
 
 General Notes For Developers:
 - All blocks are 128 bytes

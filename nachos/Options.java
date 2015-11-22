@@ -161,7 +161,11 @@ public class Options {
     /** Should we format the Nachos disk before using it? */
     public boolean FORMAT_DISK = false;
     
+    /** Should we copy in the first program before running it? Used with the real Nachos fs.*/
     public String UNIX_FILE;
+    
+    /** Should we validate filesystem upon exit? */
+    public boolean CHECK_FS = false;
     
     // Test/demo configuration options.
 
@@ -424,11 +428,18 @@ public class Options {
 				TASKMANAGER_TEST_2 = true;
 			    }
 			}),
-		new Spec("-list", // enable TaskManager test
+		new Spec("-list", // enable listing of file system structure upon exit
 			new Class[] {}, null, new Options.Action() {
 			    public void processOption(String flag,
 				    Object[] params) {
 				LIST_FILES = true;
+			    }
+			}),
+		new Spec("-chkfs", // enable validation of filesystem upon exit.
+			new Class[] {}, null, new Options.Action() {
+			    public void processOption(String flag,
+				    Object[] params) {
+				CHECK_FS = true;
 			    }
 			}),
 	});

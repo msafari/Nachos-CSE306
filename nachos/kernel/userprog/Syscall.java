@@ -129,14 +129,6 @@ public class Syscall {
      * status = 0 means the program exited normally.
      */
     public static void exit(int status) {
-
-	if(Nachos.options.LIST_FILES) {
-	    Debug.println('f', "Listing everything in all directories");
-	    Nachos.fileSystem.list();
-	    Nachos.fileSystem.printBitMap();
-	    
-	    //Nachos.fileSystem.checkValid();
-	}
 	
 	//Deallocate any physical memory and other resources that are assigned to this thread
 	UserThread currThrd = ((UserThread)NachosThread.currentThread());
@@ -158,7 +150,18 @@ public class Syscall {
 	//if there are no more running threads exit
 	if(runningThreads.isEmpty()) {
 	   Debug.println('+', "Exiting last thread. Setting exitStatus to: "+ status);   
-	   currThrd.exitStatus = status; 	// set the exit status of the addrspace   
+	   currThrd.exitStatus = status; 	// set the exit status of the addrspace
+	   
+	   // Should we list the directories?
+	   if (Nachos.options.LIST_FILES) {
+	       Debug.println('f', "Listing everything in all directories");
+	       Nachos.fileSystem.list();
+	   }
+
+	   // Should we validate the file system?
+	   if (Nachos.options.CHECK_FS) {
+	       Nachos.fileSystem.checkValid();
+	   }	   
 	   Simulation.stop(); 			//halt nachos machine
 	   
 	}

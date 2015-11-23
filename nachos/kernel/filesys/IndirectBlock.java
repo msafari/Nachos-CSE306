@@ -34,8 +34,14 @@ public class IndirectBlock {
 	this.filesystem = filesystem;
 	diskSectorSize = filesystem.diskSectorSize;
 	NumDirect = (diskSectorSize / 4); // We are using the full 32 entries of this sector
-	MaxFileSize = (NumDirect * diskSectorSize);
-
+	
+	int directBlocks = NumDirect - 4;
+	int indirectBlock = NumDirect;
+	int doublyIndirectBlock = indirectBlock * indirectBlock;
+	//Max file size is (28 + 32 + 32*32 - 10)*128 = 138752 bytes
+	//However, must subtract the freeMap, rootDir, and test directory (10) as well as hdr, iblock and dblock pointers (35). Also, bitmap is only 1024 sectors
+	MaxFileSize = (directBlocks + indirectBlock + doublyIndirectBlock - 156) * diskSectorSize;
+	
 	dataSectors = new int[NumDirect];
 	
 	// Safest to fill the table with garbage sector numbers,
@@ -111,18 +117,32 @@ public class IndirectBlock {
 	if(numSectors * diskSectorSize > MaxFileSize)
 	    return -1;		// file too large
 
-	if (freeMap.numClear() < numSectors || NumDirect < numSectors)
+	if (freeMap.numClear() < numSectors)
 	    return -1;		// not enough space
 	
 	int allocated = 0;
-	for (int i = 0; i < numSectors; i++){
-	    if(dataSectors[i] == -1){
-		dataSectors[i] = freeMap.find();
-		allocated++;
+	//If numSectors is greater than numDirect, allocate all the sectors
+	if(numSectors > NumDirect){
+	    for (int i = 0; i < NumDirect; i++) {
+		if (dataSectors[i] == -1) {
+		    dataSectors[i] = freeMap.find();
+		    allocated++;
+		}
 	    }
+	    return allocated;
 	}
-	    
-	return allocated;
+	
+	//Otherwise allocate only some of the sectors
+	else{
+	    for (int i = 0; i < numSectors; i++) {
+		if (dataSectors[i] == -1) {
+		    dataSectors[i] = freeMap.find();
+		    allocated++;
+		}
+	    }
+
+	    return allocated; 
+	}
     }
     
     int allocateSector (BitMap freeMap) {

@@ -17,6 +17,9 @@ Note: When running the program from DISK0, make sure to remove -f and -cp flags.
 
 If file is greater than the max file size, the filesystem will not allocate memory for the file.
 
+Test programs to run:
+ - extend3.c: Creates a directory, adds 18 files to it, writes to a file
+
 TO LIST ALL FILES IN FILESYSTEM:
 --------------------------------
 
@@ -40,6 +43,12 @@ Testing Validation:
 
 General Notes For Developers:
 - All blocks are 128 bytes
+- MaxFileSize will be less than 138752 bytes for the following reasons:
+	1. Number of disk sectors is only 1024, yet the max file size in sectors is 1084. This reduces the max size by 60 sectors.
+	2. First two sectors are reserved for freeMap and root directory, reducing the max size by 2.
+	3. For each file header, 2 sectors are reserved for the indirect and doubly indirect blocks. Again reducing by 2.
+	4. Also, 32 sectors are reserved for the indirect blocks contained in the doubly indirect block. Reducing size by 32.
+	5. Therefore the largest a file can possibly be is 928 sectors assuming a 1024 sector disk. If you include the test directory it will be even less.
 - dataSectors array is different for each type of inode:
 	-FileHeader is 30 (28 for direct, 1 for indirect, 1 for doubly indirect ). 30 because two integers are saved already: numBytes and numSectors
 	-Indirect and Doubly Blocks have size 32

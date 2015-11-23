@@ -663,8 +663,9 @@ class FileSystemReal extends FileSystem {
   
   public void printBitMap() {
       BitMap freeMap = new BitMap(numDiskSectors);
-      Debug.print('+', "Free map:\n");
-      freeMap.fetchFrom(freeMapFile);
+      OpenFileReal fMapFile = new OpenFileReal(FreeMapSector, this);
+      Debug.print('+', "Free map: ");
+      freeMap.fetchFrom(fMapFile);
       freeMap.print();
   }
   

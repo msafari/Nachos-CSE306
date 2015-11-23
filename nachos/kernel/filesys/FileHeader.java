@@ -77,8 +77,9 @@ class FileHeader {
 	int directBlocks = NumDirect - 2;
 	int indirectBlock = NumDirect + 2;
 	int doublyIndirectBlock = indirectBlock * indirectBlock;
-	
-	MaxFileSize = (directBlocks + indirectBlock + doublyIndirectBlock ) * diskSectorSize; //Max file size is (28 + 32 + 32*32)*128 = 138752 bytes
+	//Max file size is (28 + 32 + 32*32 - 10)*128 = 138752 bytes
+	//However, must subtract the freeMap, rootDir, and test directory (10) as well as hdr, iblock and dblock pointers (35). Also, bitmap is only 1024 sectors
+	MaxFileSize = (directBlocks + indirectBlock + doublyIndirectBlock - 156) * diskSectorSize;
 
 	// Number of dataSectors for FileHeader
 	dataSectors = new int[NumDirect];
@@ -172,28 +173,20 @@ class FileHeader {
 		dataSectors[i] = freeMap.find();
 	    }
 
-	    // Calculate the number of sectors exceeding the 28 direct blocks we
-	    // have
+	    // Calculate the number of sectors exceeding the 28 direct blocks we have
 	    int sectorsLeft = numSectors - (NumDirect - 2) + 1;
 
 	    // We did not need to allocate more memory. Done allocating
 	    if (sectorsLeft <= 0) {
-		Debug.println(
-			'f',
-			"File with "
-				+ numSectors
-				+ " sectors fit in direct blocks! Not allocating indirect/doublyindirect blocks");
+		Debug.println('f',"File with " + numSectors + " sectors fit in direct blocks! Not allocating indirect/doublyindirect blocks");
 		return true;
 	    }
 	    // Otherwise we need to allocate more memory
 	    else {
-		Debug.println('f',
-			"File did not fit in direct blocks. Sectors left: "
-				+ sectorsLeft);
+		Debug.println('f', "File did not fit in direct blocks. Sectors left: " + sectorsLeft);
 
 		// First allocate the indirect block
-		int allocated = allocateIndirectBlock(freeMap, sectorsLeft,
-			false);
+		int allocated = allocateIndirectBlock(freeMap, sectorsLeft, false);
 
 		sectorsLeft -= allocated;
 
@@ -201,11 +194,9 @@ class FileHeader {
 		if (sectorsLeft == 0) {
 		    return true;
 		}
-		// Else allocate the remaining blocks in the doubly indirect
-		// block
+		// Else allocate the remaining blocks in the doubly indirect block
 		else {
-		    allocated = allocateDoublyIndirectBlock(freeMap,
-			    sectorsLeft, false);
+		    allocated = allocateDoublyIndirectBlock(freeMap, sectorsLeft, false);
 		    sectorsLeft -= allocated;
 		    Debug.ASSERT(sectorsLeft == 0); // File should fit inside
 						    // the allocated space
@@ -449,6 +440,11 @@ class FileHeader {
 	IndirectBlock iblock;
 	DoublyIndirectBlock dblock;
 	
+	//Make sure index is between 0 and the max number of blocks
+	if(index < 0 || index > doublyMax){
+	    Debug.println('f', "Error: index " + index + " falls outside of boundaries.");
+	    return -1;
+	}
 	//Check if position falls in indirect block
 	if(index >= indirectMin && index < indirectMax){
 
@@ -465,6 +461,9 @@ class FileHeader {
 	//Check if position falls in doubly indirect block
 	else if(index >= doublyMin && index < doublyMax ){
 
+	    if(index == 92){
+		System.out.println("here");
+	    }
 	 // It should already be allocated, just load the sector
 	    Debug.ASSERT(dataSectors[doublyIndex] != -1);
 	    dblock = new DoublyIndirectBlock(filesystem);
@@ -490,11 +489,11 @@ class FileHeader {
     }
     
     /**
-     * Update the number of bytes, but don't write back yet. numBytes passed are the total number of bytes, so just set the bytes
+     * Update the number of bytes, but don't write back yet. bytes passed in are added to the total numBytes
      * @param bytes
      */
     public void updateNumBytes(int bytes){
-	numBytes = bytes;
+	numBytes += bytes;
     }
     
     /**

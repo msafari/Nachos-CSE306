@@ -38,7 +38,13 @@ public class DoublyIndirectBlock {
 	diskSectorSize = filesystem.diskSectorSize;
 	NumIndirect = ((diskSectorSize) / 4);
 	
-	MaxFileSize = (NumIndirect * diskSectorSize);
+	int NumDirect = (diskSectorSize / 4);
+	int directBlocks = NumDirect - 4;
+	int indirectBlock = NumDirect;
+	int doublyIndirectBlock = indirectBlock * indirectBlock;
+	//Max file size is (28 + 32 + 32*32 - 10)*128 = 138752 bytes
+	//However, must subtract the freeMap, rootDir, and test directory (10) as well as hdr, iblock and dblock pointers (35). Also, bitmap is only 1024 sectors
+	MaxFileSize = (directBlocks + indirectBlock + doublyIndirectBlock - 156) * diskSectorSize;
 
 	dataSectors = new int[NumIndirect];
 	// Safest to fill the table with garbage sector numbers,
@@ -90,12 +96,12 @@ public class DoublyIndirectBlock {
 	if(numSectors * diskSectorSize > MaxFileSize)
 	    return -1;		// file too large
 
-	if (freeMap.numClear() < numSectors || NumIndirect + 2 < numSectors)
+	if (freeMap.numClear() < numSectors)
 	    return -1;		// not enough space
 
 	Debug.println('f', "Allocating memory for doubly indirect block");
 	int allocated = 0;
-	for (int i = 0; i < numSectors; i++){	    
+	for (int i = 0; i < NumIndirect && allocated < numSectors; i++){	    
 	   
 	    //Create a new indirect block
 	    iBlock = new IndirectBlock(filesystem); 
@@ -126,17 +132,31 @@ public class DoublyIndirectBlock {
 	int allocated = 0;
 	for (int i = 0; i < dataSectors.length; i++){	    
 	   
-	    //Create a new indirect block
+	    //Create a new indirect block if it doesn't exist
 	    iBlock = new IndirectBlock(filesystem); 
 	    if( dataSectors[i] == -1 ) {	
 
-		dataSectors[i] = freeMap.find(); 
+		dataSectors[i] = freeMap.find();
 		freeMap.writeBack(filesystem.freeMapFile);
 		//Allocate memory for the indirect block
 		int res = iBlock.allocateSector(freeMap);
 		iBlock.writeBack(dataSectors[i]);
 		allocated += res;
 		break;
+	    }
+	    //If it does exist, load it up and allocate a sector
+	    else{
+		iBlock.fetchFrom(dataSectors[i]);
+		//Allocate a free sector
+		allocated = iBlock.allocateSector(freeMap);
+		iBlock.writeBack(dataSectors[i]);
+		//If succesfully allocated a sector, return
+		if(allocated > 0){
+		    Debug.println('f', "Allocated sector to existing block: " + dataSectors[i]);
+		    break;
+		}
+		
+		//Otherwise keep going
 	    }
 	    
 	    
@@ -195,7 +215,17 @@ public class DoublyIndirectBlock {
      * @return the disk sector number storing the specified byte.
      */
     int byteToSector(int offset) {
-	return(dataSectors[offset]);
+	
+	//All blocks stored are indirect blocks
+	IndirectBlock iblock = new IndirectBlock(filesystem);
+	
+	//Fetch the block according to the offset
+	int iblockIndex = offset / NumIndirect;
+	iblock.fetchFrom(dataSectors[iblockIndex]);
+	int dBlockIndex = (offset % NumIndirect);
+	int sector = iblock.byteToSector(dBlockIndex);
+
+	return sector;
     }
     
     

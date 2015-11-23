@@ -117,6 +117,8 @@ public class BitMap {
 		mark(i);
 		return i;
 	    }
+	Debug.println('+', "No free sector found");
+	Debug.ASSERT(false);
 	return -1;
     }
 

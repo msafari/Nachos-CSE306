@@ -1,7 +1,12 @@
 #include "syscall.h"
-
+/**
+  This test extends both a directory passed its initial 10 entry limit as well as a single file to fill all of its direct, indirect and doubly indirect blocks.
+*/
 int main()
 {
+  OpenFileId fd;
+  int i;
+
   Mkdir("dummy");
   Create("dummy/create0");
   Create("dummy/create1");
@@ -21,5 +26,10 @@ int main()
   Create("dummy/create15");
   Create("dummy/create16");
   Create("dummy/create17");
-  Rmdir("dummy");
+  fd = Open("dummy/create10");
+
+  //Write in 128 byte chunks
+  for(i=0;i<926;i++) {
+    Write("TQHJEOLHDETWACEZVJODKBSUZIOLAVRQPGCEJLNXYQNILHEPMPFPDVBRNQWKYMSWXWVOIXNYAHOEPWDZKWKWDRAOTUTEFUEQRPWLCBTXFRZVVGKXFQWGTXBJAUTSRZKL", 128, fd);
+  }
 }

@@ -43,6 +43,22 @@ __start:
  * -------------------------------------------------------------
  */
 
+ 	.globl Mmap
+	.ent	Mmap
+Mmap:
+	addiu $2,$0,SC_Mmap
+	syscall
+	j	$31
+	.end Mmap
+
+	.globl Munmap
+	.ent	Munmap
+Munmap:
+	addiu $2,$0,SC_Munmap
+	syscall
+	j	$31
+	.end Munmap
+
 	.globl Sleep
 	.ent	Sleep
 Sleep:
@@ -110,10 +126,10 @@ Create:
         .globl Remove
         .ent    Remove
 Remove:
-        addiu $2,$0,SC_Remove
-        syscall
-        j       $31
-        .end Remove
+    addiu $2,$0,SC_Remove
+    syscall
+    j       $31
+    .end Remove
 
 	.globl Open
 	.ent	Open

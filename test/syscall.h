@@ -33,6 +33,8 @@
 #define SC_Sleep	12
 #define SC_Mkdir	13
 #define SC_Rmdir	14
+#define SC_Mmap		15
+#define SC_Munmap	16
 
 #ifndef IN_ASM
 
@@ -45,6 +47,12 @@
  * are then invoked in the Nachos kernel, after appropriate error checking, 
  * from the system call entry point in exception.cc.
  */
+
+/** Map files into memory */
+void *Mmap(char *name, int *sizep);
+
+/** Invalidate the mapped region of address space */
+int Munmap(void *addr);
 
 /** Sleep Syscall*/
 void Sleep(int numOfTicks);

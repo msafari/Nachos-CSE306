@@ -136,6 +136,14 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		String removedirName = getFileName(4);
 		Syscall.removeDirectory(removedirName);
 		break;
+	    case Syscall.SC_Mmap:
+		System.out.println("Mmap called");
+		Debug.showArguments();
+		break;
+	    case Syscall.SC_Munmap:
+		System.out.println("Munmap called");
+		Debug.showArguments();
+		break;
 		
 	    default:
 		Debug.println('S', "Invalid Syscall: " + type);

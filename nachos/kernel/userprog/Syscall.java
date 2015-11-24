@@ -80,6 +80,12 @@ public class Syscall {
     /** Integer code identifying the "Rmdir" system call. */
     public static final byte SC_Rmdir = 14;
     
+    /** Integer code identifying the "Mmap" system call. */
+    public static final byte SC_Mmap = 15;
+    
+    /** Integer code identifying the "Munmap" system call. */
+    public static final byte SC_Munmap = 16;
+    
     public static Lock writeLock = new Lock("writeLock");
     
     public static Lock readLock = new Lock("readLock");

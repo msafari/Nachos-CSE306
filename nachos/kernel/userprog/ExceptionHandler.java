@@ -4,6 +4,9 @@
 
 package nachos.kernel.userprog;
 
+import nachos.kernel.Nachos;
+import nachos.kernel.filesys.OpenFile;
+import nachos.kernel.filesys.OpenFileEntry;
 import nachos.kernel.threads.Semaphore;
 import nachos.Debug;
 import nachos.machine.CPU;
@@ -161,7 +164,13 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	//Handle page faults here
 	else if(which == MachineException.PageFaultException){
 	    System.out.println("Page Fault: " + CPU.readRegister(4));
+	    Debug.println('D', "Handling page fault exception by allocating the page");
+	    UserThread curUserThrd = ((UserThread)NachosThread.currentThread());
+	    OpenFileEntry fileEntry = Syscall.findOpenFileEntry(curUserThrd.filename);
+	    Debug.ASSERT(fileEntry != null , "Cannot find an OpenFileEntry with name: " + curUserThrd.filename);
 	    
+	    //fileEntry.file is the executable
+	    ((UserThread)NachosThread.currentThread()).space.demandMalloc(CPU.readRegister(4), fileEntry.file);
 	}
 	else{
 	    System.out.println("Unexpected user mode exception " + which + ", " + type);

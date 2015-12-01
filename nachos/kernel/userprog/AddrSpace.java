@@ -311,6 +311,72 @@ public class AddrSpace {
       }
       
   }
+  
+  /**
+   * dynamically allocate more pages for a segment
+   * @param pageNumber
+   * @param executable
+   * @return
+   */
+  public int demandMalloc (int pageNumber, OpenFile executable) {
+      
+      NoffHeader noffH;
+      
+      if((noffH = NoffHeader.readHeader(executable)) == null){
+  	Debug.println('M', "Executable header is empty");
+  	return(-1);
+      }
+      
+      //TODO find what segment(s) we need to allocate
+      //Do some magic with the page number? 
+      
+      NoffSegment segment = noffH.code;
+      
+     //if the segment we find is code then read only is true, otherwise the segment is not read only
+      boolean readOnly = false;
+      if(segment == noffH.code)
+	  readOnly = true;
+      
+      if(numPages <= Machine.NumPhysPages && numPages<=MemoryManager.freePagesList.size()){
+	  
+	    long size = roundToPage(segment.size);
+	    int numSegmentPages = (int)(size / Machine.PageSize);
+	    
+	    byte[] data = new byte[(int)size]; 		//buffer to store segment data in
+	    executable.seek(segment.inFileAddr);
+	    executable.read(data, 0, segment.size);	//read the entire segment into a buffer
+	    
+	    TranslationEntry entry;
+	    
+	    for(int i = 0; i < numSegmentPages; i++){
+		// Get the vpn and entry
+		
+		int startIndex = i * Machine.PageSize;
+		int bufferAddr = segment.virtualAddr + startIndex;
+		
+		entry = getEntry(bufferAddr);
+		
+		// Allocate some pages
+		MemoryManager.freePagesLock.acquire();
+		int freePageAddr= MemoryManager.freePagesList.removeFirst();
+		MemoryManager.freePagesLock.release();
+		entry.physicalPage = freePageAddr;
+		entry.valid = true;
+		entry.readOnly = readOnly;
+		
+		writeToVirtualMem(bufferAddr, data, startIndex, false, pageTable);
+		nextVPN++;
+	    }
+	  
+
+	  return 0;
+      }
+      
+      else{
+	  Debug.println('M', "Not enough physical memory!");
+	  return -1;
+      }
+  }
   /**
    * 
    */

@@ -71,7 +71,7 @@ public class UserProcess implements Runnable {
 	AddrSpace space = new AddrSpace();
 	this.space = space;
 	UserThread t = new UserThread(name, this, space);
-	
+	t.filename = filename;
 	
 	this.processID = t.processID;
 	

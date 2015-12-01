@@ -325,7 +325,7 @@ public class Syscall {
     /**
      * Returns an entry with the given name
      */
-    private static OpenFileEntry findOpenFileEntry(String name){
+    public static OpenFileEntry findOpenFileEntry(String name){
 	openFileLock.acquire();
 	for(OpenFileEntry e: openFileList){
 	    if(e.name.equals(name)){

@@ -35,6 +35,7 @@ import nachos.kernel.userprog.MemoryManager;
 public class UserThread extends NachosThread {
 
     public int processID;
+    public String filename;
     public int exitStatus;
     public LinkedList<UserThread> childThreads = new LinkedList<UserThread>();
     public Semaphore joinSem;

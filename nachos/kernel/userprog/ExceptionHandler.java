@@ -54,6 +54,7 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	int type = CPU.readRegister(2);
 	int result = -1;
 	
+	//Handle syscalls here
 	if (which == MachineException.SyscallException) {
 
 	    switch (type) {
@@ -157,12 +158,15 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	    
 	    return;
 	}
-
-	if(which == MachineException.PageFaultException){
-	    System.out.println("Page Fault: " + CPU.readRegister(4) );
+	//Handle page faults here
+	else if(which == MachineException.PageFaultException){
+	    System.out.println("Page Fault: " + CPU.readRegister(4));
+	    
 	}
-	System.out.println("Unexpected user mode exception " + which + ", " + type);
-	Debug.ASSERT(false);
+	else{
+	    System.out.println("Unexpected user mode exception " + which + ", " + type);
+	    Debug.ASSERT(false);
+	}
 
     }
 

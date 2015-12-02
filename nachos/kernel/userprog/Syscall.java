@@ -359,7 +359,7 @@ public class Syscall {
      * @param file
      * @return
      */
-    private static int addOpenFileEntry(OpenFile file, String fileName){
+    public static int addOpenFileEntry(OpenFile file, String fileName){
 	openFileLock.acquire();
 	OpenFileEntry fileEntry = new OpenFileEntry(file);
 	fileEntry.id = openFileID;
@@ -530,7 +530,7 @@ public class Syscall {
      * new thread.
      */
     public static void fork(int func) {
-	Debug.println('F', "Syscall fork is getting called");
+	Debug.println('S', "Syscall fork is getting called");
 	
 	AddrSpace newSpace = ((UserThread)NachosThread.currentThread()).space.clone();
 	

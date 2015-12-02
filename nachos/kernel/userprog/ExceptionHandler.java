@@ -163,14 +163,17 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	}
 	//Handle page faults here
 	else if(which == MachineException.PageFaultException){
-	    System.out.println("Page Fault: " + CPU.readRegister(4));
+	    //Virtual address that caused the page fault will be in 'BadVAddrReg', address 39
+	    int vAddr = CPU.readRegister(MIPS.BadVAddrReg);
+	    
+	    System.out.println("Page Fault: " + vAddr);
 	    Debug.println('D', "Handling page fault exception by allocating the page");
 	    UserThread curUserThrd = ((UserThread)NachosThread.currentThread());
 	    OpenFileEntry fileEntry = Syscall.findOpenFileEntry(curUserThrd.filename);
 	    Debug.ASSERT(fileEntry != null , "Cannot find an OpenFileEntry with name: " + curUserThrd.filename);
 	    
 	    //fileEntry.file is the executable
-	    ((UserThread)NachosThread.currentThread()).space.demandMalloc(CPU.readRegister(4), fileEntry.file);
+	    ((UserThread)NachosThread.currentThread()).space.demandMalloc(vAddr, fileEntry.file);
 	}
 	else{
 	    System.out.println("Unexpected user mode exception " + which + ", " + type);

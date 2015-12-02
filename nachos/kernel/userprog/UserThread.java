@@ -76,7 +76,7 @@ public class UserThread extends NachosThread {
      * @param addrSpace  The context to be installed when this thread
      * is executing in user mode.
      */
-    public UserThread(String name, Runnable runObj, AddrSpace addrSpace) {
+    public UserThread(String name, Runnable runObj, AddrSpace addrSpace, String filename) {
 	super(name, runObj);
 	numOfTicksToSleep = -1;
 	runnable = runObj;
@@ -85,6 +85,9 @@ public class UserThread extends NachosThread {
 	currentPLevelIndex = -1;
 	sampleVal = 0;
 	avgCPUBurst = 0;
+	
+	//Set the filename
+	this.filename = filename;
 	
 	numInterrupts = 1;
 	//Lock

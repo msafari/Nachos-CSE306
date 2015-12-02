@@ -589,5 +589,31 @@ public class Syscall {
 	}
 	
     }
+    
+    /**
+     * Maps a file with the give filename into main memory and writes the size of the new address space to the integer sizep
+     * @param filename
+     * @param sizep integer updated to reflect the new address size
+     * @return address of the start of the newly allocated address space, zero otherwise
+     */
+    public static int Mmap(String filename, int sizep){
+	
+	//An unsuccessful call to Mmap should return 0 and store no value at sizep
+	return 0;
+    }
 
+    /**
+     * The Munmap call takes as its argument an address that was returned by a previous call to Mmap.
+     * It should cause the mapping of the corresponding region of address space to be invalidated and deleted. 
+     * Any memory pages associated with this region should be returned to the free memory pool.
+     * @param filename
+     * @param sizep integer updated to 
+     * @return Upon successful completion, munmap() shall return 0; otherwise, it shall return -1
+     */
+    public static int Munmap(String filename, int sizep){
+	
+	
+	return 0;
+    }    
+    
 }

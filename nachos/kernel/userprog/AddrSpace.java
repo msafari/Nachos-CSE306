@@ -402,7 +402,6 @@ public class AddrSpace {
 	  int offset = (int) (virtAddr & LOW32BITS) % Machine.PageSize;
 	  int pAddr = pageTable[vpn].physicalPage * Machine.PageSize;
 	  System.arraycopy(buf, 0, Machine.mainMemory, pAddr, Machine.PageSize);
-	  byte[] test = Machine.mainMemory;
 
 	  // Get a free page for the next segment because this is a page boundary and we round the segments to page size
 	  vpn += 1;
@@ -415,15 +414,13 @@ public class AddrSpace {
 	  offset = (int) (virtAddr & LOW32BITS) % Machine.PageSize;
 	  pAddr = pageTable[vpn].physicalPage * Machine.PageSize;
 	  System.arraycopy(buf, 0, Machine.mainMemory, pAddr, Machine.PageSize);
-	  test = Machine.mainMemory;
 	  return vpn;
       }
 
       // Write to main memory
-      int offset = (int) (virtAddr & LOW32BITS) % Machine.PageSize;
+      //int offset = (int) (virtAddr & LOW32BITS) % Machine.PageSize;
       int pAddr = pageTable[vpn].physicalPage * Machine.PageSize;
       System.arraycopy(buf, 0, Machine.mainMemory, pAddr, Machine.PageSize);
-      byte[] test = Machine.mainMemory;
 
       return vpn;
   }

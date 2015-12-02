@@ -598,6 +598,14 @@ public class Syscall {
      */
     public static int Mmap(String filename, int sizep){
 	
+	//Open the file from the filename through the open syscall
+	
+	//Get size of the file and extend the address space above the stack by a number of pages N, s.t N*Machine.PageSize >= size of file
+	
+	//Update the variable pointed to by sizep with the size of the newly allocated region of address space.
+	
+	//Return the address of the start of the newly added region of address space. 
+	
 	//An unsuccessful call to Mmap should return 0 and store no value at sizep
 	return 0;
     }
@@ -612,8 +620,7 @@ public class Syscall {
      */
     public static int Munmap(String filename, int sizep){
 	
-	
-	return 0;
+	return -1;
     }    
     
 }

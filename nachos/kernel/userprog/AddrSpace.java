@@ -379,53 +379,53 @@ public class AddrSpace {
       List<NoffSegment> segments = findSegmentsAtPageFault(vpn, noffH);
       
       
-	//If vpn exceeds the pageTable, need to extend it
-      	allocatePageTableEntry(vpn);
+      // If vpn exceeds the pageTable, need to extend it
+      allocatePageTableEntry(vpn);
 
-	//Read in the page from the disk
-	byte[] buf = new byte[Machine.PageSize];
-	//TODO handle the case if unitData is in the segments list
-	//no need to read in the unitData just zero fill
+      // Read in the page from the disk
+      byte[] buf = new byte[Machine.PageSize];
 
-	if(segments.size() == 1) {
-	    executable.seek(segments.get(0).inFileAddr + vpn * Machine.PageSize);
-	    executable.read(buf, 0, Machine.PageSize); 
-	}
+      // TODO Maybe ? handle the case if unitData is in the segments list
+      // no need to read in the unitData just zero fill
 
-	else if(segments.size() == 2) {
-	    int firstSegmentNumBytes = segments.get(0).size -  vpn * Machine.PageSize;
-	    executable.seek(segments.get(0).inFileAddr + vpn * Machine.PageSize);
-	    executable.read(buf, 0, firstSegmentNumBytes);
-	    
-	    //Write to main memory
-	    int offset = (int)(virtAddr & LOW32BITS) % Machine.PageSize;
-	    int pAddr = pageTable[vpn].physicalPage * Machine.PageSize ;
-	    System.arraycopy(buf, 0, Machine.mainMemory, pAddr, Machine.PageSize);
-	    byte[] test = Machine.mainMemory;
-	    
-	    // Get a free page for the next segment because this is a page boundary and we round the segments to page size
-	    vpn +=1;
-	    allocatePageTableEntry(vpn);
-	    buf = new byte[Machine.PageSize];
-	    executable.seek(segments.get(1).inFileAddr);
-	    executable.read(buf, 0 , Machine.PageSize - firstSegmentNumBytes );
-	    
-	    //Write the next segment to main memory
-	    offset = (int)(virtAddr & LOW32BITS) % Machine.PageSize;
-	    pAddr = pageTable[vpn].physicalPage * Machine.PageSize;
-	    System.arraycopy(buf, 0, Machine.mainMemory, pAddr, Machine.PageSize);
-	    test = Machine.mainMemory;
-	    return vpn;
-	}
+      if (segments.size() == 1) {
+	  executable.seek(segments.get(0).inFileAddr + vpn * Machine.PageSize);
+	  executable.read(buf, 0, Machine.PageSize);
+      }
 
-	//Write to main memory
-	int offset = (int)(virtAddr & LOW32BITS) % Machine.PageSize;
-	int pAddr = pageTable[vpn].physicalPage * Machine.PageSize ;
-	System.arraycopy(buf, 0, Machine.mainMemory, pAddr, Machine.PageSize);
-	byte[] test = Machine.mainMemory;
-     
-	
-	return vpn;
+      else if (segments.size() == 2) {
+	  int firstSegmentNumBytes = segments.get(0).size - vpn * Machine.PageSize;
+	  executable.seek(segments.get(0).inFileAddr + vpn * Machine.PageSize);
+	  executable.read(buf, 0, firstSegmentNumBytes);
+
+	  // Write to main memory
+	  int offset = (int) (virtAddr & LOW32BITS) % Machine.PageSize;
+	  int pAddr = pageTable[vpn].physicalPage * Machine.PageSize;
+	  System.arraycopy(buf, 0, Machine.mainMemory, pAddr, Machine.PageSize);
+	  byte[] test = Machine.mainMemory;
+
+	  // Get a free page for the next segment because this is a page boundary and we round the segments to page size
+	  vpn += 1;
+	  allocatePageTableEntry(vpn);
+	  buf = new byte[Machine.PageSize];
+	  executable.seek(segments.get(1).inFileAddr);
+	  executable.read(buf, 0, Machine.PageSize - firstSegmentNumBytes);
+
+	  // Write the next segment to main memory
+	  offset = (int) (virtAddr & LOW32BITS) % Machine.PageSize;
+	  pAddr = pageTable[vpn].physicalPage * Machine.PageSize;
+	  System.arraycopy(buf, 0, Machine.mainMemory, pAddr, Machine.PageSize);
+	  test = Machine.mainMemory;
+	  return vpn;
+      }
+
+      // Write to main memory
+      int offset = (int) (virtAddr & LOW32BITS) % Machine.PageSize;
+      int pAddr = pageTable[vpn].physicalPage * Machine.PageSize;
+      System.arraycopy(buf, 0, Machine.mainMemory, pAddr, Machine.PageSize);
+      byte[] test = Machine.mainMemory;
+
+      return vpn;
   }
   
   /**

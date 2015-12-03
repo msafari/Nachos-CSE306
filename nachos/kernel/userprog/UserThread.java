@@ -18,6 +18,8 @@ import nachos.machine.Machine;
 import nachos.machine.NachosThread;
 import nachos.machine.CPU;
 import nachos.kernel.Nachos;
+import nachos.kernel.filesys.OpenFileEntry;
+import nachos.kernel.threads.Lock;
 import nachos.kernel.threads.Semaphore;
 import nachos.kernel.threads.SpinLock;
 import nachos.kernel.userprog.MemoryManager;
@@ -57,6 +59,12 @@ public class UserThread extends NachosThread {
     
     /** The context in which this thread will execute. */
     public final AddrSpace space;
+    
+    
+    /** Keep a list of all memory mapped files */
+    public LinkedList<MemMappedFile> mappedFiles;
+    
+    public Lock mapFileLock;
 
     // A thread running a user program actually has *two* sets of 
     // CPU registers -- one for its state while executing user code,
@@ -90,6 +98,12 @@ public class UserThread extends NachosThread {
 	this.filename = filename;
 	
 	numInterrupts = 1;
+	
+	//for keeping trak of mapped files
+	mapFileLock = new Lock("mapFileLock");
+	mappedFiles = new LinkedList<MemMappedFile>();
+	
+	
 	//Lock
 	MemoryManager.processIDLock.acquire();
 	
@@ -101,7 +115,7 @@ public class UserThread extends NachosThread {
 	
 	//Create the address space
 	space = addrSpace;
-	
+
 	//make the join semaphore
 	joinSem = new Semaphore("joinSem", 0);
 	
@@ -145,5 +159,45 @@ public class UserThread extends NachosThread {
 	// Restore state associated with the address space.
 	space.restoreState();
     }
+    
+    /**
+     * 
+     * @param filename
+     * @param startAddr
+     */
+    public void addToMappedFileList (String filename, int startAddr, int allocatedSize) {
+	MemMappedFile file = new MemMappedFile(filename, startAddr, allocatedSize);
+	mapFileLock.acquire();
+	mappedFiles.add(file);
+	mapFileLock.release();
+	
+    }
+    
+    /**
+     * Returns an entry with the given name
+     */
+    public MemMappedFile findMappedFile(int addr){
+	mapFileLock.acquire();
+	for(MemMappedFile e: mappedFiles){
+	    if(e.startAddr == addr){
+		mapFileLock.release();
+		return e;
+	    }
+	}
+	mapFileLock.release();
+	return null;
+    }
+    
+    /**
+     * 
+     * @param file
+     */
+    public void removeMappedFile(MemMappedFile file){
+	mapFileLock.acquire();
+	mappedFiles.remove(file);
+	mapFileLock.release();
+	
+    }
+    
     
 }

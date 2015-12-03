@@ -685,12 +685,61 @@ public class AddrSpace {
 	    pageTable[i].valid = false;
 	    pageTable[i].use = false;
 	    pageTable[i].dirty = false;
-	    pageTable[i].readOnly = false; // if code and data segments live on
-					   // separate pages, we could set code
-					   // pages to be read-only
+	    pageTable[i].readOnly = false;
 	}
 	
 	return N;	
+    }
+    
+    /**
+     * free the regions mmap syscall allocated
+     * @param startAddr
+     * @param file
+     * @return
+     */
+    public void freeMappedRegions (int startAddr, MemMappedFile file) {
+	for(int i = startAddr; i < startAddr + file.allocatedSize; i++) {
+	    
+	    if(pageTable[i].physicalPage != -1){
+		
+		if(pageTable[i].dirty){
+		    OpenFileEntry openF = Syscall.findOpenFileEntry(file.fileName);
+		    OpenFile oFile = openF.file;
+		    byte buf[] = new byte[Machine.PageSize];
+		    
+		    readVirtualMemory(pageTable[i].virtualPage, buf, 0, Machine.PageSize, false);
+		    oFile.write(buf, 0, Machine.PageSize);
+		}
+		
+		// Put the physcial page back in the free page list
+		MemoryManager.freePagesLock.acquire();
+		MemoryManager.freePagesList.add(pageTable[i].physicalPage);
+		MemoryManager.freePagesLock.release();
+	    }
+	    
+	    
+	    //Set the page entry to invalid
+	    pageTable[i].virtualPage = i;
+	    pageTable[i].physicalPage = -1; // these will get over written later
+					    // in malloc
+	    pageTable[i].valid = false;
+	    pageTable[i].use = false;
+	    pageTable[i].dirty = false;
+	    pageTable[i].readOnly = false; 
+
+	}
+	
+	//Decrease numPages
+	numPages -= file.allocatedSize;
+	
+	//12 pages initially
+	//mapped 5 more
+	//numPages = 17	table.length = 17
+	//map 5 more
+	//numPages , table.length = 22
+	//unmap the first 5 (12-17]
+	//numPages = 17 
+	//map 10 
     }
  
 }

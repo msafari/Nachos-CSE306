@@ -363,15 +363,17 @@ public class Syscall {
      */
     public static int addOpenFileEntry(OpenFile file, String fileName){
 	openFileLock.acquire();
-	OpenFileEntry fileEntry = new OpenFileEntry(file);
-	fileEntry.id = openFileID;
-	fileEntry.name = fileName;
-	openFileID++;
-	openFileList.offer(fileEntry);
+	OpenFileEntry fileEntry = findOpenFileEntry(fileName);
+	if(fileEntry == null) {
+	    fileEntry = new OpenFileEntry(file);
+	    fileEntry.id = openFileID;
+	    fileEntry.name = fileName;
+	    openFileID++;
+	    openFileList.offer(fileEntry);
+
+	    Debug.println('S', "Added open file entry id: " + fileEntry.id);
+	}
 	openFileLock.release();
-	
-	Debug.println('S', "Added open file entry id: " + fileEntry.id);
-	
 	return fileEntry.id;
     }
     
@@ -607,25 +609,27 @@ public class Syscall {
 	OpenFileEntry ofe = findOpenFileEntry(filename);
 	long size = ofe.file.length();
 	int allocatedSize = ((UserThread)NachosThread.currentThread()).space.extend(size);
+	
 	byte buf[] = new byte[4];
 	FileSystem.intToBytes(allocatedSize, buf, 0);
 	AddrSpace space = ((UserThread)NachosThread.currentThread()).space;
 	space.writeToVirtualMem(sizeAddr, buf, 0, false, space.pageTable, 4);
 	
-	int n = (int) space.roundToPage(size);	//number of pages to extend by
+	int n = (int) space.roundToPage(size);	//number of pages we expect to extend by
 	int N = n / Machine.PageSize;
 	//if it did allocate the new pages
 	//Return the address of the start of the newly added region of address space. 
 	if(allocatedSize == N){
 	    int indexOf = (int) (space.pageTable.length - N);	//the index of the start of newly added region in pageTable
-	    return space.pageTable[indexOf].virtualPage;
+	    int addr = space.pageTable[indexOf].virtualPage;
+	    ((UserThread)NachosThread.currentThread()).addToMappedFileList(filename, addr, allocatedSize);
+	    return addr;
 	}
 	   
-	    
-	
 	return 0;
     }
 
+    
     /**
      * The Munmap call takes as its argument an address that was returned by a previous call to Mmap.
      * It should cause the mapping of the corresponding region of address space to be invalidated and deleted. 
@@ -633,8 +637,24 @@ public class Syscall {
      * @param sizep integer updated to 
      * @return Upon successful completion, munmap() shall return 0; otherwise, it shall return -1
      */
-    public static int Munmap(int sizep){
+    public static int Munmap(int addr){
+	UserThread curThrd = ((UserThread)NachosThread.currentThread());
+	AddrSpace space = ((UserThread)NachosThread.currentThread()).space;
 	
+	MemMappedFile mappedFile = curThrd.findMappedFile(addr);
+	
+	if(mappedFile != null) {
+	    //for addr -addr + mappedFile.allocatedSize
+	    space.freeMappedRegions (addr, mappedFile);
+	    
+	    curThrd.removeMappedFile(mappedFile); 	//remove from mappedfile list
+	    
+	    //TODO write back to real filesystem before doing anything else
+	    
+	    OpenFileEntry fileEntry = findOpenFileEntry(mappedFile.fileName);
+	    close(fileEntry.id);
+	    
+	}
 	
 	return -1;
     }    

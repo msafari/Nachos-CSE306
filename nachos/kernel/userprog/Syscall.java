@@ -363,7 +363,13 @@ public class Syscall {
      */
     public static int addOpenFileEntry(OpenFile file, String fileName){
 	openFileLock.acquire();
-	OpenFileEntry fileEntry = findOpenFileEntry(fileName);
+	OpenFileEntry fileEntry = null;
+	for(OpenFileEntry e: openFileList){
+	    if(e.name.equals(fileName)){
+		fileEntry = e;
+	    }
+	}
+	
 	if(fileEntry == null) {
 	    fileEntry = new OpenFileEntry(file);
 	    fileEntry.id = openFileID;
@@ -611,7 +617,7 @@ public class Syscall {
 	int allocatedSize = ((UserThread)NachosThread.currentThread()).space.extend(size);
 	
 	byte buf[] = new byte[4];
-	FileSystem.intToBytes(allocatedSize, buf, 0);
+	FileSystem.intToBytes((int)size, buf, 0);
 	AddrSpace space = ((UserThread)NachosThread.currentThread()).space;
 	space.writeToVirtualMem(sizeAddr, buf, 0, false, space.pageTable, 4);
 	
@@ -621,7 +627,7 @@ public class Syscall {
 	//Return the address of the start of the newly added region of address space. 
 	if(allocatedSize == N){
 	    int indexOf = (int) (space.pageTable.length - N);	//the index of the start of newly added region in pageTable
-	    int addr = space.pageTable[indexOf].virtualPage;
+	    int addr = space.pageTable[indexOf].virtualPage * Machine.PageSize;
 	    ((UserThread)NachosThread.currentThread()).addToMappedFileList(filename, addr, allocatedSize);
 	    return addr;
 	}
@@ -645,6 +651,7 @@ public class Syscall {
 	
 	if(mappedFile != null) {
 	    //for addr -addr + mappedFile.allocatedSize
+	    
 	    space.freeMappedRegions (addr, mappedFile);
 	    
 	    curThrd.removeMappedFile(mappedFile); 	//remove from mappedfile list

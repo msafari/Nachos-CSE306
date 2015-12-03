@@ -581,15 +581,17 @@ public class AddrSpace {
 	byte[] memory = Machine.mainMemory;
 
 	int vpn;
+	int voffset = 0;
 	// address translationTranslationEntry page
 	if(isEntryVPN) {
 	    vpn = virtualAddress;
 	}
 	else {
-	    vpn = virtualAddress / Machine.PageSize;   
+	    vpn = virtualAddress / Machine.PageSize;  
+	    voffset = virtualAddress % Machine.PageSize;
 	}
 	
-	int voffset = virtualAddress % Machine.PageSize;
+	
 	TranslationEntry entry = pageTable[vpn];
 	entry.use = true;
 	int physicalAddress = entry.physicalPage * Machine.PageSize + voffset;
@@ -674,6 +676,7 @@ public class AddrSpace {
 	TranslationEntry newPageTable[] = new TranslationEntry[newTotalPages];
 	System.arraycopy(pageTable, 0, newPageTable, 0, numPages);
 	pageTable = newPageTable;
+	CPU.setPageTable(pageTable);
 	numPages += newTotalPages;
 	    
 	
@@ -698,7 +701,10 @@ public class AddrSpace {
      * @return
      */
     public void freeMappedRegions (int startAddr, MemMappedFile file) {
-	for(int i = startAddr; i < startAddr + file.allocatedSize; i++) {
+	long size = roundToPage(file.allocatedSize);
+	int allocatedPages = (int)(size / Machine.PageSize);
+	int startVpn = startAddr / Machine.PageSize;
+	for(int i = startVpn; i < startVpn + allocatedPages; i++) {
 	    
 	    if(pageTable[i].physicalPage != -1){
 		
@@ -707,8 +713,8 @@ public class AddrSpace {
 		    OpenFile oFile = openF.file;
 		    byte buf[] = new byte[Machine.PageSize];
 		    
-		    readVirtualMemory(pageTable[i].virtualPage, buf, 0, Machine.PageSize, false);
-		    oFile.write(buf, 0, Machine.PageSize);
+		    readVirtualMemory(pageTable[i].virtualPage, buf, 0, Machine.PageSize, true);
+		    oFile.writeAt(buf, 0, Machine.PageSize, i - startVpn);
 		}
 		
 		// Put the physcial page back in the free page list

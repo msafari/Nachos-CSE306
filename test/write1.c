@@ -1,7 +1,5 @@
 #include "syscall.h"
 
-
-
 int main()
 {
   OpenFileId fd;

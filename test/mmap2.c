@@ -4,10 +4,10 @@
 
 int main(){
 	int i;
-	int sizep = -1;
+	int sizep=  -1;
 	char* cp;
-	cp = Mmap('foobar', &sizep);
-	for(i = 0; i < sizep; i++)
-		cp[i] = 5;
+	cp = Mmap("test/foobar", &sizep);
+	for(i = 0; i < 10; i++)
+		cp[i]= 'a';
 	Munmap(cp);
 }

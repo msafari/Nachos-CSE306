@@ -5,7 +5,7 @@
 int main(){
 
   int sizep = -1;
-  int addr = -1;
+  char* addr;
   addr = Mmap("test/halt", &sizep);
   Munmap(addr);
 }

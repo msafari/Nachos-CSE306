@@ -49,10 +49,10 @@
  */
 
 /** Map files into memory */
-int Mmap(char *name, int *sizep);
+void* Mmap(char *name, int *sizep);
 
 /** Invalidate the mapped region of address space */
-int Munmap(int addr);
+int Munmap(void *addr);
 
 /** Sleep Syscall*/
 void Sleep(int numOfTicks);

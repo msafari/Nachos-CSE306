@@ -3,10 +3,10 @@
 #include "syscall.h"
 
 int main() {
-  int addr;
   int sizep = -1;
 
   //Map the file into memory
+  char* addr;
   addr = Mmap("test/halt", &sizep);
 
   //Free that memory

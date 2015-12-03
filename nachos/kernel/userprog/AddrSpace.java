@@ -654,5 +654,15 @@ public class AddrSpace {
 	return newSpace;
 	
     }
+    
+    /**
+     * Extends the address space by the file size. Used by mmap syscall.
+     * @param size
+     * @return 
+     */
+    public int extend(long size){
+	
+	return -1;
+    }
  
 }

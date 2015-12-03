@@ -599,8 +599,12 @@ public class Syscall {
     public static int Mmap(String filename, int sizep){
 	
 	//Open the file from the filename through the open syscall
+	int openFileID = open(filename);
 	
 	//Get size of the file and extend the address space above the stack by a number of pages N, s.t N*Machine.PageSize >= size of file
+	OpenFileEntry ofe = findOpenFileEntry(filename);
+	long size = ofe.file.length();
+	((UserThread)NachosThread.currentThread()).space.extend(size);
 	
 	//Update the variable pointed to by sizep with the size of the newly allocated region of address space.
 	

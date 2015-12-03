@@ -742,28 +742,45 @@ public class AddrSpace {
 	//Decrease numPages
 	numPages -= file.allocatedSize;
 	
-	//12 pages initially
-	//mapped 5 more
-	//numPages = 17	table.length = 17
-	//map 5 more
-	//numPages , table.length = 22
-	//unmap the first 5 (12-17]
-	//numPages = 17 
-	//map 10 
     }
 
+    /**
+     * Function called on a page fault to obtain the correct file on which the page fault occured.
+     * @param vAddr
+     * @return
+     */
     public OpenFileEntry findFile(int vAddr) {
 	int vpn = vAddr / Machine.PageSize;
 	UserThread uThrd = (UserThread)NachosThread.currentThread();
-
+	OpenFileEntry ofe = null;
+	
+	//Search for the file in the memory mapped list
 	for(MemMappedFile f: uThrd.mappedFiles){
 	    int startVpn = f.startAddr / Machine.PageSize;
+	    
+	    //If the vpn falls between the pages of the mapped file, return that file
 	    if(startVpn <= vpn && vpn <startVpn + f.allocatedSize){
-		
+		ofe = Syscall.findOpenFileEntry(f.fileName);
+		Debug.ASSERT(ofe != null); //Entry should never be null since we open all memory mapped files
+		break;
 	    }
 	}
 	
+	//If not found, check if its the file of the running thread
+	if(ofe == null){
+	    //Get the file of the current thread
+	    OpenFileEntry fileEntry = Syscall.findOpenFileEntry(uThrd.filename);
+	    long length = fileEntry.file.length();
+	    int allocatedPages = (int) length / Machine.PageSize;
+	    
+	    if(vpn < allocatedPages)
+		ofe = fileEntry;
+	}
 	
+	//If no ofe found, the page fault was on an unallocated address in main memory.
+	Debug.ASSERT(ofe != null);
+	
+	return ofe;
     }
  
 }

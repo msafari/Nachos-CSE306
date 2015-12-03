@@ -4,16 +4,35 @@ README for HW5
 @Author Maedeh Safari 	msafari
 
 Overview
+-------------------------------
 To implement demand paging for the AddressSpace, it was first necessary to initialize the page table entries' valid bit to false.
 Also no file pages are read in on the exec call. As the program counter continues, it triggers page faults which is handled in our ExceptionHandler.
 The demandMalloc function is called which finds the segment which the BadVAddr belongs to and allocates a page for that segment.
 If the page fault occurs on the boundary between the segments, a page with data belonging to both segments with the proper offsets is loaded into memeory.
 
+For this assignment any executable loaded into memory will have page table entries initialized to invalid.
+Demand paging was extended to the initial executable as well, not just files called by the exec syscall.
+
+
 Instructions
+-------------------------------
 The system is configured to use the Nachos RealFileSystem. 
 Therefore any programs will need to be run with '-cp <prog name> -x <prog name>' to execute them.
 
-General Notes For Developers:
+Testing
+-------------------------------
+Several user programs were created to test for this assignment:
+mmap.c: simple program which calls mmap on a file called "foobar",
+		which can be created by calling "echo a > foobar.txt" to create a file foobar with a size of one byte.
+		This program will allocate memory for that file and then deallocate it with the munmap syscall.
 
-To Do:
-Check why file munmap is being opened with a file size of 3648 when it should only be 456.
+mmap2.c: same as above except this program writes to the memory mapped file, 
+		 and then deallocates that memory mapped file with munmap which writes the changes to the file.
+
+General Notes For Developers
+-------------------------------
+- When using the real filesystem, it is necessary to copy over the first executable into the "DISK".
+	This can be done with the -cp <prog name> flag.
+
+- When first starting the real filesystem it is necessary to use -f to reformat the file system. Later on it can be removed.
+- The real file system creates a default directory /test on the disk when first initialized.

@@ -176,8 +176,9 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	    System.out.println("Page Fault: " + vAddr);
 	    Debug.println('D', "Handling page fault exception by allocating the page");
 	    UserThread curUserThrd = ((UserThread)NachosThread.currentThread());
-	    OpenFileEntry fileEntry = Syscall.findOpenFileEntry(curUserThrd.filename);
-	    Debug.ASSERT(fileEntry != null , "Cannot find an OpenFileEntry with name: " + curUserThrd.filename);
+//	    OpenFileEntry fileEntry = Syscall.findOpenFileEntry(curUserThrd.filename);
+//	    Debug.ASSERT(fileEntry != null , "Cannot find an OpenFileEntry with name: " + curUserThrd.filename);
+	    OpenFileEntry fileEntry = curUserThrd.space.findFile(vAddr);
 	    
 	    //fileEntry.file is the executable
 	    ((UserThread)NachosThread.currentThread()).space.demandMalloc(vAddr, fileEntry.file);

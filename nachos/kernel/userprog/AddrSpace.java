@@ -228,14 +228,15 @@ public class AddrSpace {
    */
   public int writeToVirtualMem(int bufferAddr,  byte[] data, int startIndex, boolean isEntryVPN, TranslationEntry pageTable[], int length){
 	
-	int vOffset = (int) ((bufferAddr & LOW32BITS ) % Machine.PageSize);	//calculate virtual offset
+	int vOffset = 0;
 	int vpn;
 	
 	if(isEntryVPN){
 	    vpn = bufferAddr;
 	}
 	else {
-	    vpn = (int) ((bufferAddr & LOW32BITS) / Machine.PageSize);	//calculate virtual page number 
+	    vpn = (int) ((bufferAddr & LOW32BITS) / Machine.PageSize);		//calculate virtual page number 
+	    vOffset = (int) ((bufferAddr & LOW32BITS ) % Machine.PageSize);	//calculate virtual offset
 	}
 	
 	//check for page faults
@@ -453,6 +454,9 @@ public class AddrSpace {
 	pageTable[vpn].use = true;
 	pageTable[vpn].dirty = false;
 	pageTable[vpn].readOnly = false;
+	
+	byte buffer[] = new byte[Machine.PageSize];
+	writeToVirtualMem(vpn, buffer, 0, true, pageTable, Machine.PageSize);
   }
   
   
@@ -746,6 +750,20 @@ public class AddrSpace {
 	//unmap the first 5 (12-17]
 	//numPages = 17 
 	//map 10 
+    }
+
+    public OpenFileEntry findFile(int vAddr) {
+	int vpn = vAddr / Machine.PageSize;
+	UserThread uThrd = (UserThread)NachosThread.currentThread();
+
+	for(MemMappedFile f: uThrd.mappedFiles){
+	    int startVpn = f.startAddr / Machine.PageSize;
+	    if(startVpn <= vpn && vpn <startVpn + f.allocatedSize){
+		
+	    }
+	}
+	
+	
     }
  
 }

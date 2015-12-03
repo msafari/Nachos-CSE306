@@ -126,7 +126,9 @@ public class Options {
     public int NUM_PORTS = 0;
 
     /** The types of disk devices on the system. */
-    public Class<?>[] DISK_TYPES = new Class<?>[] { Disk.class };
+    public Class<?>[] DISK_TYPES = new Class<?>[] { 
+	    //Disk.class 
+	    };
 
     /** The number of disks on the system. */
     public int NUM_DISKS = DISK_TYPES.length;
@@ -153,10 +155,10 @@ public class Options {
     public boolean RANDOM_YIELD = false;
 
     /** Should we use the stub filesystem, rather than the Nachos filesystem? **/
-    public boolean FILESYS_STUB = false;
+    public boolean FILESYS_STUB = true;
 
     /** Should we use the "real" Nachos filesystem (requires disk)? */
-    public boolean FILESYS_REAL = true;
+    public boolean FILESYS_REAL = false;
 
     /** Should we format the Nachos disk before using it? */
     public boolean FORMAT_DISK = false;

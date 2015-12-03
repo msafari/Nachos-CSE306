@@ -5,6 +5,7 @@
 package nachos.kernel.userprog;
 
 import nachos.kernel.Nachos;
+import nachos.kernel.filesys.FileSystem;
 import nachos.kernel.filesys.OpenFile;
 import nachos.kernel.filesys.OpenFileEntry;
 import nachos.kernel.threads.Semaphore;
@@ -142,11 +143,17 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		break;
 	    case Syscall.SC_Mmap:
 		Debug.println('S', "Mmap called");
-		Debug.showArguments();
+		String name = getFileName(4);
+		int sizeAddr = CPU.readRegister(5);
+		int startAddr = Syscall.Mmap(name, sizeAddr);
+		CPU.writeRegister(2, startAddr);
+		
+		
 		break;
 	    case Syscall.SC_Munmap:
 		Debug.println('S', "Munmap called");
-		Debug.showArguments();
+		startAddr = CPU.readRegister(4);
+		Syscall.Munmap(startAddr);
 		break;
 		
 	    default:

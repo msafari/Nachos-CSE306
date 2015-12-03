@@ -11,12 +11,14 @@ import java.util.LinkedList;
 
 import nachos.Debug;
 import nachos.kernel.Nachos;
+import nachos.kernel.filesys.FileSystem;
 import nachos.kernel.filesys.OpenFile;
 import nachos.kernel.filesys.OpenFileEntry;
 import nachos.kernel.threads.Lock;
 import nachos.kernel.threads.Semaphore;
 import nachos.machine.CPU;
 import nachos.machine.MIPS;
+import nachos.machine.Machine;
 import nachos.machine.NachosThread;
 import nachos.machine.Simulation;
 
@@ -596,7 +598,7 @@ public class Syscall {
      * @param sizep integer updated to reflect the new address size
      * @return address of the start of the newly allocated address space, zero otherwise
      */
-    public static int Mmap(String filename, int sizep){
+    public static int Mmap(String filename, int sizeAddr){
 	
 	//Open the file from the filename through the open syscall
 	int openFileID = open(filename);
@@ -604,13 +606,23 @@ public class Syscall {
 	//Get size of the file and extend the address space above the stack by a number of pages N, s.t N*Machine.PageSize >= size of file
 	OpenFileEntry ofe = findOpenFileEntry(filename);
 	long size = ofe.file.length();
-	((UserThread)NachosThread.currentThread()).space.extend(size);
+	int allocatedSize = ((UserThread)NachosThread.currentThread()).space.extend(size);
+	byte buf[] = new byte[4];
+	FileSystem.intToBytes(allocatedSize, buf, 0);
+	AddrSpace space = ((UserThread)NachosThread.currentThread()).space;
+	space.writeToVirtualMem(sizeAddr, buf, 0, false, space.pageTable, 4);
 	
-	//Update the variable pointed to by sizep with the size of the newly allocated region of address space.
-	
+	int n = (int) space.roundToPage(size);	//number of pages to extend by
+	int N = n / Machine.PageSize;
+	//if it did allocate the new pages
 	//Return the address of the start of the newly added region of address space. 
+	if(allocatedSize == N){
+	    int indexOf = (int) (space.pageTable.length - N);	//the index of the start of newly added region in pageTable
+	    return space.pageTable[indexOf].virtualPage;
+	}
+	   
+	    
 	
-	//An unsuccessful call to Mmap should return 0 and store no value at sizep
 	return 0;
     }
 
@@ -618,11 +630,11 @@ public class Syscall {
      * The Munmap call takes as its argument an address that was returned by a previous call to Mmap.
      * It should cause the mapping of the corresponding region of address space to be invalidated and deleted. 
      * Any memory pages associated with this region should be returned to the free memory pool.
-     * @param filename
      * @param sizep integer updated to 
      * @return Upon successful completion, munmap() shall return 0; otherwise, it shall return -1
      */
-    public static int Munmap(String filename, int sizep){
+    public static int Munmap(int sizep){
+	
 	
 	return -1;
     }    

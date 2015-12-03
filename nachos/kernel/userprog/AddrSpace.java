@@ -33,6 +33,7 @@ import nachos.machine.TranslationEntry;
 import nachos.noff.NoffHeader;
 import nachos.noff.NoffHeader.NoffSegment;
 import nachos.kernel.filesys.OpenFile;
+import nachos.kernel.filesys.OpenFileEntry;
 
 /**
  * This class manages "address spaces", which are the contexts in which
@@ -54,7 +55,7 @@ import nachos.kernel.filesys.OpenFile;
 public class AddrSpace {
 
   /** Page table that describes a virtual-to-physical address mapping. */
-  private TranslationEntry pageTable[];
+  public TranslationEntry pageTable[];
 
   /** Default size of the user stack area -- increase this as necessary! */
   private static final int UserStackSize = 1024;
@@ -214,7 +215,7 @@ public class AddrSpace {
   /**
    * Utility method for rounding up to a multiple of CPU.PageSize;
    */
-  private long roundToPage(long size) {
+  public long roundToPage(long size) {
     return(Machine.PageSize * ((size+(Machine.PageSize-1))/Machine.PageSize));
   }
 
@@ -225,7 +226,7 @@ public class AddrSpace {
    * @param data byte array to be written in virtual memory
    * @return the number of bytes written
    */
-  public int writeToVirtualMem(int bufferAddr,  byte[] data, int startIndex, boolean isEntryVPN, TranslationEntry pageTable[]){
+  public int writeToVirtualMem(int bufferAddr,  byte[] data, int startIndex, boolean isEntryVPN, TranslationEntry pageTable[], int length){
 	
 	int vOffset = (int) ((bufferAddr & LOW32BITS ) % Machine.PageSize);	//calculate virtual offset
 	int vpn;
@@ -250,7 +251,7 @@ public class AddrSpace {
 	int pAddr = (entry.physicalPage * Machine.PageSize) + vOffset; 		//entry.physicalPage is ppn or frame number
 										//paddr = ppn * pagesize + offset  basically calculating PFN::offset
 	
-	System.arraycopy(data, startIndex, Machine.mainMemory, pAddr, Machine.PageSize);	//copy data to main mem starting from the physical address calculated above
+	System.arraycopy(data, startIndex, Machine.mainMemory, pAddr, length);	//copy data to main mem starting from the physical address calculated above
 	return data.length;
   }
   
@@ -300,7 +301,7 @@ public class AddrSpace {
 		entry.valid = true;
 		entry.readOnly = readOnly;
 		
-		writeToVirtualMem(bufferAddr, data, startIndex, false, pageTable);
+		writeToVirtualMem(bufferAddr, data, startIndex, false, pageTable, Machine.PageSize);
 		nextVPN++;
 	    }
 	  
@@ -542,8 +543,11 @@ public class AddrSpace {
 	    return -1;
 	} else if (!pageTable[(int) vpn].valid) {
 	    Debug.println('a', "virtual page # " + vpn + " not valid");
+	    UserThread curUserThrd = ((UserThread)NachosThread.currentThread());
+	    OpenFileEntry fileEntry = Syscall.findOpenFileEntry(curUserThrd.filename);
+	    demandMalloc(virtAddr, fileEntry.file);
 	    Simulation.stats.numPageFaults++;
-	    return -1;
+//	    return -1;
 	}
      entry = pageTable[(int)vpn];
 
@@ -636,7 +640,7 @@ public class AddrSpace {
 	    newSpace.pageTable[i].readOnly = this.pageTable[i].readOnly;
 	    
 	   readVirtualMemory(this.pageTable[i].virtualPage, tmpBuffer, 0, Machine.PageSize, true);	//read in a page to tmpBuffer
-	   writeToVirtualMem(newSpace.pageTable[i].virtualPage, tmpBuffer, 0, true, newSpace.pageTable);			//write tmpBuffer's data to mem
+	   writeToVirtualMem(newSpace.pageTable[i].virtualPage, tmpBuffer, 0, true, newSpace.pageTable, Machine.PageSize);			//write tmpBuffer's data to mem
 	   
 	    //Print out pages for debug
 	    Debug.println('M', "Entry: " + i + ", vpn: "
@@ -658,11 +662,35 @@ public class AddrSpace {
     /**
      * Extends the address space by the file size. Used by mmap syscall.
      * @param size
-     * @return 
+     * @return  the size of the newly allocated region of address space
      */
     public int extend(long size){
+	int n = (int) roundToPage(size);	//number of pages to extend by
+	int N = n / Machine.PageSize;
+	int oldPageTableLength = pageTable.length;
 	
-	return -1;
+	int newTotalPages = N + oldPageTableLength;
+	    
+	TranslationEntry newPageTable[] = new TranslationEntry[newTotalPages];
+	System.arraycopy(pageTable, 0, newPageTable, 0, numPages);
+	pageTable = newPageTable;
+	numPages += newTotalPages;
+	    
+	
+	for(int i = oldPageTableLength; i < newTotalPages; i++ ) {
+	    pageTable[i] = new TranslationEntry();
+	    pageTable[i].virtualPage = i;
+	    pageTable[i].physicalPage = -1; // these will get over written later
+					    // in malloc
+	    pageTable[i].valid = false;
+	    pageTable[i].use = false;
+	    pageTable[i].dirty = false;
+	    pageTable[i].readOnly = false; // if code and data segments live on
+					   // separate pages, we could set code
+					   // pages to be read-only
+	}
+	
+	return N;	
     }
  
 }

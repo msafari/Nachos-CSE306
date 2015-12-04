@@ -20,6 +20,7 @@
 package nachos.kernel.userprog;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import nachos.Debug;
@@ -442,6 +443,20 @@ public class AddrSpace {
    * @param vpn
    */
   private void allocatePageTableEntry (int vpn, boolean isReadOnly) {
+      
+	//Get a free page for this address
+	MemoryManager.freePagesLock.acquire();
+	if(MemoryManager.freePagesList.size() <= 0){
+	    Debug.println('+', "No more free physical pages left! Not allocating page.");
+	    MemoryManager.freePagesLock.release();
+	    Syscall.exit(0);
+	    return;
+	}
+	
+	int freePageAddr= MemoryManager.freePagesList.removeFirst();
+	MemoryManager.freePagesLock.release();
+	
+	//Extend the pageTable
 	if (vpn >= numPages) {
 	    int newPages = vpn - numPages - 1;
 	    
@@ -451,11 +466,6 @@ public class AddrSpace {
 	    numPages += newPages;
 	    
 	}
-
-	//Get a free page for this address
-	MemoryManager.freePagesLock.acquire();
-	int freePageAddr= MemoryManager.freePagesList.removeFirst();
-	MemoryManager.freePagesLock.release();
 	
 	//Mark it as valid
 	pageTable[vpn].virtualPage = vpn;
@@ -717,13 +727,17 @@ public class AddrSpace {
     public void freeAllMappedFiles () {
 	Debug.println('+', "Writing back MemMappedFiles to DISK");
 	UserThread uThrd = (UserThread) NachosThread.currentThread();
+
 	for(MemMappedFile f: uThrd.mappedFiles) {
-	    freeMappedRegions(f.startAddr, f);	//free regions and write to file
-	    uThrd.removeMappedFile(f); 		//remove from mappedfile list
+	    freeMappedRegions(f.startAddr, f);	//free regions and write to file		
 	    
 	    OpenFileEntry fileEntry = Syscall.findOpenFileEntry(f.fileName);
-	    Syscall.close(fileEntry.id);	//removes it from openFileList and close
+	    if(fileEntry != null)
+		Syscall.close(fileEntry.id);	//removes it from openFileList and close
 	}
+	
+	uThrd.mappedFiles = new LinkedList<MemMappedFile>();	//remove all from mappedfile list
+	
     }
     
     /**
@@ -742,11 +756,16 @@ public class AddrSpace {
 		
 		if(pageTable[i].dirty){
 		    OpenFileEntry openF = Syscall.findOpenFileEntry(file.fileName);
-		    OpenFile oFile = openF.file;
-		    byte buf[] = new byte[Machine.PageSize];
-		    
-		    readVirtualMemory(pageTable[i].virtualPage, buf, 0, Machine.PageSize, true);
-		    oFile.writeAt(buf, 0, Machine.PageSize, i - startVpn);
+		    if(openF != null){
+			
+			OpenFile oFile = openF.file;
+
+			byte buf[] = new byte[Machine.PageSize];
+
+			readVirtualMemory(pageTable[i].virtualPage, buf, 0,
+				Machine.PageSize, true);
+			oFile.writeAt(buf, 0, Machine.PageSize, i - startVpn);
+		    }
 		}
 		
 		// Put the physcial page back in the free page list

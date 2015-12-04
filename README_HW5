@@ -39,6 +39,9 @@ mmap3.c: This test file will call mmap 3 times:
 			2. mmap with test/foobar2 and fill it 10 times with character 'b'
 			3. mmap with test/foobar3 and fill it 10 times with character 'c'
 		Then it will unmap in the following order: foobar2, foobar, foobar3
+		
+mmap4.c: This tests file will call mmap on the same file until there are no more physical pages available. 
+		 It will then write back the pages that were modified, and exit the program.
 
 **** NOTE:  To see the memory mapped file changes on disk run "od -c DISKO > disk0.txt" 
 

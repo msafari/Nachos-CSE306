@@ -1,4 +1,4 @@
-/* Basic test of Mmap() system call */
+/* More complicated test of Mmap() and Munmap() system call */
 
 #include "syscall.h"
 
@@ -6,6 +6,7 @@ int main(){
   int i;
   int sizep=  -1, sizep2 = -1, sizep3 = -1;
   char *cp, *cp2, *cp3;
+
   cp = Mmap("test/foobar", &sizep);
   for(i = 0; i < 10; i++)
     cp[i]= 'a';

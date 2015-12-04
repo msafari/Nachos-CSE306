@@ -691,7 +691,7 @@ public class AddrSpace {
 	System.arraycopy(pageTable, 0, newPageTable, 0, numPages);
 	pageTable = newPageTable;
 	CPU.setPageTable(pageTable);
-	numPages += newTotalPages;
+	numPages = newTotalPages;
 	    
 	
 	for(int i = oldPageTableLength; i < newTotalPages; i++ ) {

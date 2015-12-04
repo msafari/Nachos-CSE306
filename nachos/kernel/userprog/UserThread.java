@@ -173,6 +173,7 @@ public class UserThread extends NachosThread {
 	
     }
     
+    
     /**
      * Returns an entry with the given name
      */

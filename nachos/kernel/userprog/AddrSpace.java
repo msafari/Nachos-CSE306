@@ -374,16 +374,19 @@ public class AddrSpace {
       executable.seek(0);
       if((noffH = NoffHeader.readHeader(executable)) == null){
   	Debug.println('M', "Executable header is empty, allocating an empty page.");
-  	allocatePageTableEntry(vpn);
+  	allocatePageTableEntry(vpn, false);
   	return vpn;
       }
       
       //get the segment(s) it's happening at
       List<NoffSegment> segments = findSegmentsAtPageFault(vpn, noffH);
       
+      boolean isReadOnly = false;
+      if(segments.size() > 0 && segments.get(0) == noffH.code)
+	isReadOnly = true;  
       
       // If vpn exceeds the pageTable, need to extend it
-      allocatePageTableEntry(vpn);
+      allocatePageTableEntry(vpn, isReadOnly);
 
       // Read in the page from the disk
       byte[] buf = new byte[Machine.PageSize];
@@ -408,10 +411,16 @@ public class AddrSpace {
 
 	  // Get a free page for the next segment because this is a page boundary and we round the segments to page size
 	  vpn += 1;
-	  allocatePageTableEntry(vpn);
+	  if(segments.get(1) == noffH.code)
+	      isReadOnly = true;
+	  else
+	      isReadOnly = false;
+	  
+	  allocatePageTableEntry(vpn, isReadOnly);
 	  buf = new byte[Machine.PageSize];
 	  executable.seek(segments.get(1).inFileAddr);
-	  executable.read(buf, 0, Machine.PageSize - firstSegmentNumBytes);
+	  if(segments.get(1).size > 0)
+	      executable.read(buf, 0, Machine.PageSize - firstSegmentNumBytes);
 
 	  // Write the next segment to main memory
 	  offset = (int) (virtAddr & LOW32BITS) % Machine.PageSize;
@@ -432,7 +441,7 @@ public class AddrSpace {
    * 
    * @param vpn
    */
-  private void allocatePageTableEntry (int vpn) {
+  private void allocatePageTableEntry (int vpn, boolean isReadOnly) {
 	if (vpn >= numPages) {
 	    int newPages = vpn - numPages - 1;
 	    
@@ -454,7 +463,7 @@ public class AddrSpace {
 	pageTable[vpn].valid = true;
 	pageTable[vpn].use = true;
 	pageTable[vpn].dirty = false;
-	pageTable[vpn].readOnly = false;
+	pageTable[vpn].readOnly = isReadOnly;
 	
 	byte buffer[] = new byte[Machine.PageSize];
 	writeToVirtualMem(vpn, buffer, 0, true, pageTable, Machine.PageSize);
@@ -697,6 +706,24 @@ public class AddrSpace {
 	}
 	
 	return N;	
+    }
+    
+    /**
+     * Will be called on Exit Syscall
+     * Removes MemMappedFile from the list in userthread
+     * writes back the memMappedFile to disk
+     * closes the file and removes it from openFileList
+     */
+    public void freeAllMappedFiles () {
+	Debug.println('+', "Writing back MemMappedFiles to DISK");
+	UserThread uThrd = (UserThread) NachosThread.currentThread();
+	for(MemMappedFile f: uThrd.mappedFiles) {
+	    freeMappedRegions(f.startAddr, f);	//free regions and write to file
+	    uThrd.removeMappedFile(f); 		//remove from mappedfile list
+	    
+	    OpenFileEntry fileEntry = Syscall.findOpenFileEntry(f.fileName);
+	    Syscall.close(fileEntry.id);	//removes it from openFileList and close
+	}
     }
     
     /**

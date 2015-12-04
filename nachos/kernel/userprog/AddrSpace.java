@@ -373,8 +373,9 @@ public class AddrSpace {
       NoffHeader noffH;
       executable.seek(0);
       if((noffH = NoffHeader.readHeader(executable)) == null){
-  	Debug.println('M', "Executable header is empty");
-  	return(-1);
+  	Debug.println('M', "Executable header is empty, allocating an empty page.");
+  	allocatePageTableEntry(vpn);
+  	return vpn;
       }
       
       //get the segment(s) it's happening at
@@ -770,10 +771,7 @@ public class AddrSpace {
 	if(ofe == null){
 	    //Get the file of the current thread
 	    OpenFileEntry fileEntry = Syscall.findOpenFileEntry(uThrd.filename);
-	    long length = fileEntry.file.length();
-	    int allocatedPages = (int) length / Machine.PageSize;
-	    
-	    if(vpn < allocatedPages)
+	    if(vpn >=0 && vpn < numPages)
 		ofe = fileEntry;
 	}
 	

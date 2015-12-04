@@ -7,7 +7,7 @@ int main() {
 
   //Map the file into memory
   char* addr;
-  addr = Mmap("foobar", &sizep);
+  addr = Mmap("test/foobar", &sizep);
 
   //Free that memory
   Munmap(addr);

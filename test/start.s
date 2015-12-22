@@ -43,6 +43,46 @@ __start:
  * -------------------------------------------------------------
  */
 
+ 	.globl Mmap
+	.ent	Mmap
+Mmap:
+	addiu $2,$0,SC_Mmap
+	syscall
+	j	$31
+	.end Mmap
+
+	.globl Munmap
+	.ent	Munmap
+Munmap:
+	addiu $2,$0,SC_Munmap
+	syscall
+	j	$31
+	.end Munmap
+
+	.globl Sleep
+	.ent	Sleep
+Sleep:
+	addiu $2,$0,SC_Sleep
+	syscall
+	j	$31
+	.end Sleep
+
+	.globl Mkdir
+	.ent	Mkdir
+Mkdir:
+	addiu $2,$0,SC_Mkdir
+	syscall
+	j	$31
+	.end Mkdir
+
+	.globl Rmdir
+	.ent	Rmdir
+Rmdir:
+	addiu $2,$0,SC_Rmdir
+	syscall
+	j	$31
+	.end Rmdir
+
 	.globl Halt
 	.ent	Halt
 Halt:
@@ -86,10 +126,10 @@ Create:
         .globl Remove
         .ent    Remove
 Remove:
-        addiu $2,$0,SC_Remove
-        syscall
-        j       $31
-        .end Remove
+    addiu $2,$0,SC_Remove
+    syscall
+    j       $31
+    .end Remove
 
 	.globl Open
 	.ent	Open

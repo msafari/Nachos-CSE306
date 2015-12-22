@@ -16,6 +16,7 @@ import nachos.machine.CPU;
 import nachos.machine.NachosThread;
 import nachos.kernel.Nachos;
 import nachos.kernel.userprog.AddrSpace;
+import nachos.kernel.userprog.Syscall;
 import nachos.kernel.userprog.UserThread;
 import nachos.kernel.filesys.OpenFile;
 
@@ -46,7 +47,7 @@ public class ProgTest implements Runnable {
 
 	execName = filename;
 	AddrSpace space = new AddrSpace();
-	UserThread t = new UserThread(name, this, space);
+	UserThread t = new UserThread(name, this, space, filename);
 	
 	Nachos.scheduler.readyToRun(t);
     }
@@ -65,6 +66,9 @@ public class ProgTest implements Runnable {
 	    Nachos.scheduler.finishThread();
 	    return;
 	}
+	
+	//Add the executable to the openfile list
+	Syscall.addOpenFileEntry(executable, execName);
 
 	AddrSpace space = ((UserThread)NachosThread.currentThread()).space;
 	if(space.exec(executable) == -1) {

@@ -35,6 +35,27 @@ import nachos.kernel.devices.DiskDriver;
  * @author Eugene W. Stark (Stony Brook University)
  */
 public abstract class FileSystem {
+    
+    /** Bit map of free disk blocks, represented as a file. */
+    public OpenFile freeMapFile;
+    
+    /** Number of sectors on the disk. */
+    public int numDiskSectors;
+    
+    public int NumDirEntries;
+    
+    public int DirectoryFileSize;
+    
+    public BitMap diskSectors;
+    
+    /**
+     * Copy initial Unix file to Nachos file. Used in real file system not the stub.
+     * @param from
+     * @param to
+     */
+    public abstract void copy(String from, String to);
+    
+    
     /**
      * Create a new file with a specified name and size.
      *
@@ -66,7 +87,13 @@ public abstract class FileSystem {
      * Protected constructor to force creation of a filesystem using
      * the init() factory method.
      */
-    protected FileSystem() { }
+    protected FileSystem() {
+	//will be overwritten in fileSystemReal
+	freeMapFile = null;
+	numDiskSectors = -1;
+	DirectoryFileSize = -1;
+	NumDirEntries = 10;
+    }
 
     /**
      * Factory method to create the proper type of filesystem and
@@ -128,5 +155,14 @@ public abstract class FileSystem {
 	buffer[pos+2] = (byte)(val >> 8 & 0xff);
 	buffer[pos+3] = (byte)(val & 0xff);
     }
+    
+    public abstract boolean makeDirectory (String path, long initialSize);
 
+    public abstract boolean removeDirectory(String path);
+    public abstract int getDirectoryFileSize();
+    public abstract void printBitMap();
+    
+    public abstract BitMap getDiskMap ();
+    
+    public abstract void checkValid();
 }

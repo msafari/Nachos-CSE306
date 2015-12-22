@@ -1,11 +1,15 @@
 package nachos.kernel.userprog;
 
+import java.util.LinkedList;
+import java.util.List;
+
 import nachos.Debug;
 import nachos.Options;
 import nachos.machine.CPU;
 import nachos.machine.MIPS;
 import nachos.machine.NachosThread;
 import nachos.kernel.Nachos;
+import nachos.kernel.threads.Lock;
 import nachos.kernel.userprog.AddrSpace;
 import nachos.kernel.userprog.UserThread;
 import nachos.kernel.filesys.OpenFile;
@@ -28,6 +32,7 @@ public class UserProcess implements Runnable {
     private AddrSpace space;
     
     public int processID;
+
     
     /**
      * Overloaded constructor for forking processes
@@ -41,8 +46,8 @@ public class UserProcess implements Runnable {
 	
 	Debug.println('+', "starting forked UserProcess: " + name);
 
-	UserThread t = new UserThread(name, this, space);
-	
+	UserThread t = new UserThread(name, this, space, null);
+
 	
 	this.processID = t.processID;
 	this.funcAddr = funcAddr;
@@ -70,8 +75,8 @@ public class UserProcess implements Runnable {
 	execName = filename;
 	AddrSpace space = new AddrSpace();
 	this.space = space;
-	UserThread t = new UserThread(name, this, space);
-	
+	UserThread t = new UserThread(name, this, space, filename);
+	t.filename = filename;
 	
 	this.processID = t.processID;
 	
@@ -100,6 +105,9 @@ public class UserProcess implements Runnable {
 		    return;
 		}
 
+		//Add the executable to the openfile list
+		Syscall.addOpenFileEntry(executable, execName);
+		
 		AddrSpace space = ((UserThread)NachosThread.currentThread()).space;
 		if(space.exec(executable) == -1) {
 		    Debug.println('+', "Unable to read executable file: " + execName);
@@ -127,5 +135,7 @@ public class UserProcess implements Runnable {
 	// the address space exits
 	// by doing the syscall "exit"
     }
+    
+
     
 }

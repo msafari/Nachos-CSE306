@@ -4,6 +4,10 @@
 
 package nachos.kernel.userprog;
 
+import nachos.kernel.Nachos;
+import nachos.kernel.filesys.FileSystem;
+import nachos.kernel.filesys.OpenFile;
+import nachos.kernel.filesys.OpenFileEntry;
 import nachos.kernel.threads.Semaphore;
 import nachos.Debug;
 import nachos.machine.CPU;
@@ -54,6 +58,7 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	int type = CPU.readRegister(2);
 	int result = -1;
 	
+	//Handle syscalls here
 	if (which == MachineException.SyscallException) {
 
 	    switch (type) {
@@ -63,6 +68,8 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		CPU.writeRegister(2, result);
 		break;
 	    case Syscall.SC_Create:
+		String createFile = getFileName(4);
+		Syscall.create(createFile);
 		break;
 	    case Syscall.SC_Open:
 		String openFile = getFileName(4);
@@ -85,6 +92,7 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		ioSemaphore.V();
 		break;
 	    case Syscall.SC_Close:
+		Syscall.close(CPU.readRegister(4));
 		break;
 	    case Syscall.SC_Fork:
 		Syscall.fork(CPU.readRegister(4));
@@ -93,6 +101,8 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		Syscall.yield();
 		break;
 	    case Syscall.SC_Remove:
+		String removeFile = getFileName(4);
+		Syscall.remove(removeFile);
 		break;
 	    case Syscall.SC_Halt:
 		Syscall.halt();
@@ -104,7 +114,6 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		String fileName = getFileName(4);
 		result = Syscall.exec(fileName);
 		CPU.writeRegister(2, result);
-		
 		break;
 	    case Syscall.SC_Write:
 		//Block on write
@@ -121,6 +130,32 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 		//Release block
 		ioSemaphore.V();
 		break;
+	    case Syscall.SC_Sleep:
+		Syscall.sleep(CPU.readRegister(4));
+		break;
+	    case Syscall.SC_Mkdir:
+		String makedirName = getFileName(4);
+		Syscall.makeDirectory(makedirName);
+		break;
+	    case Syscall.SC_Rmdir:
+		String removedirName = getFileName(4);
+		Syscall.removeDirectory(removedirName);
+		break;
+	    case Syscall.SC_Mmap:
+		Debug.println('S', "Mmap called");
+		String name = getFileName(4);
+		int sizeAddr = CPU.readRegister(5);
+		int startAddr = Syscall.Mmap(name, sizeAddr);
+		CPU.writeRegister(2, startAddr);
+		
+		
+		break;
+	    case Syscall.SC_Munmap:
+		Debug.println('S', "Munmap called");
+		startAddr = CPU.readRegister(4);
+		Syscall.Munmap(startAddr);
+		break;
+		
 	    default:
 		Debug.println('S', "Invalid Syscall: " + type);
 		Debug.ASSERT(false);
@@ -133,12 +168,25 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 	    
 	    return;
 	}
-
-	if(which == MachineException.PageFaultException){
-	    System.out.println("Page Fault: " + CPU.readRegister(4) );
+	//Handle page faults here
+	else if(which == MachineException.PageFaultException){
+	    //Virtual address that caused the page fault will be in 'BadVAddrReg', address 39
+	    int vAddr = CPU.readRegister(MIPS.BadVAddrReg);
+	    
+	    System.out.println("Page Fault: " + vAddr);
+	    Debug.println('D', "Handling page fault exception by allocating the page");
+	    UserThread curUserThrd = ((UserThread)NachosThread.currentThread());
+//	    OpenFileEntry fileEntry = Syscall.findOpenFileEntry(curUserThrd.filename);
+//	    Debug.ASSERT(fileEntry != null , "Cannot find an OpenFileEntry with name: " + curUserThrd.filename);
+	    OpenFileEntry fileEntry = curUserThrd.space.findFile(vAddr);
+	    
+	    //fileEntry.file is the executable
+	    ((UserThread)NachosThread.currentThread()).space.demandMalloc(vAddr, fileEntry.file);
 	}
-	System.out.println("Unexpected user mode exception " + which + ", " + type);
-	Debug.ASSERT(false);
+	else{
+	    System.out.println("Unexpected user mode exception " + which + ", " + type);
+	    Debug.ASSERT(false);
+	}
 
     }
 
@@ -175,7 +223,7 @@ public class ExceptionHandler implements nachos.machine.ExceptionHandler {
 
 	// Check reg number
 	if (reg >= 2 && reg <= 25) {
-	    int length = 255; // Typically allow only 255 chars for filename.
+	    int length = 20; // Typically allow only 255 chars for filename.
 	    int ptr = CPU.readRegister(reg); // Get the address this pointer is pointing to.
 	    byte buf[] = new byte[length];
 	    String fileName;

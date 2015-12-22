@@ -1,0 +1,69 @@
+README for HW3
+ 
+@Author Yakov Gaberman 	ygaberman
+@Author Maedeh Safari 	msafari
+
+------------
+RoundRobin:
+------------
+	-r: to see the scheduler's Debug statements
+	
+	Nachos is modified so that by default it uses the round-robin scheduler.
+	The round robin scheduler will keep track of the number of ticks gone by through the TimerInterruptHandler's handleInterrupt routine.
+	By default handleInterrupt is called every 100 ticks, so the handler has a counter which will be incremented until it reaches 10 (1000 ticks).
+	The round robin scheduler has a sleep list which keeps track of the sleeping threads whose sleep time is decreased in the handleSleep() function on each 100 ticks.
+	This gives a rough estimate on when the thread should be woken up since its sleep time will be less than or equal to 0.
+	
+	---- Test programs: ----
+	The test program round-robin.c contains an inner loop which is made up of 9 MIPS instructions. The loop can be increased so the scheduler will interrupt the current thread.
+	Currently, the inner loop is set to 200 and the outer loop is set to 3 so the number of instructions per each inner loop = 1800, 
+	and in total there are 5400 MIPS instructions just for the nested loop.
+	
+	
+
+Note: If only one thread is left on the readylist, it will run to completion. 
+**NOTE: Use -SCH : If you ever want to use the original scheduler that was provided. **
+
+
+-------------------------------
+Multi Level Feedback Scheduler:
+-------------------------------
+	use -MLFS to use this scheduler
+	use -numPL <> to specify the number of priority levels for the scheduler
+	use -highQ <> to specify the highest level quantum.
+	
+	-r: to see the scheduler's Debug statements
+	
+	
+	-------Test Programs -------
+	tested multi level feedback scheduling using:
+	mlfs-1.c 
+		it calls Exec("test/round-robin") two times in a row. This is the same file explained in Round robin.
+		Running this test shows that the avgCpuBurst is changing for these two user processes. Therefore their priority will be reassigned periodically. 
+		You can see the avg cpu bursts for each thread in nachos/reports/mlfs-1.txt
+		report was generated using the default 100 highest priority Quantum and 4 priority queques.
+	
+--------------	
+ConsoleDriver:
+--------------
+	putChar(): If console is NOT busy it will print the character immediately. 
+				However, we modified this function to store characters to a buffer size 10 if console is busy.
+				it will accept up to 10 characters and store it in the buffer. 
+				After 10 characters are stored, it will loop through the buffer and calls console.putChar for each one
+				NOTE that we ensure that console isn't busy by using a semaphore size 1 called "outBufferFull".
+				
+				There's also the case that the write syscall for an arbitrary user process may be done before the buffer is full.
+				We ensure these characters get printed by doing the following:
+					Each UserProcess has a writeSize, that will be initialized when the process calls a Write Syscall. 
+					getChar() will decrement the process's writeSize each time a character gets printed on the console. 
+					Clearly, if the writeSize is equal to number of characters in the buffer, it means the Write Syscall is done before the buffer is full
+					So our code checks for this case and prints the remaining characters before the next Write Syscall executes. 
+	getChar(): It gets the character from console and echos it at the same time. It can do backspace and carriage return/newline.
+				Test program to run is readConsole.c. Stores the characters in an echo buffer.
+								
+	------Test Programs: --------
+	We tested putChar() with console1.c and console2.c. 
+	console1.c is a write syscall to console.
+	console2.c first exec(test/console1) and then calls a write syscall to console.
+				
+		

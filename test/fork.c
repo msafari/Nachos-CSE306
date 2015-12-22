@@ -22,7 +22,6 @@ void AnotherThread() {
 int main (void) {
 
   Write ("Here I am in the program!\n", 30, ConsoleOutput);
-  //oour fork doesn;t work like this we need to pass a pointer to a function
   Fork(SimpleThread);
   Fork(AnotherThread);
   Exec("test/join1");

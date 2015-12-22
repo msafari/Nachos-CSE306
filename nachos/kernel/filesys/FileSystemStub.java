@@ -12,6 +12,8 @@ package nachos.kernel.filesys;
 
 import java.io.*;
 
+import nachos.Debug;
+
 /**
  * This "filesystem stub" class implements a Nachos filesystem by simply
  * passing the filesystem operations through to the native filesystem on
@@ -29,7 +31,8 @@ class FileSystemStub extends FileSystem {
      * the init() factory method of the super class.
      */
     protected FileSystemStub() { 
-	super(); 
+	super();
+	Debug.println('f',"Initializing the stub filesystem");
     }
 
     /**
@@ -87,6 +90,49 @@ class FileSystemStub extends FileSystem {
 
 	file = new File(name);
 	return file.delete();
+    }
+
+    /**
+     * Only used in real filesystem not the stub
+     */
+    public void copy(String from, String to) {
+	
+    }
+
+    @Override
+    public boolean makeDirectory(String path, long initialSize) {
+	// TODO Auto-generated method stub
+	return false;
+    }
+
+    @Override
+    public boolean removeDirectory(String path) {
+	// TODO Auto-generated method stub
+	return false;
+    }
+
+    @Override
+    public void printBitMap() {
+	// TODO Auto-generated method stub
+	
+    }
+
+    @Override
+    public int getDirectoryFileSize() {
+	// TODO Auto-generated method stub
+	return 0;
+    }
+
+    @Override
+    public void checkValid() {
+	// TODO Auto-generated method stub
+	
+    }
+
+    @Override
+    public BitMap getDiskMap() {
+	// TODO Auto-generated method stub
+	return null;
     }
 
 }

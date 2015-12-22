@@ -108,6 +108,10 @@ public class Options {
      * supports it.
      */
     public int NUM_CPUS = 1;
+    
+    public int NUM_P_LEVELS = 1;
+    
+    public int HIGHEST_QUANTUM = 100;
 
     /**
      * The number of consoles on the system.
@@ -122,7 +126,9 @@ public class Options {
     public int NUM_PORTS = 0;
 
     /** The types of disk devices on the system. */
-    public Class<?>[] DISK_TYPES = new Class<?>[] { /* Disk.class */};
+    public Class<?>[] DISK_TYPES = new Class<?>[] { 
+	    	Disk.class 
+	    };
 
     /** The number of disks on the system. */
     public int NUM_DISKS = DISK_TYPES.length;
@@ -149,16 +155,20 @@ public class Options {
     public boolean RANDOM_YIELD = false;
 
     /** Should we use the stub filesystem, rather than the Nachos filesystem? **/
-    public boolean FILESYS_STUB = true;
+    public boolean FILESYS_STUB = false;
 
     /** Should we use the "real" Nachos filesystem (requires disk)? */
-    public boolean FILESYS_REAL = false;
+    public boolean FILESYS_REAL = true;
 
     /** Should we format the Nachos disk before using it? */
     public boolean FORMAT_DISK = false;
     
-    public boolean MEM_MANAGER = false;
-
+    /** Should we copy in the first program before running it? Used with the real Nachos fs.*/
+    public String UNIX_FILE;
+    
+    /** Should we validate filesystem upon exit? */
+    public boolean CHECK_FS = false;
+    
     // Test/demo configuration options.
 
     /** Should we run the thread test? */
@@ -172,9 +182,15 @@ public class Options {
 
     /** Should we run the console test? */
     public boolean CONSOLE_TEST = false;
+    
+    public boolean ORIG_SCHEDULER = false;
+    
+    public boolean MULTI_LEV_SCHEDULER = false;
 
     /** Should we run the filesystem test? */
     public boolean FILESYS_TEST = false;
+    
+    public boolean LIST_FILES = false;
 
     /** Should we run the serial port test? */
     public boolean SERIAL_TEST = false;
@@ -211,6 +227,16 @@ public class Options {
      */
     private void parseArgList() {
 	processOptions(new Spec[] {
+		new Spec(
+			"-cp", // Copy the initial file from Unix to Nachos
+			new Class[] { String.class }, "Usage: -cp <filename>",
+			new Options.Action() {
+			    public void processOption(String flag,
+				    Object[] params) {
+				UNIX_FILE = (String) params[0];
+			    }
+			}),
+		
 		new Spec("-z", // print copyright message
 			new Class[] {}, null, new Options.Action() {
 			    public void processOption(String flag,
@@ -246,13 +272,7 @@ public class Options {
 				PROG_TEST = true;
 			    }
 			}),
-		new Spec("-mm", //enable memoray manager for translation
-			new Class[] {}, null, new Options.Action() {
-        		    public void processOption(String flag,
-        			    Object[] params) {
-        			MEM_MANAGER = true;
-        		    }
-        		}),
+
 		new Spec("-nt", // enable network test
 			new Class[] {}, null, new Options.Action() {
 			    public void processOption(String flag,
@@ -322,6 +342,40 @@ public class Options {
 				DISK_FILE_NAME = (String) params[0];
 			    }
 			}),
+		new Spec("-SCH", // use original Scheduler provided by prof
+			new Class[] {}, null, new Options.Action() {
+			    public void processOption(String flag,
+				    Object[] params) {
+				ORIG_SCHEDULER = true;
+			    }
+			}),
+		new Spec("-MLFS", // use Multi level feedback scheduler
+			new Class[] {}, null, new Options.Action() {
+			    public void processOption(String flag,
+				    Object[] params) {
+				MULTI_LEV_SCHEDULER = true;
+			    }
+			}),
+			
+		new Spec(
+			"-numPL", // set the number of priority level to use for multilevel feedback scheduling
+			new Class[] { Integer.class },
+			"Usage: -numPL <nconsoles>", new Options.Action() {
+			    public void processOption(String flag,
+				    Object[] params) {
+				NUM_P_LEVELS = (Integer) params[0];
+			    }
+			}),
+		new Spec(
+			"-highQ", // set the highest quantum to use for multilevel feedback scheduling
+			new Class[] { Integer.class },
+			"Usage: -highQ <nconsoles>", new Options.Action() {
+			    public void processOption(String flag,
+				    Object[] params) {
+				HIGHEST_QUANTUM = (Integer) params[0];
+			    }
+			}),
+		
 		// Custom tests
 		new Spec("-RY", // enable Random Yield
 			new Class[] {}, null, new Options.Action() {
@@ -337,6 +391,7 @@ public class Options {
 				CYCLICBARRIER_TEST_0 = true;
 			    }
 			}),
+		
 		
 		new Spec("-CB1", // enable CyclicBarrier test
 			new Class[] {}, null, new Options.Action() {
@@ -373,6 +428,20 @@ public class Options {
 			    public void processOption(String flag,
 				    Object[] params) {
 				TASKMANAGER_TEST_2 = true;
+			    }
+			}),
+		new Spec("-list", // enable listing of file system structure upon exit
+			new Class[] {}, null, new Options.Action() {
+			    public void processOption(String flag,
+				    Object[] params) {
+				LIST_FILES = true;
+			    }
+			}),
+		new Spec("-chkfs", // enable validation of filesystem upon exit.
+			new Class[] {}, null, new Options.Action() {
+			    public void processOption(String flag,
+				    Object[] params) {
+				CHECK_FS = true;
 			    }
 			}),
 	});

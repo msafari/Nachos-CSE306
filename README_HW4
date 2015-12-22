@@ -1,0 +1,57 @@
+README for HW4
+ 
+@Author Yakov Gaberman 	ygaberman
+@Author Maedeh Safari 	msafari
+
+Instructions
+
+The nachos filesystem has been switched from the stub to the real one. 
+To run any of the tests supply the '-f' flag which will "format" the disk.
+Use -d f to see the filesystem debug info.
+
+Since the real file system uses a RandomAccessFile DISK0, 
+use -f -cp <first executable> to copy over the compiled executable onto the disk.
+Otherwise, it will complain about not being able to open the first file: ./run -f -cp /test/write1 -x test/write1
+Make sure that the executable has been succesfully copied over.
+Note: When running the program from DISK0, make sure to remove -f and -cp flags.
+
+If file is greater than the max file size, the filesystem will not allocate memory for the file.
+
+Test programs to run:
+ - extend3.c: Creates a directory, adds 18 files to it, writes to a file
+
+TO LIST ALL FILES IN FILESYSTEM:
+--------------------------------
+
+	1) Make sure you remove all debug flags so you see a clean list printed.
+	2) Run the program with [-list] flag
+	3) List of all files will be displayed upon exit.
+	NOTE: List will not print the directories and files correctly if we extend the directory for more than 10 files. 
+	However, you can check the functionality of our directory extension by looking through the disk file. It is just an error in the list function.
+	
+	
+Testing Validation:
+--------------------
+
+	-list: set this flag to print validation debug statements. This will list all the files and directories before exiting the last program.
+	-chkfs: set this flag to verify the integrity of the filesystem upon exit of the last program. Nachos will check for:
+		- Disk sectors that are used by files (or file headers), but that are also marked as "free" in the bitmap.
+		- Disk sectors that are not used by any files (or file headers), but that are marked as "in use" in the bitmap.
+		- Disk sectors that are referenced by more than one file header.
+		- Multiple directory entries that refer to the same file header.
+		Sectors which fail these checks will be printed out.
+
+General Notes For Developers:
+- All blocks are 128 bytes
+- MaxFileSize will be less than 138752 bytes for the following reasons:
+	1. Number of disk sectors is only 1024, yet the max file size in sectors is 1084. This reduces the max size by 60 sectors.
+	2. First two sectors are reserved for freeMap and root directory, reducing the max size by 2.
+	3. For each file header, 2 sectors are reserved for the indirect and doubly indirect blocks. Again reducing by 2.
+	4. Also, 32 sectors are reserved for the indirect blocks contained in the doubly indirect block. Reducing size by 32.
+	5. Therefore the largest a file can possibly be is 928 sectors assuming a 1024 sector disk. If you include the test directory it will be even less.
+- dataSectors array is different for each type of inode:
+	-FileHeader is 30 (28 for direct, 1 for indirect, 1 for doubly indirect ). 30 because two integers are saved already: numBytes and numSectors
+	-Indirect and Doubly Blocks have size 32
+- To extend a file to a given number of bytes use: dd if=/dev/zero bs=1 count=NUMBER >> <fileName>
+  This is useful when testing the indirect/doubly indirect block allocation.
+- To view the disk as an array of characters use: od -c DISK0

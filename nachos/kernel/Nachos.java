@@ -33,6 +33,9 @@ import nachos.kernel.devices.test.ConsoleTest;
 import nachos.kernel.devices.test.NetworkTest;
 import nachos.kernel.devices.test.SerialTest;
 import nachos.kernel.threads.CyclicBarrier;
+import nachos.kernel.threads.GenScheduler;
+import nachos.kernel.threads.MultiLevelFeedback;
+import nachos.kernel.threads.RoundRobinScheduler;
 import nachos.kernel.threads.Scheduler;
 import nachos.kernel.threads.TaskManager;
 import nachos.kernel.userprog.ExceptionHandler;
@@ -53,7 +56,7 @@ public class Nachos implements Runnable {
     public static Options options;
     
     /** Access to the scheduler. */
-    public static Scheduler scheduler;
+    public static GenScheduler scheduler;
 
     /** Access to the file system. */
     public static FileSystem fileSystem;
@@ -100,8 +103,12 @@ public class Nachos implements Runnable {
 	if(options.FILESYS_STUB || options.FILESYS_REAL)
 	    fileSystem = FileSystem.init(diskDriver);
 	
-	if(options.MEM_MANAGER)
-	    memManager = new MemoryManager();
+	//Transfer the initial executable file to Nachos
+	if(options.FILESYS_REAL && options.UNIX_FILE != null){
+	    fileSystem.copy(options.UNIX_FILE, options.UNIX_FILE);
+	}
+	
+	memManager = new MemoryManager();
 
 	// Do per-CPU initialization:  Before we can run user programs,
 	// we need to set an exception handler on each CPU to handle
@@ -176,7 +183,15 @@ public class Nachos implements Runnable {
       // So, we need to create the first Nachos thread and start it running
       // under the control of the Nachos scheduler.
       NachosThread firstThread = new NachosThread("FirstThread", new Nachos());
-      scheduler = new Scheduler(firstThread);
+      
+      
+      if(options.ORIG_SCHEDULER)
+	  scheduler = new Scheduler(firstThread);
+      else if(options.MULTI_LEV_SCHEDULER)
+	  scheduler = new MultiLevelFeedback(firstThread);
+      else
+	  scheduler = new RoundRobinScheduler(firstThread);
+
       
       // The Nachos thread we just created will begin running in the run()
       // method of this class.  The remainder of the system initialization will

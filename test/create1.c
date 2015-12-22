@@ -4,6 +4,6 @@
 
 int main()
 {
-  Create("create-test");
+  Create("test/create1");
 }
 

@@ -15,7 +15,7 @@
 #Specify absolute path or it will complain
 GCCDIR = /home/zerusski/Downloads/CSE306/mips-gcc/
 
-# Change the following to point to where you have Java executables installed.
+# Change the following to point to where you have Java executables installed.aesome
 JAVADIR = /usr/lib/jvm/java-7-oracle/bin/
 
 # Uncomment the following when running on Windows.

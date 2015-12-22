@@ -23,12 +23,14 @@ package nachos.kernel.filesys;
 class DirectoryEntry {
     /**
      * Maximum length of a file name.
-     * For simplicity, we assume file names are <= 9 characters long.
+     * For simplicity, we assume file names are <= 21 characters long.
      */
-    static final int FileNameMaxLen = 9;
+    static final int FileNameMaxLen = 20;
 
     /** Is this directory entry in use? */
     private boolean inUse;
+    
+    private boolean isDir;
 
     /** Location on disk to find the FileHeader for this file. */
     private int sector;
@@ -46,6 +48,7 @@ class DirectoryEntry {
     private byte[] nameBytes;
 
     DirectoryEntry() {
+	isDir = false;
 	inUse = false;
     }
 
@@ -56,6 +59,15 @@ class DirectoryEntry {
      */
     boolean inUse() {
 	return(inUse);
+    }
+    
+    /**
+     * Determine if this DirectoryEntry is a directory.
+     *
+     * @return true if it's a dir, false if not.
+     */
+    boolean isDir() {
+	return(isDir);
     }
 
     /**
@@ -109,6 +121,10 @@ class DirectoryEntry {
     void setUnused() {
 	inUse = false;
     }
+    
+    void setIsDir(boolean isDir){
+	this.isDir = isDir;
+    }
 
     // the following methods deal with conversion between the on-disk and
     // the in-memory representation of a DirectoryEnry.
@@ -122,9 +138,9 @@ class DirectoryEntry {
      * on the disk.
      */
     public static int sizeOf() {
-	// 1 byte for inUse, 4 bytes for sector, 4 bytes for nameLen,
+	// 1 byte for isDir, 1 byte for inUse, 4 bytes for sector, 4 bytes for nameLen,
 	// and 1 byte for each possible byte in the name.
-	return 1 + 4 + 4 + FileNameMaxLen;
+	return 1 + 1 + 4 + 4 + FileNameMaxLen;
     }
 
     /**
@@ -136,13 +152,22 @@ class DirectoryEntry {
      */
     void internalize(byte[] buffer, int pos) {
 	if (buffer[pos] != 0) {
+	    if(buffer[pos + 1] != 0)
+		isDir = true;
 	    inUse = true; 
-	    sector = FileSystem.bytesToInt(buffer, pos+1);
-	    nameLen = FileSystem.bytesToInt(buffer, pos+5);
-	    name = new String(buffer, pos+9, nameLen);
+	    
+	    sector = FileSystem.bytesToInt(buffer, pos+2);
+	    nameLen = FileSystem.bytesToInt(buffer, pos+6);
+	    name = new String(buffer, pos+10, nameLen);
 	    nameBytes = name.getBytes();
-	} else 
+	    
+	} else {
 	    inUse = false;
+	    isDir = false;
+	}
+	    
+	
+	
     }
 
     /**
@@ -154,13 +179,19 @@ class DirectoryEntry {
      */
     void externalize(byte[] buffer, int pos) {
 	if (inUse) { 
+	    if(isDir)
+		buffer[pos + 1] = 1;
 	    buffer[pos] = 1; 
-	    FileSystem.intToBytes(sector, buffer, pos+1);
-	    FileSystem.intToBytes(nameLen, buffer, pos+5);
+	    FileSystem.intToBytes(sector, buffer, pos+2);
+	    FileSystem.intToBytes(nameLen, buffer, pos+6);
 	    for(int i = 0; i < nameLen; i++)
-		buffer[pos+9+i] = nameBytes[i];
-	} else 
+		buffer[pos+10+i] = nameBytes[i];
+	} else {
 	    buffer[pos] = 0;
+	    buffer[pos + 1] = 0;
+	}
+	    
+	
     }
 
 }

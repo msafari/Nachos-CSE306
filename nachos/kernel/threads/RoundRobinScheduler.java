@@ -14,11 +14,15 @@
 
 package nachos.kernel.threads;
 
+import java.util.LinkedList;
+
 import nachos.Debug;
 import nachos.kernel.Nachos;
+import nachos.kernel.userprog.UserThread;
 import nachos.machine.CPU;
 import nachos.machine.Machine;
 import nachos.machine.NachosThread;
+import nachos.machine.Simulation;
 import nachos.machine.Timer;
 import nachos.machine.InterruptHandler;
 import nachos.util.FIFOQueue;
@@ -50,11 +54,14 @@ import nachos.util.Queue;
  * @author Peter Druschel (Rice University), Java translation
  * @author Eugene W. Stark (Stony Brook University)
  */
-public class Scheduler extends GenScheduler {
+public class RoundRobinScheduler extends GenScheduler {
 
     /** Queue of threads that are ready to run, but not running. */
     private final Queue<NachosThread> readyList;
 
+    /** Queue of threads that are sleeping. */
+    public LinkedList<NachosThread> sleepList;
+    
     /** Queue of CPUs that are idle. */
     private final Queue<CPU> cpuList;
     
@@ -71,25 +78,24 @@ public class Scheduler extends GenScheduler {
      * 
      * @param firstThread  The first NachosThread to run.
      */
-    public Scheduler(NachosThread firstThread) {
+    public RoundRobinScheduler(NachosThread firstThread) {
 	super(firstThread);
 	readyList = new FIFOQueue<NachosThread>();
+	sleepList = new LinkedList<NachosThread>();
 	cpuList = new FIFOQueue<CPU>();
-
-	Debug.println('+', "Initializing scheduler");
+	
+	Debug.println('+', "Initializing Round Robin scheduler");
 
 	// Add all the CPUs to the idle CPU list, and start their time-slice timers,
 	// if we are using them.
 	for(int i = 0; i < Machine.NUM_CPUS; i++) {
 	    CPU cpu = Machine.getCPU(i);
 	    cpuList.offer(cpu);
-	    if(Nachos.options.CPU_TIMERS) {
-		Timer timer = cpu.timer;
-		timer.setHandler(new TimerInterruptHandler(timer));
-		if(Nachos.options.RANDOM_YIELD)
-		    timer.setRandom(true);
-		timer.start();
-	    }
+	    
+	    Timer timer = cpu.timer;
+	    timer.setHandler(new TimerInterruptHandler(timer));
+	    timer.start();
+	    
 	}
 
 	// Dispatch firstThread on the first CPU.
@@ -148,7 +154,7 @@ public class Scheduler extends GenScheduler {
     private void makeReady(NachosThread thread) {
 	Debug.ASSERT(CPU.getLevel() == CPU.IntOff && mutex.isLocked());
 
-	Debug.println('t', "Putting thread on ready list: " + thread.name);
+	Debug.println('r', "Putting thread on ready list: " + thread.name);
 
 	thread.setStatus(NachosThread.READY);
 	readyList.offer(thread);
@@ -165,7 +171,7 @@ public class Scheduler extends GenScheduler {
 	while(!readyList.isEmpty() && !cpuList.isEmpty()) {
 	    NachosThread thread = readyList.poll();
 	    CPU cpu = cpuList.poll();
-	    Debug.println('t', "Dispatching " + thread.name + " on " + cpu.name);
+	    Debug.println('r', "Dispatching " + thread.name + " on " + cpu.name);
 	    cpu.dispatch(thread);
 	    // The current CPU is not relinquished here -- immediate return.
 	}
@@ -214,14 +220,15 @@ public class Scheduler extends GenScheduler {
 	NachosThread currentThread = NachosThread.currentThread();
 	NachosThread nextThread = findNextToRun();
 
+	
 	// If the current thread wants to keep running and there is no other thread to run,
 	// do nothing.
 	if(status == NachosThread.RUNNING && nextThread == null) {
-	    Debug.println('t', "No other thread to run -- " + currentThread.name
+	    Debug.println('r', "No other thread to run -- " + currentThread.name
 		    			+ " continuing");
 	    return;
 	}
-	Debug.println('t', "Next thread to run: "
+	Debug.println('r', "Next thread to run: "
 		+ (nextThread == null ? "(none)" : nextThread.name));
 
 	// The current thread will be suspending -- save its context.
@@ -232,24 +239,25 @@ public class Scheduler extends GenScheduler {
 	    toRelease.release();
 	if(nextThread != null) {
 	    // Switch the CPU from currentThread to nextThread.
-
-	    Debug.println('t', "Switching " + CPU.getName() +
+	    Debug.println('r', "Switching " + CPU.getName() +
 		    " from " + currentThread.name +
 		    " to " + nextThread.name);
-
-	    if(status == NachosThread.RUNNING) {
-		// The current thread wants to keep running -- put it back in the ready list.
-		makeReady(currentThread);
-	    } else {
-		// Set the new status of the thread before relinquishing the CPU.
-		if(status != NachosThread.FINISHED)
-		    currentThread.setStatus(status);
+	    
+	    //Dont put thread back on readyList if it is done.
+	    if(status != NachosThread.FINISHED && status != NachosThread.BLOCKED){
+		Debug.println('r', "Putting the current thread: "+ currentThread.name + " back on the ready list");
+		currentThread.setStatus(NachosThread.READY);
+		readyList.offer(currentThread);	//put the thread    
 	    }
+	    
+	    else if(status == NachosThread.BLOCKED) {
+		currentThread.setStatus(status);
+	    }
+	    
 	    CPU.switchTo(nextThread, mutex);
 	} else {
 	    // There is nothing for this CPU to do -- send it to the idle list.
-
-	    Debug.println('t', "Switching " + CPU.getName() +
+	    Debug.println('r', "Switching " + CPU.getName() +
 		    " from " + currentThread.name +
 		    " to idle");
 
@@ -263,7 +271,7 @@ public class Scheduler extends GenScheduler {
 	Debug.ASSERT(CPU.getLevel() == CPU.IntOff);
 	currentThread.restoreState();
 
-	Debug.println('t', "Now in thread: " + currentThread.name);
+	Debug.println('r', "Now in thread: " + currentThread.name);
     }
 
     /**
@@ -288,7 +296,7 @@ public class Scheduler extends GenScheduler {
     public void yieldThread () {
 	int oldLevel = CPU.setLevel(CPU.IntOff);
 
-	Debug.println('t', "Yielding thread: " + NachosThread.currentThread().name);
+	Debug.println('r', "Yielding thread: " + NachosThread.currentThread().name);
 
 	yieldCPU(NachosThread.RUNNING, null);
 	// Control returns here when currentThread is rescheduled.
@@ -314,7 +322,7 @@ public class Scheduler extends GenScheduler {
 	NachosThread currentThread = NachosThread.currentThread();
 	Debug.ASSERT(CPU.getLevel() == CPU.IntOff);
 
-	Debug.println('t', "Sleeping thread: " + currentThread.name);
+	Debug.println('r', "Sleeping thread: " + currentThread.name);
 
 	yieldCPU(NachosThread.BLOCKED, toRelease);
 	// Control returns here when currentThread is rescheduled.
@@ -331,7 +339,7 @@ public class Scheduler extends GenScheduler {
 	CPU.setLevel(CPU.IntOff);
 	NachosThread currentThread = NachosThread.currentThread();
 
-	Debug.println('t', "Finishing thread: " + currentThread.name);
+	Debug.println('r', "Finishing thread: " + currentThread.name);
 
 	// We have to make sure the thread has been set to the FINISHED state
 	// before making it the thread to be destroyed, because we don't want
@@ -355,7 +363,7 @@ public class Scheduler extends GenScheduler {
 	// Interrupts will be re-enabled when the next thread runs or the
 	// current CPU goes idle.
     }
-
+    
     /**
      * Interrupt handler for the time-slice timer.  A timer is set up to
      * interrupt the CPU periodically (once every Timer.DefaultInterval ticks).
@@ -366,7 +374,7 @@ public class Scheduler extends GenScheduler {
 
 	/** The Timer device this is a handler for. */
 	private final Timer timer;
-
+	private int numInterrupts;
 	
 	/**
 	 * Initialize an interrupt handler for a specified Timer device.
@@ -375,17 +383,47 @@ public class Scheduler extends GenScheduler {
 	 */
 	public TimerInterruptHandler(Timer timer) {
 	    this.timer = timer;
+	    numInterrupts = 1;
 	}
 
 	public void handleInterrupt() {
-	    Debug.println('i', "Timer interrupt: " + timer.name);
-	    // Note that instead of calling yield() directly (which would
-	    // suspend the interrupt handler, not the interrupted thread
-	    // which is what we wanted to context switch), we set a flag
-	    // so that once the interrupt handler is done, it will appear as 
-	    // if the interrupted thread called yield at the point it is 
-	    // was interrupted.
-	    yieldOnReturn();
+
+	    handleSleep();
+	    if (numInterrupts != 10) {
+		numInterrupts++;
+		
+	    }
+	    else {
+		numInterrupts = 1;
+		Debug.println('i', "Timer interrupt: " + timer.name);
+		// Note that instead of calling yield() directly (which would
+		// suspend the interrupt handler, not the interrupted thread
+		// which is what we wanted to context switch), we set a flag
+		// so that once the interrupt handler is done, it will appear as
+		// if the interrupted thread called yield at the point it is
+		// was interrupted.
+		yieldOnReturn();
+	    }
+	    
+	}
+	
+	private void handleSleep() {
+	    //For each sleeping thread, 
+	    for (NachosThread s : Nachos.scheduler.sleepList) {
+		UserThread sleepThread = (UserThread)s;
+		
+		sleepThread.numOfTicksToSleep -= 100;		//decrement the number of ticks to sleep for each process
+		
+		if(sleepThread.numOfTicksToSleep <= 0) {	//if the number of ticks to sleep is less than or equal to zero
+		    Nachos.scheduler.sleepList.remove(s);	//remove the thread from scheduler's sleepList  
+		    sleepThread.sleepSemaphore.V();		//wake up the thread
+		    
+		    Debug.println('S', "Waking up the thread: "+ s.name);
+		   
+		}
+		
+	    }
+	    
 	}
 
 	/**
@@ -403,7 +441,7 @@ public class Scheduler extends GenScheduler {
 	    (new Runnable() {
 		public void run() {
 		    if(NachosThread.currentThread() != null) {
-			Debug.println('t', "Yielding current thread on interrupt return");
+			Debug.println('r', "Yielding current thread on interrupt return");
 			Nachos.scheduler.yieldThread();
 		    } else {
 			Debug.println('i', "No current thread on interrupt return, skipping yield");

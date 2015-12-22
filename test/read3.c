@@ -3,10 +3,10 @@
 int main()
 {
   OpenFileId fd;
-  char buf[25];
+  char buf[8];
   int num;
 
-  fd = Open("test/create1");
-  num = Read(buf, 25, fd);
+  fd = Open("write-test");
+  num = Read(buf, 8, fd);
   Close(fd);
 }

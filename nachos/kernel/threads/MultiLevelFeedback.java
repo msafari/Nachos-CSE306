@@ -1,63 +1,42 @@
-// Scheduler.java
-//
-//      readyToRun -- place a thread on the ready list and make it runnable.
-//	finish -- called when a thread finishes, to clean up
-//	yield -- relinquish control over the CPU to another ready thread
-//	sleep -- relinquish control over the CPU, but thread is now blocked.
-//		In other words, it will not run again, until explicitly 
-//		put back on the ready queue.
-// Copyright (c) 1992-1993 The Regents of the University of California.
-// Copyright (c) 1998 Rice University.
-// Copyright (c) 2003 State University of New York at Stony Brook.
-// All rights reserved.  See the COPYRIGHT file for copyright notice and
-// limitation of liability and disclaimer of warranty provisions.
-
+/**
+ * 
+ */
 package nachos.kernel.threads;
+
+import java.util.LinkedList;
 
 import nachos.Debug;
 import nachos.kernel.Nachos;
+import nachos.kernel.userprog.UserThread;
 import nachos.machine.CPU;
+import nachos.machine.InterruptHandler;
 import nachos.machine.Machine;
 import nachos.machine.NachosThread;
 import nachos.machine.Timer;
-import nachos.machine.InterruptHandler;
 import nachos.util.FIFOQueue;
 import nachos.util.Queue;
 
 /**
- * The scheduler is responsible for maintaining a list of threads that
- * are ready to run and for choosing the next thread to run.  It also
- * maintains a list of CPUs that can be used to run threads.
- * Most of the public methods of this class implicitly operate on the
- * currently executing thread, with the exception of readyToRun,
- * which takes the thread to be placed in the ready list as an explicit
- * parameter.
+ * @author maedeh
  *
- * Mutual exclusion on the scheduler state uses two mechanisms:
- * (1) Disabling interrupts on the current CPU to prevent a timer
- * interrupt from re-entering the scheduler code.
- * (2) The current CPU obtains a spin lock in order to prevent concurrent
- * access to the scheduler state by other CPUs.
- * If there is just one CPU, then (1) would be enough.
- * 
- * The scheduling policy implemented here is very simple:
- * threads that are ready to run are maintained in a FIFO queue and are
- * dispatched in order onto the first available CPU.
- * Scheduling may be preemptive or non-preemptive, depending on whether
- * timers are initialized for time-slicing.
- * 
- * @author Thomas Anderson (UC Berkeley), original C++ version
- * @author Peter Druschel (Rice University), Java translation
- * @author Eugene W. Stark (Stony Brook University)
  */
-public class Scheduler extends GenScheduler {
+public class MultiLevelFeedback extends GenScheduler{
 
-    /** Queue of threads that are ready to run, but not running. */
-    private final Queue<NachosThread> readyList;
-
+    /** Keep track of the dispatched object */
+    public QueueObject justDispatched;
+    
+    /** Keep track of all the queue objects*/
+    public LinkedList<QueueObject> queueObjectList;
+    
+    /** Array of priority queues */
+    public Queue[] priorityArray;
+    
+    /** Queue of threads that are sleeping. */
+    public LinkedList<NachosThread> sleepList;
+    
     /** Queue of CPUs that are idle. */
     private final Queue<CPU> cpuList;
-    
+
     /** Terminated thread awaiting reclamation of its stack. */
     private volatile NachosThread threadToBeDestroyed;
 
@@ -71,27 +50,47 @@ public class Scheduler extends GenScheduler {
      * 
      * @param firstThread  The first NachosThread to run.
      */
-    public Scheduler(NachosThread firstThread) {
+    public MultiLevelFeedback(NachosThread firstThread) {
 	super(firstThread);
-	readyList = new FIFOQueue<NachosThread>();
+	
+	Debug.println('+', "Initializing MultiLevel Feedback scheduler");
+	
+	priorityArray = new Queue[Nachos.options.NUM_P_LEVELS];	//initialize an array size of NUM_P_LEVELS
+	
+	for(int i=0; i<Nachos.options.NUM_P_LEVELS; i++){
+	    Queue<NachosThread> priorityQueue = new FIFOQueue<NachosThread>();
+	    priorityArray[i] = priorityQueue;			//add the priority Queue to the array
+	    
+	    // we will set each queue's quantum in interrupt handler using this formula:
+	    // 2^index * HIGHES_QUANTUM
+	}
+	
+	sleepList = new LinkedList<NachosThread>();
 	cpuList = new FIFOQueue<CPU>();
-
-	Debug.println('+', "Initializing scheduler");
-
+	queueObjectList = new LinkedList<QueueObject>();
+	
 	// Add all the CPUs to the idle CPU list, and start their time-slice timers,
 	// if we are using them.
 	for(int i = 0; i < Machine.NUM_CPUS; i++) {
 	    CPU cpu = Machine.getCPU(i);
 	    cpuList.offer(cpu);
-	    if(Nachos.options.CPU_TIMERS) {
-		Timer timer = cpu.timer;
-		timer.setHandler(new TimerInterruptHandler(timer));
-		if(Nachos.options.RANDOM_YIELD)
-		    timer.setRandom(true);
-		timer.start();
-	    }
+	    
+	    Timer timer = cpu.timer;
+	    timer.setHandler(new TimerInterruptHandler(timer));
+	    timer.start();
+	    
 	}
 
+	//Create a queue object for the thread and add it to list
+	QueueObject object = new QueueObject(firstThread);
+	queueObjectList.offer(object);
+	
+	justDispatched = object;
+	
+	//Add the object to the MLF scheduler
+	int priorityIndex = getPriorityIndex(object);
+	
+	
 	// Dispatch firstThread on the first CPU.
 	CPU firstCPU = cpuList.poll();
 	firstCPU.dispatch(firstThread);
@@ -147,12 +146,41 @@ public class Scheduler extends GenScheduler {
      */
     private void makeReady(NachosThread thread) {
 	Debug.ASSERT(CPU.getLevel() == CPU.IntOff && mutex.isLocked());
-
-	Debug.println('t', "Putting thread on ready list: " + thread.name);
-
+	
+	//Create new queue object for thread and add it in.
+	QueueObject object = new QueueObject(thread);
+	object.currentPLevelIndex = getPriorityIndex(object);
+	queueObjectList.offer(object);
+	
+	Debug.println('r', "Putting thread " + thread.name + " on MLF queue, priority: " + object.currentPLevelIndex);
+	priorityArray[object.currentPLevelIndex].offer(object);	//add this thrd to the highest priority queue that has a quantum >= avgCPUBurst for this thrd
 	thread.setStatus(NachosThread.READY);
-	readyList.offer(thread);
+
     }
+    
+    /**
+     * it calculates the avgCPU burst for this queue object
+     * it compares this value to the quantum level of the priority queue this queue object is in
+     *  
+     * @return the index of the priority queue
+     */
+    private int getPriorityIndex(QueueObject object) {
+
+	object.avgCPUBurst = 0.4 * object.sampleVal + 0.6 * object.avgCPUBurst;	//new avgCpu burst
+	
+	int i; 	//index to return
+	for(i=0; i < Nachos.options.NUM_P_LEVELS; i++){
+	    double thisQuantum = Math.pow(2, i)* Nachos.options.HIGHEST_QUANTUM;
+	    
+	    //check if thisQuantum is greater or equal to avg
+	    if(thisQuantum >= object.avgCPUBurst)
+		break;
+	    
+	}
+
+	return i;
+    }
+
 
     /**
      * If there are idle CPUs and threads ready to run, dispatch threads on CPUs
@@ -162,29 +190,47 @@ public class Scheduler extends GenScheduler {
      */
     private void dispatchIdleCPUs() {
 	Debug.ASSERT(CPU.getLevel() == CPU.IntOff && mutex.isLocked());
-	while(!readyList.isEmpty() && !cpuList.isEmpty()) {
-	    NachosThread thread = readyList.poll();
-	    CPU cpu = cpuList.poll();
-	    Debug.println('t', "Dispatching " + thread.name + " on " + cpu.name);
-	    cpu.dispatch(thread);
-	    // The current CPU is not relinquished here -- immediate return.
+	
+	//For each level starting from the highest, check if there are any threads to run.
+	for(int i = 0; i < Nachos.options.NUM_P_LEVELS; i++){
+	    while (!priorityArray[i].isEmpty() && !cpuList.isEmpty()) {
+		QueueObject object = (QueueObject) priorityArray[i].poll();
+		
+		//Set the dispatched object
+		justDispatched = object;
+		
+		NachosThread thread = (NachosThread) object.thread;
+		CPU cpu = cpuList.poll();
+		Debug.println('r', "Dispatching " + thread.name + " on "+ cpu.name);
+		cpu.dispatch(thread);
+		// The current CPU is not relinquished here -- immediate return.
+	    }
 	}
     }
+    
 
     /**
-     * Return the next thread to be scheduled onto a CPU.
+     * Return the next queue object to be scheduled onto a CPU.
      * If there are no ready threads, return null.
      * Side effect: thread is removed from the ready list.
      * Assumes that interrupts have been disabled.
      *
      * @return the thread to be scheduled onto a CPU.
      */
-    private NachosThread findNextToRun() {
+    private QueueObject findNextToRun() {
 	Debug.ASSERT(CPU.getLevel() == CPU.IntOff);
 	mutex.acquire();
-	NachosThread result = readyList.poll();
+	QueueObject object = null;
+	
+	for(int i=0; i < Nachos.options.NUM_P_LEVELS; i++){
+	    if(!priorityArray[i].isEmpty()) {
+		object = (QueueObject) priorityArray[i].poll();
+		break;
+	    }
+	}
+	
 	mutex.release();
-	return result;
+	return object;
     }
 
     /**
@@ -212,17 +258,22 @@ public class Scheduler extends GenScheduler {
 	Debug.ASSERT(CPU.getLevel() == CPU.IntOff);
 	CPU currentCPU = CPU.currentCPU();
 	NachosThread currentThread = NachosThread.currentThread();
-	NachosThread nextThread = findNextToRun();
+	QueueObject object = findNextToRun();
+	NachosThread nextThread = null;
+	if(object!=null)
+	    nextThread = object.thread;
+	
+	//check if currentThread didn't use it's full quantum, then set its sampleVal to numOfTicks it used
+	setSampleForICQuantum(currentThread);	
 
+	
 	// If the current thread wants to keep running and there is no other thread to run,
 	// do nothing.
 	if(status == NachosThread.RUNNING && nextThread == null) {
-	    Debug.println('t', "No other thread to run -- " + currentThread.name
-		    			+ " continuing");
+	    Debug.println('r', "No other thread to run -- " + currentThread.name + " continuing");
 	    return;
 	}
-	Debug.println('t', "Next thread to run: "
-		+ (nextThread == null ? "(none)" : nextThread.name));
+	Debug.println('r', "Next thread to run: " + (nextThread == null ? "(none)" : nextThread.name));
 
 	// The current thread will be suspending -- save its context.
 	currentThread.saveState();
@@ -232,27 +283,28 @@ public class Scheduler extends GenScheduler {
 	    toRelease.release();
 	if(nextThread != null) {
 	    // Switch the CPU from currentThread to nextThread.
-
-	    Debug.println('t', "Switching " + CPU.getName() +
-		    " from " + currentThread.name +
-		    " to " + nextThread.name);
-
-	    if(status == NachosThread.RUNNING) {
-		// The current thread wants to keep running -- put it back in the ready list.
-		makeReady(currentThread);
-	    } else {
-		// Set the new status of the thread before relinquishing the CPU.
-		if(status != NachosThread.FINISHED)
-		    currentThread.setStatus(status);
+	    Debug.println('r', "Switching " + CPU.getName() + " from " + currentThread.name + " to " + nextThread.name);
+	    
+	    //Dont put thread back on readyList if it is done.
+	    if(status != NachosThread.FINISHED && status != NachosThread.BLOCKED){
+		currentThread.setStatus(NachosThread.READY);
+		
+		QueueObject currentObject = findQueueObject(currentThread);
+		currentObject.currentPLevelIndex = getPriorityIndex(currentObject);	//set the object's index periodically
+		priorityArray[currentObject.currentPLevelIndex].offer(currentObject); 	//offer the object to the queue that
+		
+		Debug.println('r', "Putting the current thread: "+ currentThread.name + " back on MLF queue, priority: " + currentObject.currentPLevelIndex);
 	    }
+	    
+	    else if(status == NachosThread.BLOCKED) {
+		currentThread.setStatus(status);
+	    }
+	    justDispatched = object;
 	    CPU.switchTo(nextThread, mutex);
 	} else {
 	    // There is nothing for this CPU to do -- send it to the idle list.
-
-	    Debug.println('t', "Switching " + CPU.getName() +
-		    " from " + currentThread.name +
-		    " to idle");
-
+	    Debug.println('r', "Switching " + CPU.getName() + " from " + currentThread.name + " to idle");
+	    
 	    cpuList.offer(currentCPU);
 	    if(status != NachosThread.FINISHED)
 		currentThread.setStatus(status);
@@ -263,8 +315,10 @@ public class Scheduler extends GenScheduler {
 	Debug.ASSERT(CPU.getLevel() == CPU.IntOff);
 	currentThread.restoreState();
 
-	Debug.println('t', "Now in thread: " + currentThread.name);
+	Debug.println('r', "Now in thread: " + currentThread.name);
     }
+    
+    
 
     /**
      * Relinquish the CPU if any other thread is ready to run.
@@ -288,8 +342,7 @@ public class Scheduler extends GenScheduler {
     public void yieldThread () {
 	int oldLevel = CPU.setLevel(CPU.IntOff);
 
-	Debug.println('t', "Yielding thread: " + NachosThread.currentThread().name);
-
+	Debug.println('r', "Yielding thread: " + NachosThread.currentThread().name);
 	yieldCPU(NachosThread.RUNNING, null);
 	// Control returns here when currentThread is rescheduled.
 
@@ -314,8 +367,8 @@ public class Scheduler extends GenScheduler {
 	NachosThread currentThread = NachosThread.currentThread();
 	Debug.ASSERT(CPU.getLevel() == CPU.IntOff);
 
-	Debug.println('t', "Sleeping thread: " + currentThread.name);
-
+	Debug.println('r', "Sleeping thread: " + currentThread.name);
+	
 	yieldCPU(NachosThread.BLOCKED, toRelease);
 	// Control returns here when currentThread is rescheduled.
 	// The caller is responsible for re-enabling interrupts.
@@ -331,7 +384,7 @@ public class Scheduler extends GenScheduler {
 	CPU.setLevel(CPU.IntOff);
 	NachosThread currentThread = NachosThread.currentThread();
 
-	Debug.println('t', "Finishing thread: " + currentThread.name);
+	Debug.println('r', "Finishing thread: " + currentThread.name);
 
 	// We have to make sure the thread has been set to the FINISHED state
 	// before making it the thread to be destroyed, because we don't want
@@ -355,7 +408,33 @@ public class Scheduler extends GenScheduler {
 	// Interrupts will be re-enabled when the next thread runs or the
 	// current CPU goes idle.
     }
+    
+    /**
+     * Set the thread's sample size in the case that it doesn't use it's full quantum
+     * 
+     * @param thread: the NachosThread to set its avg sample value
+     */
+    private void setSampleForICQuantum(NachosThread thread){
+	
+	//Find the queueObject for this thread
+	QueueObject object = findQueueObject(thread);
+	
+	int levelQuantum = (int) Math.pow(2, object.currentPLevelIndex) * Nachos.options.HIGHEST_QUANTUM; //the quantum of the level the thread is currently in
+	
+	//if the object didn't use it's full quantum
+	if(object.numInterrupts != levelQuantum/100){
+	    object.sampleVal = object.numInterrupts * 100; 	//set the object's avg sample to the time that it used
+	}
+    }
 
+    public QueueObject findQueueObject(NachosThread thread){
+	    
+	for (QueueObject object : queueObjectList)
+	    if (object.thread == thread)
+		return object;
+	return null;
+    }
+    
     /**
      * Interrupt handler for the time-slice timer.  A timer is set up to
      * interrupt the CPU periodically (once every Timer.DefaultInterval ticks).
@@ -366,7 +445,6 @@ public class Scheduler extends GenScheduler {
 
 	/** The Timer device this is a handler for. */
 	private final Timer timer;
-
 	
 	/**
 	 * Initialize an interrupt handler for a specified Timer device.
@@ -378,14 +456,65 @@ public class Scheduler extends GenScheduler {
 	}
 
 	public void handleInterrupt() {
-	    Debug.println('i', "Timer interrupt: " + timer.name);
-	    // Note that instead of calling yield() directly (which would
-	    // suspend the interrupt handler, not the interrupted thread
-	    // which is what we wanted to context switch), we set a flag
-	    // so that once the interrupt handler is done, it will appear as 
-	    // if the interrupted thread called yield at the point it is 
-	    // was interrupted.
-	    yieldOnReturn();
+	    
+	    handleSleep();
+	    
+	    //Get the object that just ran
+	    QueueObject object = ((MultiLevelFeedback)Nachos.scheduler).justDispatched;
+	    Debug.println('C', "Avg CPU Usage for thread: "+ object.objectName + ((UserThread)object.thread).processID + " is ====== " + object.avgCPUBurst);
+	    
+	    
+	    //object.currentPLevelIndex
+	    int levelQuantum = (int) Math.pow(2, object.currentPLevelIndex) * Nachos.options.HIGHEST_QUANTUM;
+	    
+	    if (object.numInterrupts != levelQuantum/100) {
+		object.numInterrupts++;
+	    }
+	    else {
+		object.numInterrupts = 1;
+		
+		Debug.println('i', "Timer interrupt: " + timer.name);
+		// Note that instead of calling yield() directly (which would
+		// suspend the interrupt handler, not the interrupted thread
+		// which is what we wanted to context switch), we set a flag
+		// so that once the interrupt handler is done, it will appear as
+		// if the interrupted thread called yield at the point it is
+		// was interrupted.
+		calcSample();
+		yieldOnReturn();
+	    }
+   
+	}
+	
+	private void handleSleep() {
+	    //For each sleeping thread, 
+	    for (NachosThread s : Nachos.scheduler.sleepList) {
+		UserThread sleepThread = (UserThread)s;
+		
+		sleepThread.numOfTicksToSleep -= 100;		//decrement the number of ticks to sleep for each process
+		
+		if(sleepThread.numOfTicksToSleep <= 0) {	//if the number of ticks to sleep is less than or equal to zero
+		    Nachos.scheduler.sleepList.remove(s);	//remove the thread from scheduler's sleepList  
+		    sleepThread.sleepSemaphore.V();		//wake up the thread
+		    
+		    Debug.println('S', "Waking up the thread: "+ s.name);
+		   
+		}
+		
+	    }
+	    
+	}
+	
+	/**
+	 *  calculates the avg sample for the current thread
+	 */
+	private void calcSample() {
+	    
+	  //Get the object that just ran
+	    QueueObject object = ((MultiLevelFeedback)Nachos.scheduler).justDispatched;
+	    
+	    int currentQuantum = (int)Math.pow(2, object.currentPLevelIndex) * Nachos.options.HIGHEST_QUANTUM;
+	    object.sampleVal = 2 * currentQuantum;  
 	}
 
 	/**
@@ -403,7 +532,7 @@ public class Scheduler extends GenScheduler {
 	    (new Runnable() {
 		public void run() {
 		    if(NachosThread.currentThread() != null) {
-			Debug.println('t', "Yielding current thread on interrupt return");
+			Debug.println('r', "Yielding current thread on interrupt return");
 			Nachos.scheduler.yieldThread();
 		    } else {
 			Debug.println('i', "No current thread on interrupt return, skipping yield");

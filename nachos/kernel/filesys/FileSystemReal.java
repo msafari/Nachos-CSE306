@@ -10,7 +10,12 @@
 
 package nachos.kernel.filesys;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+
 import nachos.Debug;
+import nachos.kernel.Nachos;
 import nachos.kernel.devices.DiskDriver;
 
 /**
@@ -85,19 +90,19 @@ class FileSystemReal extends FileSystem {
   // well-known sectors, so that they can be located on boot-up.
 
   /** The disk sector containing the bitmap of free sectors. */
-  private static final int FreeMapSector = 0;
+  public static final int FreeMapSector = 0;
 
   /** The disk sector containing the directory of files. */
   private static final int DirectorySector = 1;
   
   /** The maximum number of entries in a directory. */
-  private static final int NumDirEntries = 10;
+  public static final int NumDirEntries = 10;
 
   /** Access to the disk on which the filesystem resides. */
   private final DiskDriver diskDriver;
   
-  /** Number of sectors on the disk. */
-  public final int numDiskSectors;
+  public BitMap diskSectors;
+ 
   
   /** Sector size of the disk. */
   public final int diskSectorSize;
@@ -110,14 +115,12 @@ class FileSystemReal extends FileSystem {
   private final int FreeMapFileSize;
 
   /** The initial size of a directory file. */
-  private final int DirectoryFileSize;
+  public final int DirectoryFileSize;
 
-  /** Bit map of free disk blocks, represented as a file. */
-  private final OpenFile freeMapFile;
 
   /** "Root" directory -- list of file names, represented as a file. */
   private final OpenFile directoryFile;
-
+  
   /**
    * Initialize the file system.  If format = true, the disk has
    * nothing on it, and we need to initialize the disk to contain
@@ -131,7 +134,7 @@ class FileSystemReal extends FileSystem {
    * @param format  Should we initialize the disk?
    */
   protected FileSystemReal(DiskDriver diskDriver, boolean format) { 
-    Debug.print('f', "Initializing the file system.\n");
+    Debug.print('f', "Initializing the real file system.\n");
     this.diskDriver = diskDriver;
     numDiskSectors = diskDriver.getNumSectors();
     diskSectorSize = diskDriver.getSectorSize();
@@ -150,13 +153,11 @@ class FileSystemReal extends FileSystem {
       // (make sure no one else grabs these!)
       freeMap.mark(FreeMapSector);	    
       freeMap.mark(DirectorySector);
-
       // Second, allocate space for the data blocks containing the contents
       // of the directory and bitmap files.  There better be enough space!
 
       Debug.ASSERT(mapHdr.allocate(freeMap, FreeMapFileSize));
       Debug.ASSERT(dirHdr.allocate(freeMap, DirectoryFileSize));
-
       // Flush the bitmap and directory FileHeaders back to disk
       // We need to do this before we can "Open" the file, since open
       // reads the file header off of disk (and currently the disk has 
@@ -172,20 +173,22 @@ class FileSystemReal extends FileSystem {
 
       freeMapFile = new OpenFileReal(FreeMapSector, this);
       directoryFile = new OpenFileReal(DirectorySector, this);
-     
+    
+      
       // Once we have the files "open", we can write the initial version
       // of each file back to disk. The directory at this point is completely
       // empty; but the bitmap has been changed to reflect the fact that
       // sectors on the disk have been allocated for the file headers and
       // to hold the file data for the directory and bitmap.
-
       Debug.print('f', "Writing bitmap and directory back to disk.\n");
       freeMap.writeBack(freeMapFile);	 // flush changes to disk
       directory.writeBack(directoryFile);
 
+      //Create the first directory 'test' for copying in files
+      makeDirectory("test", DirectoryFileSize);
+
       if (Debug.isEnabled('f')) {
-	freeMap.print();
-	directory.print();
+	printBitMap();
       }
       
     } else {
@@ -243,24 +246,27 @@ class FileSystemReal extends FileSystem {
    * Note that this implementation assumes there is no concurrent access
    *	to the file system!
    *
-   * @param name  The name of file to be created.
+   * @param name  The path of file to be created.
    * @param initialSize  The size of file to be created.
    * @return true if the file was successfully created, otherwise false.
    */
-  public boolean create(String name, long initialSize) {
-    Directory directory;
+  public boolean create(String path, long initialSize) {
+    //Directory directory = new Directory(NumDirEntries, this);
     BitMap freeMap;
     FileHeader hdr;
     int sector;
     boolean success;
 
-    Debug.printf('f', "Creating file %s, size %d\n", name, 
+    Debug.printf('f', "Creating file %s, size %d\n", path, 
 		 new Long(initialSize));
+    
+    //Get parent directory of the file
+    int directorySector = getDirectory(path);
+    Directory directory = new Directory(NumDirEntries, this);
+    OpenFile dirFile = new OpenFileReal(directorySector, this);
+    directory.fetchFrom(dirFile);
 
-    directory = new Directory(NumDirEntries, this);
-    directory.fetchFrom(directoryFile);
-
-    if (directory.find(name) != -1)
+    if (directory.find(getFileName(path)) != -1)
       success = false;			// file is already in directory
     else {	
       freeMap = new BitMap(numDiskSectors);
@@ -268,7 +274,7 @@ class FileSystemReal extends FileSystem {
       sector = freeMap.find();	// find a sector to hold the file header
       if (sector == -1) 		
 	success = false;		// no free block for file header 
-      else if (!directory.add(name, sector))
+      else if (!directory.add(getFileName(path), sector))
 	success = false;	// no space in directory
       else {
 	hdr = new FileHeader(this);
@@ -276,15 +282,46 @@ class FileSystemReal extends FileSystem {
 	  success = false;	// no space on disk for data
 	else {	
 	  success = true;
-	  // everthing worked, flush all changes back to disk
-	  hdr.writeBack(sector); 		
-	  directory.writeBack(directoryFile);
+	  // Everything worked, flush all changes back to disk
+	  OpenFileReal parentFile = new OpenFileReal(directorySector, this);
 	  freeMap.writeBack(freeMapFile);
+  	  directory.writeBack(parentFile);
+	  hdr.writeBack(sector);
 	}
       }
     }
     return success;
   }
+  
+  /**
+   * Checks that all disk sectors are valid, in particular:
+   * -Disk sectors that are used by files (or file headers), but that are also marked as "free" in the bitmap.
+   * -Disk sectors that are not used by any files (or file headers), but that are marked as "in use" in the bitmap.
+   * -Disk sectors that are referenced by more than one file header.
+   * -Multiple directory entries that refer to the same file header.
+   * @return
+   */
+  public void checkValid () {
+      
+      Debug.println('V', "Validating Disk Sectors.");
+      
+      //Validate disk sectors against bitmap
+      Directory root = new Directory(NumDirEntries, this);
+      OpenFileReal rootFile = new OpenFileReal(DirectorySector, this);
+      root.fetchFrom(rootFile);
+     
+      //Validate disk sectors against fileHeaders;
+      diskSectors = new BitMap(numDiskSectors);
+      
+      root.validate();
+      
+      
+      //Disk sectors that are referenced by more than one file header.
+      Debug.println('V', "Finished Validating Disk Sectors.");
+  }
+  
+  
+  
 
   /**
    * Open a file for reading and writing.  
@@ -292,16 +329,19 @@ class FileSystemReal extends FileSystem {
    *	  Find the location of the file's header, using the directory;
    *	  Bring the header into memory.
    *
-   * @param name The text name of the file to be opened.
+   * @param path The absolute path of the file to be opened.
    */
-  public OpenFile open(String name) { 
+  public OpenFile open(String path) { 
     Directory directory = new Directory(NumDirEntries, this);
+    int directorySector = getDirectory(path);
+    OpenFile dirFile = new OpenFileReal(directorySector, this);
+    directory.fetchFrom(dirFile);
+    
     OpenFile openFile = null;
     int sector;
 
-    Debug.printf('f', "Opening file %s\n", name);
-    directory.fetchFrom(directoryFile);
-    sector = directory.find(name); 
+    Debug.printf('f', "Opening file %s\n", path);
+    sector = directory.find(getFileName(path)); 
     if (sector >= 0) 		
       openFile = new OpenFileReal(sector, this);// name was found in directory 
     return openFile;			        // return null if not found
@@ -317,17 +357,19 @@ class FileSystemReal extends FileSystem {
    * Return true if the file was deleted, false if the file wasn't
    *	in the file system.
    *
-   * @param name The text name of the file to be removed.
+   * @param path The absolute path of the file to be removed.
    */
-  public boolean remove(String name) { 
-    Directory directory;
+  public boolean remove(String path) { 
+    Directory directory = new Directory(NumDirEntries, this);
     BitMap freeMap;
     FileHeader fileHdr;
     int sector;
     
-    directory = new Directory(NumDirEntries, this);
-    directory.fetchFrom(directoryFile);
-    sector = directory.find(name);
+    int directorySector = getDirectory(path);
+    OpenFile dirFile = new OpenFileReal(directorySector, this);
+    directory.fetchFrom(dirFile);
+
+    sector = directory.find(getFileName(path));
     if (sector == -1) {
        return false;			 // file not found 
     }
@@ -339,23 +381,256 @@ class FileSystemReal extends FileSystem {
 
     fileHdr.deallocate(freeMap);  		// remove data blocks
     freeMap.clear(sector);			// remove header block
-    directory.remove(name);
+    directory.remove(getFileName(path));
 
     freeMap.writeBack(freeMapFile);		// flush to disk
-    directory.writeBack(directoryFile);        // flush to disk
+    OpenFileReal parentFile = new OpenFileReal(directorySector, this);
+    directory.writeBack(parentFile);
     return true;
   } 
 
+  /**
+   * Copy the contents of the host file "from" to the Nachos file "to"
+   *
+   * @param from The name of the file to be copied from the host filesystem.
+   * @param to The name of the file to create on the Nachos filesystem.
+   */
+  public void copy(String from, String to) {
+	File fp;
+	FileInputStream fs;
+	OpenFile openFile;
+	long fileLength;
+	byte buffer[];
+
+	// Open UNIX file
+	fp = new File(from);
+	if (!fp.exists()) {
+	    Debug.printf('+', "Copy: couldn't open input file %s\n", from);
+	    return;
+	}
+
+	// Figure out length of UNIX file
+	fileLength = fp.length();
+
+	// Create a Nachos file of the same length
+	Debug.printf('f', "Copying file %s, size %d, to file %s\n", from, new Long(fileLength), to);
+	
+	//If it doesn't exist already, create it.
+	if(Nachos.fileSystem.open(to) == null){
+
+	    if (!Nachos.fileSystem.create(to, (int) fileLength)) {
+		// Create Nachos file
+		Debug.printf('+',"Copy: couldn't create output file %s.\n",to);
+		return;
+	    }
+	}
+	
+	//Otherwise just open it
+	Debug.println('f', "File already exists, opening it instead.");
+	openFile = Nachos.fileSystem.open(to);
+	Debug.ASSERT(openFile != null);
+
+	// Copy the data in TransferSize chunks
+	buffer = new byte[(int) fileLength];
+	try {
+	    fs = new FileInputStream(fp);
+	    fs.read(buffer);
+	    openFile.write(buffer, 0, buffer.length);	
+	} catch (IOException e) {
+	    Debug.print('+', "Copy: data copy failed\n");      
+	    return;
+	}
+	// Close the UNIX and the Nachos files
+	//delete openFile;
+	try {fs.close();} catch (IOException e) {}
+  }
+  
   /**
    * List all the files in the file system directory (for debugging).
    */
   public void list() {
     Directory directory = new Directory(NumDirEntries, this);
-
-    directory.fetchFrom(directoryFile);
-    directory.list();
+    OpenFileReal dirFile = new OpenFileReal(DirectorySector, this);
+    directory.fetchFrom(dirFile);
+    directory.list("");
+    
   }
+  
+  
+  /**
+   * Make a directory
+   * @param path
+   * @param initialSize
+   * @return
+   */
+  public boolean makeDirectory (String path, long initialSize) {
+      Directory directory = new Directory(NumDirEntries, this);
+      BitMap freeMap;
+      FileHeader hdr;
+      int sector;
+      boolean success;
 
+      Debug.printf('f', "Creating Diretory %s, size %d\n", path, 
+  		 new Long(initialSize));
+
+      int directorySector = getDirectory(path);
+      OpenFile dirFile = new OpenFileReal(directorySector, this);
+      directory.fetchFrom(dirFile);
+  	
+      if (directory.find(getFileName(path)) != -1)
+        success = false;			// file is already in directory
+      else {	
+        freeMap = new BitMap(numDiskSectors);
+        freeMap.fetchFrom(freeMapFile);
+        sector = freeMap.find();	// find a sector to hold the file header
+        if (sector == -1) 		
+  	success = false;		// no free block for file header 
+        else if (!directory.addDirectory(getFileName(path), sector))
+  	success = false;	// no space in directory
+        else {
+  	hdr = new FileHeader(this);
+  	if (!hdr.allocate(freeMap, (int)initialSize))
+  	  success = false;	// no space on disk for data
+  	else {	
+  	  success = true;
+  	  // everthing worked, flush all changes back to disk
+  	  hdr.writeBack(sector);
+  	  OpenFileReal parentFile = new OpenFileReal(directorySector, this);
+  	  directory.writeBack(parentFile);
+  	  directory.fetchFrom(parentFile);
+  	  
+  	  Directory newDir = new Directory(NumDirEntries, this);
+  	  OpenFileReal newDirFile = new OpenFileReal(sector, this);
+  	  newDir.writeBack(newDirFile);
+  	  freeMap.writeBack(freeMapFile);
+  	}
+        }
+      }
+      
+      return success;
+  }
+  
+/**
+   * Frees the directory and all the subdirectories and files inside of it as well.
+   * @return
+   */
+  public boolean removeDirectory(String path){
+      BitMap freeMap;
+      FileHeader fileHdr;
+      int sector;
+      
+      //Load up root directory
+      Directory directory = new Directory(NumDirEntries, this);
+      int directorySector = getDirectory(path);
+      OpenFile dirFile = new OpenFileReal(directorySector, this);
+      directory.fetchFrom(dirFile);
+
+      sector = directory.find(getFileName(path));
+      if (sector == -1) {
+         return false;			 // directory not found 
+      }
+      
+      //Load up the directory to be removed
+      Directory removeMe = new Directory(NumDirEntries, this);
+      OpenFile removeMeDirFile = new OpenFileReal(sector, this);
+      removeMe.fetchFrom(removeMeDirFile);
+      
+      //Remove all the subdirectories and files first
+      removeMe.removeAll();
+      
+      //Finally remove the directory itself
+      fileHdr = new FileHeader(this);
+      fileHdr.fetchFrom(sector);
+
+      freeMap = new BitMap(numDiskSectors);
+      freeMap.fetchFrom(freeMapFile);
+
+      fileHdr.deallocate(freeMap);  		// remove data blocks
+      freeMap.clear(sector);			// remove header block
+      directory.remove(getFileName(path));
+
+      freeMap.writeBack(freeMapFile);		// flush to disk
+      OpenFileReal parentFile = new OpenFileReal(directorySector, this);
+      directory.writeBack(parentFile);
+      
+      return true;
+  }
+  
+  /**
+   * 
+   * @param path
+   * @return
+   */
+  public String getFileName (String path) {
+     String[] subDirs = path.split("/");
+     return subDirs[subDirs.length - 1];
+  }
+  /**
+   *	
+   * @param path
+   * @return
+   */
+  public int getFileSector(String path) {
+      //fetch the root directory
+      Directory curDirectory = new Directory(NumDirEntries, this);
+      curDirectory.fetchFrom(directoryFile);
+      
+      String[] subDirs = path.split("/");
+      String fileName = subDirs[subDirs.length - 1];
+      
+      for (int i = 0; i < subDirs.length - 1; i++) {
+	 
+	  //find in current directory
+	  int dirSectorNum = curDirectory.findDirectory(subDirs[i]);
+	  if (dirSectorNum == -1) {
+	      Debug.println('f', "Couldn't find the directory: "+ subDirs[i] + " in its parent Directory!");
+	      return -1;
+	  }
+	  
+	  OpenFile dirFile = new OpenFileReal(dirSectorNum, this);
+	  curDirectory.fetchFrom(dirFile);	  
+      }
+      
+      return curDirectory.find(fileName);
+     
+  }
+  
+
+  /**
+   *	
+   * @param path
+   * @return
+   */
+  public int getDirectory(String path) {
+      //fetch the root directory
+      Directory curDirectory = new Directory(NumDirEntries, this);
+      OpenFile dirFile = new OpenFileReal(DirectorySector, this);
+      curDirectory.fetchFrom(dirFile);
+      
+      String[] subDirs = path.split("/");
+      if(subDirs.length == 1) {
+	  return DirectorySector;
+      }
+      int dirSectorNum = -1;
+      for (int i = 0; i < subDirs.length - 1; i++) {
+	 
+	  //find in current directory
+	  dirSectorNum = curDirectory.findDirectory(subDirs[i]);
+	  if (dirSectorNum == -1) {
+	      Debug.println('f', "Couldn't find the directory: "+ subDirs[i] + " in its parent Directory!");
+	      return -1;
+	  }
+	  
+	  dirFile = new OpenFileReal(dirSectorNum, this);
+	  curDirectory = new Directory(NumDirEntries, this);
+	  curDirectory.fetchFrom(dirFile);	  
+      }
+     
+      return dirSectorNum;
+     
+  }
+  
+  
   /**
    * Print everything about the file system (for debugging):
    *  the contents of the bitmap;
@@ -384,5 +659,23 @@ class FileSystemReal extends FileSystem {
     directory.fetchFrom(directoryFile);
     directory.print();
 
-  } 
+  }
+  
+  public void printBitMap() {
+      BitMap freeMap = new BitMap(numDiskSectors);
+      OpenFileReal fMapFile = new OpenFileReal(FreeMapSector, this);
+      Debug.print('+', "Free map: ");
+      freeMap.fetchFrom(fMapFile);
+      freeMap.print();
+  }
+  
+  public int getDirectoryFileSize(){
+      return DirectoryFileSize;
+  }
+
+    @Override
+    public BitMap getDiskMap() {
+	return diskSectors;
+    }
+
 }

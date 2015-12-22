@@ -19,6 +19,10 @@
 
 package nachos.kernel.userprog;
 
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+
 import nachos.Debug;
 import nachos.machine.CPU;
 import nachos.machine.MIPS;
@@ -30,6 +34,7 @@ import nachos.machine.TranslationEntry;
 import nachos.noff.NoffHeader;
 import nachos.noff.NoffHeader.NoffSegment;
 import nachos.kernel.filesys.OpenFile;
+import nachos.kernel.filesys.OpenFileEntry;
 
 /**
  * This class manages "address spaces", which are the contexts in which
@@ -51,7 +56,7 @@ import nachos.kernel.filesys.OpenFile;
 public class AddrSpace {
 
   /** Page table that describes a virtual-to-physical address mapping. */
-  private TranslationEntry pageTable[];
+  public TranslationEntry pageTable[];
 
   /** Default size of the user stack area -- increase this as necessary! */
   private static final int UserStackSize = 1024;
@@ -128,32 +133,32 @@ public class AddrSpace {
     // segment and the stack segment.
 
     // then, copy in the code and data segments into memory
-    if (noffH.code.size > 0) {
-      Debug.println('M', "Initializing code segment, at " + noffH.code.virtualAddr + ", size " + noffH.code.size);
-      
-      malloc(noffH.code, executable, true);
-    }
-
-    if (noffH.initData.size > 0) {
-      Debug.println('M', "Initializing data segment, at " + noffH.initData.virtualAddr + ", size " + noffH.initData.size);
-      malloc(noffH.initData, executable, false);
-    }
-    
-    if(noffH.uninitData.size > 0) {
-	Debug.println('M', "Initializing uninitialized data segment, at " + noffH.uninitData.virtualAddr + ", size " + noffH.uninitData.size);
-	malloc(noffH.uninitData, executable, false);
-    }
-    
-
-    //Print out pages for debug
-    for(int i = 0; i < pageTable.length; i++){
-	Debug.println('M', "Entry: " + i + ", vpn: " + pageTable[i].virtualPage 
-					+ ", ppn: " + pageTable[i].physicalPage
-					+ ", valid: " + pageTable[i].valid);
-    }
-    
-    //allocate space for the stack 
-    mallocStack(pageTable, this);
+//    if (noffH.code.size > 0) {
+//      Debug.println('M', "Initializing code segment, at " + noffH.code.virtualAddr + ", size " + noffH.code.size);
+//      
+//      malloc(noffH.code, executable, true);
+//    }
+//
+//    if (noffH.initData.size > 0) {
+//      Debug.println('M', "Initializing data segment, at " + noffH.initData.virtualAddr + ", size " + noffH.initData.size);
+//      malloc(noffH.initData, executable, false);
+//    }
+//    
+//    if(noffH.uninitData.size > 0) {
+//	Debug.println('M', "Initializing uninitialized data segment, at " + noffH.uninitData.virtualAddr + ", size " + noffH.uninitData.size);
+//	malloc(noffH.uninitData, executable, false);
+//    }
+//    
+//
+//    //Print out pages for debug
+//    for(int i = 0; i < pageTable.length; i++){
+//	Debug.println('M', "Entry: " + i + ", vpn: " + pageTable[i].virtualPage 
+//					+ ", ppn: " + pageTable[i].physicalPage
+//					+ ", valid: " + pageTable[i].valid);
+//    }
+//    
+//    //allocate space for the stack 
+//    mallocStack(pageTable, this);
     
     return(0);
   }
@@ -211,7 +216,7 @@ public class AddrSpace {
   /**
    * Utility method for rounding up to a multiple of CPU.PageSize;
    */
-  private long roundToPage(long size) {
+  public long roundToPage(long size) {
     return(Machine.PageSize * ((size+(Machine.PageSize-1))/Machine.PageSize));
   }
 
@@ -222,16 +227,17 @@ public class AddrSpace {
    * @param data byte array to be written in virtual memory
    * @return the number of bytes written
    */
-  public int writeToVirtualMem(int bufferAddr,  byte[] data, int startIndex, boolean isEntryVPN, TranslationEntry pageTable[]){
+  public int writeToVirtualMem(int bufferAddr,  byte[] data, int startIndex, boolean isEntryVPN, TranslationEntry pageTable[], int length){
 	
-	int vOffset = (int) ((bufferAddr & LOW32BITS ) % Machine.PageSize);	//calculate virtual offset
+	int vOffset = 0;
 	int vpn;
 	
 	if(isEntryVPN){
 	    vpn = bufferAddr;
 	}
 	else {
-	    vpn = (int) ((bufferAddr & LOW32BITS) / Machine.PageSize);	//calculate virtual page number 
+	    vpn = (int) ((bufferAddr & LOW32BITS) / Machine.PageSize);		//calculate virtual page number 
+	    vOffset = (int) ((bufferAddr & LOW32BITS ) % Machine.PageSize);	//calculate virtual offset
 	}
 	
 	//check for page faults
@@ -247,7 +253,7 @@ public class AddrSpace {
 	int pAddr = (entry.physicalPage * Machine.PageSize) + vOffset; 		//entry.physicalPage is ppn or frame number
 										//paddr = ppn * pagesize + offset  basically calculating PFN::offset
 	
-	System.arraycopy(data, startIndex, Machine.mainMemory, pAddr, Machine.PageSize);	//copy data to main mem starting from the physical address calculated above
+	System.arraycopy(data, startIndex, Machine.mainMemory, pAddr, length);	//copy data to main mem starting from the physical address calculated above
 	return data.length;
   }
   
@@ -268,7 +274,7 @@ public class AddrSpace {
    * @return
    */
   protected int malloc(NoffSegment segment, OpenFile executable, boolean readOnly) {
-      
+     
       
       if(numPages <= Machine.NumPhysPages && numPages<=MemoryManager.freePagesList.size()){
 	  
@@ -297,7 +303,7 @@ public class AddrSpace {
 		entry.valid = true;
 		entry.readOnly = readOnly;
 		
-		writeToVirtualMem(bufferAddr, data, startIndex, false, pageTable);
+		writeToVirtualMem(bufferAddr, data, startIndex, false, pageTable, Machine.PageSize);
 		nextVPN++;
 	    }
 	  
@@ -311,6 +317,169 @@ public class AddrSpace {
       }
       
   }
+  
+  /**
+   * find segment(s) the segment that the page fault is happening at
+   * the noff header has the base of the virtual address and the we have the size of each segment
+   * so just check if the pageNumber (which is essentially a virtual address) falls in between the base vaddr of the segment and vaddr + numOfPages in segment
+   *  
+   * @return a list of segments:  returning a list in case the page fault is happening at a page boundary.
+   */
+  private List<NoffSegment> findSegmentsAtPageFault (int pageNumber, NoffHeader noffH) {
+      List<NoffSegment> segmentsToAllocate = new ArrayList<NoffSegment>();
+      
+      NoffSegment[] segments = {noffH.code, noffH.initData, noffH.uninitData};
+      
+      for(int i=0; i< segments.length; i++) {
+	  int baseVpn = (int )(segments[i].virtualAddr & LOW32BITS) / Machine.PageSize;;		//base virtual address of the segment
+	  long size = roundToPage(segments[i].size);	// number of pages in the segment
+	  int numOfPages = (int) (size/Machine.PageSize);
+	  
+	  if(pageNumber >= baseVpn && pageNumber < baseVpn + numOfPages) {
+	      segmentsToAllocate.add(segments[i]); // add the segment to list that needs to be allocated
+	      
+	      // check if it's the last page in segment and also check
+	      //if segment size is not a multiple of page size then it's at a page boundary
+	      if( segments[i].size % Machine.PageSize != 0 && 
+		      pageNumber == (baseVpn + numOfPages -1)){
+		  //since it's at a page boundary we also need to allocate the next segment
+		  if(segments[i+1] != null) {
+		      segmentsToAllocate.add(segments[i + 1]);	//so add the next segment to the list
+		  }
+	      }
+	      
+	      break;
+		  
+	  }
+      }
+      
+      return segmentsToAllocate;
+  }
+  
+  
+  /**
+   * dynamically allocate more pages for a segment
+   * faults on different address space segments are handled in different ways. 
+   * For example, a fault on a code page should read the corresponding code from the executable file, 
+   * a fault on a data page should read the corresponding data from the executable file, 
+   * and a fault on a stack frame should zero-fill the frame.
+   * 
+   * check for page boundaries and load both segments if that's the case
+   * @param pageNumber: page number the fault occurred at
+   * @param executable: the OpenFile Executable
+   * @return
+   */
+  public int demandMalloc (int virtAddr, OpenFile executable) {
+      int vpn = (int)(virtAddr & LOW32BITS) / Machine.PageSize;
+      NoffHeader noffH;
+      executable.seek(0);
+      if((noffH = NoffHeader.readHeader(executable)) == null){
+  	Debug.println('M', "Executable header is empty, allocating an empty page.");
+  	allocatePageTableEntry(vpn, false);
+  	return vpn;
+      }
+      
+      //get the segment(s) it's happening at
+      List<NoffSegment> segments = findSegmentsAtPageFault(vpn, noffH);
+      
+      boolean isReadOnly = false;
+      if(segments.size() > 0 && segments.get(0) == noffH.code)
+	isReadOnly = true;  
+      
+      // If vpn exceeds the pageTable, need to extend it
+      allocatePageTableEntry(vpn, isReadOnly);
+
+      // Read in the page from the disk
+      byte[] buf = new byte[Machine.PageSize];
+
+      // TODO Maybe ? handle the case if unitData is in the segments list
+      // no need to read in the unitData just zero fill
+
+      if (segments.size() == 1) {
+	  executable.seek(segments.get(0).inFileAddr + vpn * Machine.PageSize);
+	  executable.read(buf, 0, Machine.PageSize);
+      }
+
+      else if (segments.size() == 2) {
+	  int firstSegmentNumBytes = segments.get(0).size - vpn * Machine.PageSize;
+	  executable.seek(segments.get(0).inFileAddr + vpn * Machine.PageSize);
+	  executable.read(buf, 0, firstSegmentNumBytes);
+
+	  // Write to main memory
+	  int offset = (int) (virtAddr & LOW32BITS) % Machine.PageSize;
+	  int pAddr = pageTable[vpn].physicalPage * Machine.PageSize;
+	  System.arraycopy(buf, 0, Machine.mainMemory, pAddr, Machine.PageSize);
+
+	  // Get a free page for the next segment because this is a page boundary and we round the segments to page size
+	  vpn += 1;
+	  if(segments.get(1) == noffH.code)
+	      isReadOnly = true;
+	  else
+	      isReadOnly = false;
+	  
+	  allocatePageTableEntry(vpn, isReadOnly);
+	  buf = new byte[Machine.PageSize];
+	  executable.seek(segments.get(1).inFileAddr);
+	  if(segments.get(1).size > 0)
+	      executable.read(buf, 0, Machine.PageSize - firstSegmentNumBytes);
+
+	  // Write the next segment to main memory
+	  offset = (int) (virtAddr & LOW32BITS) % Machine.PageSize;
+	  pAddr = pageTable[vpn].physicalPage * Machine.PageSize;
+	  System.arraycopy(buf, 0, Machine.mainMemory, pAddr, Machine.PageSize);
+	  return vpn;
+      }
+
+      // Write to main memory
+      //int offset = (int) (virtAddr & LOW32BITS) % Machine.PageSize;
+      int pAddr = pageTable[vpn].physicalPage * Machine.PageSize;
+      System.arraycopy(buf, 0, Machine.mainMemory, pAddr, Machine.PageSize);
+
+      return vpn;
+  }
+  
+  /**
+   * 
+   * @param vpn
+   */
+  private void allocatePageTableEntry (int vpn, boolean isReadOnly) {
+      
+	//Get a free page for this address
+	MemoryManager.freePagesLock.acquire();
+	if(MemoryManager.freePagesList.size() <= 0){
+	    Debug.println('+', "No more free physical pages left! Not allocating page.");
+	    MemoryManager.freePagesLock.release();
+	    Syscall.exit(0);
+	    return;
+	}
+	
+	int freePageAddr= MemoryManager.freePagesList.removeFirst();
+	MemoryManager.freePagesLock.release();
+	
+	//Extend the pageTable
+	if (vpn >= numPages) {
+	    int newPages = vpn - numPages - 1;
+	    
+	    TranslationEntry newPageTable[] = new TranslationEntry[newPages];
+	    System.arraycopy(pageTable, 0, newPageTable, 0, numPages);
+	    pageTable = newPageTable;
+	    numPages += newPages;
+	    
+	}
+	
+	//Mark it as valid
+	pageTable[vpn].virtualPage = vpn;
+	pageTable[vpn].physicalPage = freePageAddr;
+	pageTable[vpn].valid = true;
+	pageTable[vpn].use = true;
+	pageTable[vpn].dirty = false;
+	pageTable[vpn].readOnly = isReadOnly;
+	
+	byte buffer[] = new byte[Machine.PageSize];
+	writeToVirtualMem(vpn, buffer, 0, true, pageTable, Machine.PageSize);
+  }
+  
+  
   /**
    * 
    */
@@ -398,8 +567,11 @@ public class AddrSpace {
 	    return -1;
 	} else if (!pageTable[(int) vpn].valid) {
 	    Debug.println('a', "virtual page # " + vpn + " not valid");
+	    UserThread curUserThrd = ((UserThread)NachosThread.currentThread());
+	    OpenFileEntry fileEntry = Syscall.findOpenFileEntry(curUserThrd.filename);
+	    demandMalloc(virtAddr, fileEntry.file);
 	    Simulation.stats.numPageFaults++;
-	    return -1;
+//	    return -1;
 	}
      entry = pageTable[(int)vpn];
 
@@ -433,15 +605,17 @@ public class AddrSpace {
 	byte[] memory = Machine.mainMemory;
 
 	int vpn;
+	int voffset = 0;
 	// address translationTranslationEntry page
 	if(isEntryVPN) {
 	    vpn = virtualAddress;
 	}
 	else {
-	    vpn = virtualAddress / Machine.PageSize;   
+	    vpn = virtualAddress / Machine.PageSize;  
+	    voffset = virtualAddress % Machine.PageSize;
 	}
 	
-	int voffset = virtualAddress % Machine.PageSize;
+	
 	TranslationEntry entry = pageTable[vpn];
 	entry.use = true;
 	int physicalAddress = entry.physicalPage * Machine.PageSize + voffset;
@@ -492,7 +666,7 @@ public class AddrSpace {
 	    newSpace.pageTable[i].readOnly = this.pageTable[i].readOnly;
 	    
 	   readVirtualMemory(this.pageTable[i].virtualPage, tmpBuffer, 0, Machine.PageSize, true);	//read in a page to tmpBuffer
-	   writeToVirtualMem(newSpace.pageTable[i].virtualPage, tmpBuffer, 0, true, newSpace.pageTable);			//write tmpBuffer's data to mem
+	   writeToVirtualMem(newSpace.pageTable[i].virtualPage, tmpBuffer, 0, true, newSpace.pageTable, Machine.PageSize);			//write tmpBuffer's data to mem
 	   
 	    //Print out pages for debug
 	    Debug.println('M', "Entry: " + i + ", vpn: "
@@ -509,6 +683,148 @@ public class AddrSpace {
 	
 	return newSpace;
 	
+    }
+    
+    /**
+     * Extends the address space by the file size. Used by mmap syscall.
+     * @param size
+     * @return  the size of the newly allocated region of address space
+     */
+    public int extend(long size){
+	int n = (int) roundToPage(size);	//number of pages to extend by
+	int N = n / Machine.PageSize;
+	int oldPageTableLength = pageTable.length;
+	
+	int newTotalPages = N + oldPageTableLength;
+	    
+	TranslationEntry newPageTable[] = new TranslationEntry[newTotalPages];
+	System.arraycopy(pageTable, 0, newPageTable, 0, numPages);
+	pageTable = newPageTable;
+	CPU.setPageTable(pageTable);
+	numPages = newTotalPages;
+	    
+	
+	for(int i = oldPageTableLength; i < newTotalPages; i++ ) {
+	    pageTable[i] = new TranslationEntry();
+	    pageTable[i].virtualPage = i;
+	    pageTable[i].physicalPage = -1; // these will get over written later
+					    // in malloc
+	    pageTable[i].valid = false;
+	    pageTable[i].use = false;
+	    pageTable[i].dirty = false;
+	    pageTable[i].readOnly = false;
+	}
+	
+	return N;	
+    }
+    
+    /**
+     * Will be called on Exit Syscall
+     * Removes MemMappedFile from the list in userthread
+     * writes back the memMappedFile to disk
+     * closes the file and removes it from openFileList
+     */
+    public void freeAllMappedFiles () {
+	Debug.println('+', "Writing back MemMappedFiles to DISK");
+	UserThread uThrd = (UserThread) NachosThread.currentThread();
+
+	for(MemMappedFile f: uThrd.mappedFiles) {
+	    freeMappedRegions(f.startAddr, f);	//free regions and write to file		
+	    
+	    OpenFileEntry fileEntry = Syscall.findOpenFileEntry(f.fileName);
+	    if(fileEntry != null)
+		Syscall.close(fileEntry.id);	//removes it from openFileList and close
+	}
+	
+	uThrd.mappedFiles = new LinkedList<MemMappedFile>();	//remove all from mappedfile list
+	
+    }
+    
+    /**
+     * free the regions mmap syscall allocated
+     * @param startAddr
+     * @param file
+     * @return
+     */
+    public void freeMappedRegions (int startAddr, MemMappedFile file) {
+	long size = roundToPage(file.allocatedSize);
+	int allocatedPages = (int)(size / Machine.PageSize);
+	int startVpn = startAddr / Machine.PageSize;
+	for(int i = startVpn; i < startVpn + allocatedPages; i++) {
+	    
+	    if(pageTable[i].physicalPage != -1){
+		
+		if(pageTable[i].dirty){
+		    OpenFileEntry openF = Syscall.findOpenFileEntry(file.fileName);
+		    if(openF != null){
+			
+			OpenFile oFile = openF.file;
+
+			byte buf[] = new byte[Machine.PageSize];
+
+			readVirtualMemory(pageTable[i].virtualPage, buf, 0,
+				Machine.PageSize, true);
+			oFile.writeAt(buf, 0, Machine.PageSize, i - startVpn);
+		    }
+		}
+		
+		// Put the physcial page back in the free page list
+		MemoryManager.freePagesLock.acquire();
+		MemoryManager.freePagesList.add(pageTable[i].physicalPage);
+		MemoryManager.freePagesLock.release();
+	    }
+	    
+	    
+	    //Set the page entry to invalid
+	    pageTable[i].virtualPage = i;
+	    pageTable[i].physicalPage = -1; // these will get over written later
+					    // in malloc
+	    pageTable[i].valid = false;
+	    pageTable[i].use = false;
+	    pageTable[i].dirty = false;
+	    pageTable[i].readOnly = false; 
+
+	}
+	
+	//Decrease numPages
+	numPages -= file.allocatedSize;
+	
+    }
+
+    /**
+     * Function called on a page fault to obtain the correct file on which the page fault occured.
+     * @param vAddr
+     * @return
+     */
+    public OpenFileEntry findFile(int vAddr) {
+	int vpn = vAddr / Machine.PageSize;
+	UserThread uThrd = (UserThread)NachosThread.currentThread();
+	OpenFileEntry ofe = null;
+	
+	//Search for the file in the memory mapped list
+	for(MemMappedFile f: uThrd.mappedFiles){
+	    int startVpn = f.startAddr / Machine.PageSize;
+	    
+	    //If the vpn falls between the pages of the mapped file, return that file
+	    if(startVpn <= vpn && vpn <startVpn + f.allocatedSize){
+		ofe = Syscall.findOpenFileEntry(f.fileName);
+		Debug.ASSERT(ofe != null); //Entry should never be null since we open all memory mapped files
+		break;
+	    }
+	}
+	
+	//If not found, check if its the file of the running thread
+	if(ofe == null){
+	    //Get the file of the current thread
+	    OpenFileEntry fileEntry = Syscall.findOpenFileEntry(uThrd.filename);
+	    if(vpn >=0 && vpn < numPages)
+		ofe = fileEntry;
+	}
+	
+	//If no ofe found, the page fault was on an unallocated address in main memory.
+	Debug.ASSERT(ofe != null);
+	
+	return ofe;
     }
  
 }
